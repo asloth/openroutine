@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openroutine.app/schemas/v1/routine.schema.json",
+  "title": "Routine",
+  "description": "A user-defined routine: an ordered list of steps, optionally attached to a trigger and a day/time schedule. See docs/SPEC.md §4.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Not explicitly bounded in docs/SPEC.md §4; capped here as a sanity limit (Step.name is the spec-mandated ≤50)."
+    },
+    "trigger_id": {
+      "oneOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }]
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "mode": { "enum": ["scheduled", "flexible"] },
+        "days": {
+          "type": "array",
+          "items": {
+            "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+          },
+          "uniqueItems": true
+        },
+        "start_time": {
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+          "description": "24-hour local time, HH:MM."
+        }
+      },
+      "required": ["mode"]
+    },
+    "step_ids": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/uuid" },
+      "description": "Ordered list of Step IDs belonging to this routine."
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Bump on every write. Sync conflict resolution is last-writer-wins by this field — see docs/SPEC.md §5."
+    },
+    "deleted_at": {
+      "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+      "description": "Soft delete marker. Never hard-delete routines — see docs/SPEC.md §5."
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "trigger_id",
+    "schedule",
+    "step_ids",
+    "created_at",
+    "updated_at"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "UUIDv7 (time-sortable) per docs/SPEC.md §4."
+    }
+  }
+}

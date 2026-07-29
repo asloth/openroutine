@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openroutine.app/schemas/v1/export.schema.json",
+  "title": "Export",
+  "description": "Top-level shape for both routines.json (Drive sync) and Import/Export files (docs/SPEC.md §10). A single-routine export uses the same shape with one entry in 'routines' plus its referenced steps and trigger. One format everywhere: whatever Export produces, Import accepts.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver. See docs/SPEC.md §4 'Schema versioning' — additive changes bump minor, breaking changes bump major."
+    },
+    "exported_at": { "type": "string", "format": "date-time" },
+    "routines": {
+      "type": "array",
+      "items": { "$ref": "routine.schema.json" }
+    },
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "step.schema.json" }
+    },
+    "triggers": {
+      "type": "array",
+      "items": { "$ref": "trigger.schema.json" }
+    }
+  },
+  "required": ["schema_version", "exported_at", "routines", "steps", "triggers"]
+}

@@ -1,10 +1,39 @@
 {
   "version": 1,
-  "_comment": "Hardcoded seed list for the 'Add step' template picker (docs/SPEC.md §7, screen 5). Stub only for M1 — real template steps are populated in M2.",
+  "_comment": "Seed list for the 'Add step' template picker (docs/SPEC.md §7, screen 5). Each entry matches the Step schema shape minus id/routine_id/order, which are assigned when a user picks a template. Display names resolve through ARB key stepTemplate<Id> in app/lib/l10n/ (see StepFormScreen.templateStepName), per §13's no-hardcoded-strings rule — this file stores only the id/emoji/duration/no_explicit_time.",
   "templates": [
-    { "id": "morning", "steps": [] },
-    { "id": "evening", "steps": [] },
-    { "id": "study", "steps": [] },
-    { "id": "selfcare", "steps": [] }
+    {
+      "id": "morning",
+      "steps": [
+        { "id": "brushTeeth", "emoji": "🪥", "duration_seconds": 180, "no_explicit_time": false },
+        { "id": "shower", "emoji": "🚿", "duration_seconds": 300, "no_explicit_time": false },
+        { "id": "makeBed", "emoji": "🛏️", "duration_seconds": 120, "no_explicit_time": false },
+        { "id": "breakfast", "emoji": "🍳", "duration_seconds": 600, "no_explicit_time": false }
+      ]
+    },
+    {
+      "id": "evening",
+      "steps": [
+        { "id": "skincare", "emoji": "🧴", "duration_seconds": 300, "no_explicit_time": false },
+        { "id": "read", "emoji": "📖", "duration_seconds": null, "no_explicit_time": true },
+        { "id": "windDown", "emoji": "🌙", "duration_seconds": 120, "no_explicit_time": false }
+      ]
+    },
+    {
+      "id": "study",
+      "steps": [
+        { "id": "focusBlock", "emoji": "📚", "duration_seconds": 1500, "no_explicit_time": false },
+        { "id": "reviewNotes", "emoji": "📝", "duration_seconds": 600, "no_explicit_time": false },
+        { "id": "setGoals", "emoji": "🎯", "duration_seconds": null, "no_explicit_time": true }
+      ]
+    },
+    {
+      "id": "selfcare",
+      "steps": [
+        { "id": "meditate", "emoji": "🧘", "duration_seconds": 600, "no_explicit_time": false },
+        { "id": "bath", "emoji": "🛁", "duration_seconds": null, "no_explicit_time": true },
+        { "id": "nails", "emoji": "💅", "duration_seconds": null, "no_explicit_time": true }
+      ]
+    }
   ]
 }

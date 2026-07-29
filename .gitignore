@@ -11,6 +11,12 @@
 **/gen_l10n_inputs_and_outputs.json
 app/lib/l10n/app_localizations*.dart
 
+# Generated code (freezed, json_serializable, riverpod_generator, drift).
+# Regenerated in CI via build_runner before analyze/test — same treatment
+# as the generated l10n files above.
+app/lib/**/*.freezed.dart
+app/lib/**/*.g.dart
+
 # App package lockfiles ARE committed for reproducible builds (do not ignore):
 # app/pubspec.lock
 

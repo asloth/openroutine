@@ -1,25 +1,36 @@
-// M1 smoke test: the skeleton app boots, wires up Riverpod + go_router +
-// localizations, and renders the placeholder screen's localized strings.
-// Real screen tests land alongside their screens starting in M2.
+// M2 smoke test: the app boots with a mocked SharedPreferences, redirects a
+// fresh install to onboarding (onboardingComplete defaults to false), and
+// the onboarding screen renders its first slide. Per-screen behavior is
+// covered by the tests alongside each screen; this just proves the whole
+// app wires together — routing, redirect, localization, and Riverpod.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/main.dart';
+import 'package:openroutine/state/app_prefs_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('renders the localized app title and placeholder message', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const ProviderScope(child: OpenRoutineApp()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'a fresh install redirects to onboarding and shows the first slide',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
 
-    final context = tester.element(find.byType(Scaffold));
-    final l10n = AppLocalizations.of(context)!;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: const OpenRoutineApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text(l10n.appTitle), findsWidgets);
-    expect(find.text(l10n.skeletonPlaceholderMessage), findsOneWidget);
-  });
+      final context = tester.element(find.byType(Scaffold).first);
+      final l10n = AppLocalizations.of(context)!;
+
+      expect(find.text(l10n.onboardingSlide1Title), findsOneWidget);
+    },
+  );
 }

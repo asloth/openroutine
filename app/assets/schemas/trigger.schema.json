@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openroutine.app/schemas/v1/trigger.schema.json",
+  "title": "Trigger",
+  "description": "The event a routine is attached to (e.g. 'Waking up'). See docs/SPEC.md §4.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "kind": {
+      "enum": ["manual"],
+      "description": "Only 'manual' is valid in schema v1. 'time', 'location', and 'calendar_event' are reserved for v2 — see docs/SPEC.md §4. Clients on v1 must ignore unrecognized kind values rather than reject the file."
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["id", "name", "kind", "created_at", "updated_at"],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "UUIDv7 (time-sortable) per docs/SPEC.md §4."
+    }
+  }
+}

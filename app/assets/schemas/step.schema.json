@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openroutine.app/schemas/v1/step.schema.json",
+  "title": "Step",
+  "description": "A single step within a routine. See docs/SPEC.md §4.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "routine_id": { "$ref": "#/$defs/uuid" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+    "emoji": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 16,
+      "description": "A single grapheme (e.g. '🪥', or a multi-codepoint ZWJ sequence). JSON Schema cannot count grapheme clusters, so this only bounds byte length loosely — the app enforces single-grapheme input at write time."
+    },
+    "duration_seconds": {
+      "description": "Null iff no_explicit_time is true — see the if/then/else below.",
+      "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Zero-based position within the routine's step_ids."
+    },
+    "no_explicit_time": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Bump on every write — see docs/SPEC.md §5."
+    },
+    "deleted_at": {
+      "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    }
+  },
+  "required": [
+    "id",
+    "routine_id",
+    "name",
+    "emoji",
+    "duration_seconds",
+    "order",
+    "no_explicit_time",
+    "created_at",
+    "updated_at"
+  ],
+  "if": {
+    "properties": { "no_explicit_time": { "const": true } },
+    "required": ["no_explicit_time"]
+  },
+  "then": {
+    "properties": { "duration_seconds": { "const": null } }
+  },
+  "else": {
+    "properties": { "duration_seconds": { "type": "integer", "minimum": 1 } }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "UUIDv7 (time-sortable) per docs/SPEC.md §4."
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openroutine.app/schemas/v1/completion.schema.json",
+  "title": "CompletionLog",
+  "description": "An append-only record of a single Timer Mode run through a routine. Written to completions/YYYY-MM.ndjson, one JSON object per line. See docs/SPEC.md §4 and §5.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "routine_id": { "$ref": "#/$defs/uuid" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "outcome": { "enum": ["completed", "abandoned"] },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "step_id": { "$ref": "#/$defs/uuid" },
+          "state": { "enum": ["completed", "skipped", "overrun"] },
+          "actual_duration_seconds": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["step_id", "state", "actual_duration_seconds"]
+      }
+    }
+  },
+  "required": ["id", "routine_id", "started_at", "ended_at", "outcome", "steps"],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "UUIDv7 (time-sortable) per docs/SPEC.md §4."
+    }
+  }
+}

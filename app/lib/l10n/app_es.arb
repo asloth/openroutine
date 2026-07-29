@@ -3,8 +3,6 @@
 
   "appTitle": "OpenRoutine",
 
-  "skeletonPlaceholderMessage": "OpenRoutine — versión esqueleto. Las pantallas llegan en M2.",
-
   "connectGoogleDrive": "Conectar Google Drive",
 
   "googleDriveConnected": "Conectado",
@@ -21,5 +19,172 @@
 
   "emojiCategoryWork": "Trabajo",
 
-  "emojiCategoryHome": "Hogar"
+  "emojiCategoryHome": "Hogar",
+
+  "comingSoon": "Próximamente",
+
+  "onboardingSkip": "Omitir",
+
+  "onboardingNext": "Siguiente",
+
+  "onboardingGetStarted": "Comenzar",
+
+  "onboardingSlide1Title": "Tus rutinas, tus datos",
+
+  "onboardingSlide1Body": "Las rutinas se guardan como archivos JSON en tu propio Google Drive, o totalmente sin conexión en este dispositivo. No se necesita cuenta.",
+
+  "onboardingSlide2Title": "Modo cronómetro",
+
+  "onboardingSlide2Body": "Sigue tu rutina paso a paso, con un cronómetro para cada uno.",
+
+  "onboardingSlide3Title": "Cualquier agente de IA puede ayudar",
+
+  "onboardingSlide3Body": "Claude, Codex o cualquier agente con acceso a Drive puede leer tus rutinas y ayudarte a mejorarlas.",
+
+  "onboardingStorageChoiceTitle": "¿Dónde deben vivir tus rutinas?",
+
+  "onboardingStorageChoiceBody": "Puedes cambiar esto más tarde en Configuración.",
+
+  "onboardingStorageLocalDescription": "Funciona completamente sin conexión. No se necesita cuenta.",
+
+  "onboardingStorageDriveDescription": "Sincroniza tus rutinas con tu propio Google Drive.",
+
+  "routinesTabScheduled": "Programadas",
+
+  "routinesTabFlexible": "Flexibles",
+
+  "routinesMenuImport": "Importar",
+
+  "routinesMenuSettings": "Configuración",
+
+  "routinesNewRoutine": "Nueva rutina",
+
+  "routinesNoTrigger": "Sin disparador",
+
+  "routinesEmptyScheduled": "Aún no hay rutinas programadas. Toca + para crear una.",
+
+  "routinesEmptyFlexible": "Aún no hay rutinas flexibles. Toca + para crear una.",
+
+  "routinesLoadError": "No se pudieron cargar tus rutinas. Intenta reiniciar la app.",
+
+  "routinesStepCount": "{count, plural, =0{Sin pasos} =1{1 paso} other{{count} pasos}}",
+  "@routinesStepCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "commonCancel": "Cancelar",
+  "commonAdd": "Añadir",
+  "commonSave": "Guardar",
+  "commonDelete": "Eliminar",
+
+  "dayMon": "Lun",
+  "dayTue": "Mar",
+  "dayWed": "Mié",
+  "dayThu": "Jue",
+  "dayFri": "Vie",
+  "daySat": "Sáb",
+  "daySun": "Dom",
+
+  "routineFormCreateTitle": "Nueva rutina",
+  "routineFormEditTitle": "Editar rutina",
+  "routineFormNameLabel": "Nombre",
+  "routineFormNameRequired": "El nombre es obligatorio",
+  "routineFormTriggerLabel": "Disparador",
+  "routineFormNewTriggerTitle": "Nuevo disparador",
+  "routineFormTriggerName": "Nombre del disparador",
+  "routineFormStartTimeLabel": "Hora de inicio",
+  "routineFormStartTimeUnset": "Sin definir",
+
+  "commonEdit": "Editar",
+
+  "routineDetailShare": "Compartir",
+  "routineDetailEstimatedFinish": "Tiempo estimado",
+  "routineDetailNoEstimate": "Sin pasos cronometrados",
+  "routineDetailEstimateMinutes": "{minutes, plural, =1{~1 min} other{~{minutes} min}}",
+  "@routineDetailEstimateMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "routineDetailHistory": "Últimos 7 días",
+  "routineDetailNoHistoryYet": "Aún no hay historial",
+  "routineDetailStartTimer": "Iniciar cronómetro",
+  "routineDetailTimerComingSoon": "El modo cronómetro llegará pronto",
+  "routineDetailSteps": "Pasos",
+  "routineDetailAddStep": "Añadir paso",
+  "routineDetailNoSteps": "Aún no hay pasos. Toca \"Añadir paso\" para agregar uno.",
+  "routineDetailNoExplicitTime": "Sin hora definida",
+  "routineDetailDeleteConfirmTitle": "¿Eliminar esta rutina?",
+  "routineDetailDeleteConfirmBody": "Esto no se puede deshacer desde la app, aunque los datos no se borran de forma permanente de inmediato.",
+  "stepDurationMinutes": "{minutes, plural, =1{1 min} other{{minutes} min}}",
+  "@stepDurationMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+
+  "stepFormAddTitle": "Añadir paso",
+  "stepFormEditTitle": "Editar paso",
+  "stepFormTemplatesLabel": "Plantillas",
+  "stepFormNameLabel": "Nombre",
+  "stepFormNameRequired": "El nombre es obligatorio",
+  "stepFormEmojiRequired": "Elige un emoji para este paso",
+  "stepFormNoExplicitTime": "Sin hora definida",
+  "stepFormDurationLabel": "Duración",
+  "stepFormDeleteConfirmTitle": "¿Eliminar este paso?",
+
+  "stepTemplateCategoryMorning": "Mañana",
+  "stepTemplateCategoryEvening": "Noche",
+  "stepTemplateCategoryStudy": "Estudio",
+  "stepTemplateCategorySelfcare": "Cuidado personal",
+
+  "stepTemplateBrushTeeth": "Cepillarme los dientes",
+  "stepTemplateShower": "Ducharme",
+  "stepTemplateMakeBed": "Hacer la cama",
+  "stepTemplateBreakfast": "Desayunar",
+  "stepTemplateSkincare": "Rutina de cuidado facial",
+  "stepTemplateRead": "Leer",
+  "stepTemplateWindDown": "Relajarme",
+  "stepTemplateFocusBlock": "Bloque de concentración",
+  "stepTemplateReviewNotes": "Repasar apuntes",
+  "stepTemplateSetGoals": "Definir la meta de hoy",
+  "stepTemplateMeditate": "Meditar",
+  "stepTemplateBath": "Darme un baño",
+  "stepTemplateNails": "Hacerme las uñas",
+
+  "importTitle": "Importar",
+  "importIntro": "Elige un archivo JSON exportado desde OpenRoutine (o escrito por un agente de IA) para importar.",
+  "importChooseFile": "Elegir archivo",
+  "importErrorInvalidJson": "Ese archivo no es JSON válido.",
+  "importErrorSchemaViolation": "Ese archivo no coincide con el esquema de OpenRoutine. Consulta schemas/ en el repositorio para ver el formato esperado.",
+  "importSuccess": "Importación completa.",
+  "importPreviewTitle": "Qué va a cambiar",
+  "importPreviewEmpty": "Nada que importar: todo en este archivo ya está actualizado.",
+  "importPreviewRoutines": "Rutinas: {newCount} nuevas, {updatedCount} actualizadas",
+  "@importPreviewRoutines": {
+    "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
+  },
+  "importPreviewSteps": "Pasos: {newCount} nuevos, {updatedCount} actualizados",
+  "@importPreviewSteps": {
+    "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
+  },
+  "importPreviewTriggers": "Disparadores: {newCount} nuevos, {updatedCount} actualizados",
+  "@importPreviewTriggers": {
+    "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
+  },
+  "importConfirm": "Confirmar importación",
+
+  "settingsStorageSection": "Almacenamiento",
+  "settingsLanguageSection": "Idioma",
+  "settingsDataSection": "Datos",
+  "settingsAboutSection": "Acerca de",
+  "settingsLanguage": "Idioma",
+  "settingsLanguageSystem": "Predeterminado del sistema",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageSpanish": "Español",
+  "settingsExportAll": "Exportar todo",
+  "settingsVersion": "Versión {version} ({buildNumber})",
+  "@settingsVersion": {
+    "placeholders": { "version": { "type": "String" }, "buildNumber": { "type": "String" } }
+  },
+  "settingsViewOnGitHub": "Ver en GitHub",
+  "settingsAgentDocs": "Documentación para agentes"
 }

@@ -31,12 +31,18 @@ jobs:
       - name: Generate localizations
         run: flutter gen-l10n
 
+      # Freezed/json_serializable/drift/riverpod codegen — M2 onward has
+      # annotated sources. Generated files are gitignored (same treatment as
+      # the l10n output above), so this must run before analyze/test.
+      - name: Generate code
+        run: dart run build_runner build
+
       - name: Analyze
         run: flutter analyze --fatal-infos
 
       - name: Test
         run: flutter test
 
-      # M1 intentionally stops at analyze + test. §15.12 also wants APK/IPA
+      # Intentionally stops at analyze + test. §15.12 also wants APK/IPA
       # builds on every PR, but those need signing config we don't have yet —
       # deferred until M4/M6.

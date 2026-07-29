@@ -6,11 +6,6 @@
     "description": "The application's display name, shown in the OS app switcher and as the default screen title."
   },
 
-  "skeletonPlaceholderMessage": "OpenRoutine — skeleton build. Screens land in M2.",
-  "@skeletonPlaceholderMessage": {
-    "description": "Placeholder text shown on the single M1 scaffold screen, before any real UI exists."
-  },
-
   "connectGoogleDrive": "Connect Google Drive",
   "@connectGoogleDrive": {
     "description": "Button label to link a Google Drive account as the storage backend. Must never say 'Sign in' — see docs/SPEC.md §15.3."
@@ -54,5 +49,242 @@
   "emojiCategoryHome": "Home",
   "@emojiCategoryHome": {
     "description": "Emoji picker category label for household and home emojis."
-  }
+  },
+
+  "comingSoon": "Coming soon",
+  "@comingSoon": {
+    "description": "Small badge on a not-yet-functional option, e.g. the Google Drive storage choice in M2."
+  },
+
+  "onboardingSkip": "Skip",
+  "@onboardingSkip": {
+    "description": "Button to skip the onboarding slides and go straight to the app."
+  },
+
+  "onboardingNext": "Next",
+  "@onboardingNext": {
+    "description": "Button to advance to the next onboarding slide."
+  },
+
+  "onboardingGetStarted": "Get started",
+  "@onboardingGetStarted": {
+    "description": "Button on the final onboarding page that completes onboarding and enters the app."
+  },
+
+  "onboardingSlide1Title": "Your routines, your data",
+  "@onboardingSlide1Title": {
+    "description": "Onboarding slide 1 headline."
+  },
+
+  "onboardingSlide1Body": "Routines live as plain JSON files in your own Google Drive — or fully offline on this device. No account required.",
+  "@onboardingSlide1Body": {
+    "description": "Onboarding slide 1 body text."
+  },
+
+  "onboardingSlide2Title": "Timer Mode",
+  "@onboardingSlide2Title": {
+    "description": "Onboarding slide 2 headline."
+  },
+
+  "onboardingSlide2Body": "Guide yourself through a routine one step at a time, with a timer for each one.",
+  "@onboardingSlide2Body": {
+    "description": "Onboarding slide 2 body text."
+  },
+
+  "onboardingSlide3Title": "Any AI agent can help",
+  "@onboardingSlide3Title": {
+    "description": "Onboarding slide 3 headline."
+  },
+
+  "onboardingSlide3Body": "Claude, Codex, or any agent with Drive access can read your routines and help you improve them.",
+  "@onboardingSlide3Body": {
+    "description": "Onboarding slide 3 body text."
+  },
+
+  "onboardingStorageChoiceTitle": "Where should your routines live?",
+  "@onboardingStorageChoiceTitle": {
+    "description": "Headline on the storage-choice onboarding page."
+  },
+
+  "onboardingStorageChoiceBody": "You can change this later in Settings.",
+  "@onboardingStorageChoiceBody": {
+    "description": "Body text on the storage-choice onboarding page."
+  },
+
+  "onboardingStorageLocalDescription": "Works fully offline. No account needed.",
+  "@onboardingStorageLocalDescription": {
+    "description": "Subtitle explaining the Local only storage option."
+  },
+
+  "onboardingStorageDriveDescription": "Sync your routines to your own Google Drive.",
+  "@onboardingStorageDriveDescription": {
+    "description": "Subtitle explaining the Google Drive storage option."
+  },
+
+  "routinesTabScheduled": "Scheduled",
+  "@routinesTabScheduled": {
+    "description": "Tab label for routines with schedule.mode == scheduled."
+  },
+
+  "routinesTabFlexible": "Flexible",
+  "@routinesTabFlexible": {
+    "description": "Tab label for routines with schedule.mode == flexible."
+  },
+
+  "routinesMenuImport": "Import",
+  "@routinesMenuImport": {
+    "description": "Overflow menu item on the routines list, opens the Import screen."
+  },
+
+  "routinesMenuSettings": "Settings",
+  "@routinesMenuSettings": {
+    "description": "Overflow menu item on the routines list, opens the Settings screen."
+  },
+
+  "routinesNewRoutine": "New routine",
+  "@routinesNewRoutine": {
+    "description": "Tooltip/label for the FAB that creates a new routine."
+  },
+
+  "routinesNoTrigger": "No trigger",
+  "@routinesNoTrigger": {
+    "description": "Section header for routines with no trigger_id set."
+  },
+
+  "routinesEmptyScheduled": "No scheduled routines yet. Tap + to create one.",
+  "@routinesEmptyScheduled": {
+    "description": "Empty state for the Scheduled tab."
+  },
+
+  "routinesEmptyFlexible": "No flexible routines yet. Tap + to create one.",
+  "@routinesEmptyFlexible": {
+    "description": "Empty state for the Flexible tab."
+  },
+
+  "routinesLoadError": "Couldn't load your routines. Try restarting the app.",
+  "@routinesLoadError": {
+    "description": "Shown if the routines stream emits an error."
+  },
+
+  "routinesStepCount": "{count, plural, =0{No steps} =1{1 step} other{{count} steps}}",
+  "@routinesStepCount": {
+    "description": "Step count subtitle on a routine list item.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "commonCancel": "Cancel",
+  "commonAdd": "Add",
+  "commonSave": "Save",
+  "commonDelete": "Delete",
+
+  "dayMon": "Mon",
+  "dayTue": "Tue",
+  "dayWed": "Wed",
+  "dayThu": "Thu",
+  "dayFri": "Fri",
+  "daySat": "Sat",
+  "daySun": "Sun",
+
+  "routineFormCreateTitle": "New routine",
+  "routineFormEditTitle": "Edit routine",
+  "routineFormNameLabel": "Name",
+  "routineFormNameRequired": "Name is required",
+  "routineFormTriggerLabel": "Trigger",
+  "routineFormNewTriggerTitle": "New trigger",
+  "routineFormTriggerName": "Trigger name",
+  "routineFormStartTimeLabel": "Start time",
+  "routineFormStartTimeUnset": "Not set",
+
+  "commonEdit": "Edit",
+
+  "routineDetailShare": "Share",
+  "routineDetailEstimatedFinish": "Estimated time",
+  "routineDetailNoEstimate": "No timed steps",
+  "routineDetailEstimateMinutes": "{minutes, plural, =1{~1 min} other{~{minutes} min}}",
+  "@routineDetailEstimateMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "routineDetailHistory": "Last 7 days",
+  "routineDetailNoHistoryYet": "No history yet",
+  "routineDetailStartTimer": "Start Timer",
+  "routineDetailTimerComingSoon": "Timer Mode is coming soon",
+  "routineDetailSteps": "Steps",
+  "routineDetailAddStep": "Add step",
+  "routineDetailNoSteps": "No steps yet. Tap \"Add step\" to add one.",
+  "routineDetailNoExplicitTime": "No set time",
+  "routineDetailDeleteConfirmTitle": "Delete this routine?",
+  "routineDetailDeleteConfirmBody": "This can't be undone from within the app, though the data isn't permanently erased right away.",
+  "stepDurationMinutes": "{minutes, plural, =1{1 min} other{{minutes} min}}",
+  "@stepDurationMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+
+  "stepFormAddTitle": "Add step",
+  "stepFormEditTitle": "Edit step",
+  "stepFormTemplatesLabel": "Templates",
+  "stepFormNameLabel": "Name",
+  "stepFormNameRequired": "Name is required",
+  "stepFormEmojiRequired": "Pick an emoji for this step",
+  "stepFormNoExplicitTime": "No explicit time",
+  "stepFormDurationLabel": "Duration",
+  "stepFormDeleteConfirmTitle": "Delete this step?",
+
+  "stepTemplateCategoryMorning": "Morning",
+  "stepTemplateCategoryEvening": "Evening",
+  "stepTemplateCategoryStudy": "Study",
+  "stepTemplateCategorySelfcare": "Selfcare",
+
+  "stepTemplateBrushTeeth": "Brush my teeth",
+  "stepTemplateShower": "Shower",
+  "stepTemplateMakeBed": "Make my bed",
+  "stepTemplateBreakfast": "Eat breakfast",
+  "stepTemplateSkincare": "Skincare routine",
+  "stepTemplateRead": "Read",
+  "stepTemplateWindDown": "Wind down",
+  "stepTemplateFocusBlock": "Focus block",
+  "stepTemplateReviewNotes": "Review notes",
+  "stepTemplateSetGoals": "Set today's goal",
+  "stepTemplateMeditate": "Meditate",
+  "stepTemplateBath": "Take a bath",
+  "stepTemplateNails": "Do my nails",
+
+  "importTitle": "Import",
+  "importIntro": "Choose a JSON file exported from OpenRoutine (or written by an AI agent) to import.",
+  "importChooseFile": "Choose file",
+  "importErrorInvalidJson": "That file isn't valid JSON.",
+  "importErrorSchemaViolation": "That file doesn't match the OpenRoutine schema. See schemas/ in the repo for the expected format.",
+  "importSuccess": "Import complete.",
+  "importPreviewTitle": "What will change",
+  "importPreviewEmpty": "Nothing to import — everything in this file is already up to date.",
+  "importPreviewRoutines": "Routines: {newCount} new, {updatedCount} updated",
+  "@importPreviewRoutines": {
+    "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
+  },
+  "importPreviewSteps": "Steps: {newCount} new, {updatedCount} updated",
+  "@importPreviewSteps": {
+    "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
+  },
+  "importPreviewTriggers": "Triggers: {newCount} new, {updatedCount} updated",
+  "@importPreviewTriggers": {
+    "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
+  },
+  "importConfirm": "Confirm import",
+
+  "settingsStorageSection": "Storage",
+  "settingsLanguageSection": "Language",
+  "settingsDataSection": "Data",
+  "settingsAboutSection": "About",
+  "settingsLanguage": "Language",
+  "settingsLanguageSystem": "System default",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageSpanish": "Español",
+  "settingsExportAll": "Export all",
+  "settingsVersion": "Version {version} ({buildNumber})",
+  "@settingsVersion": {
+    "placeholders": { "version": { "type": "String" }, "buildNumber": { "type": "String" } }
+  },
+  "settingsViewOnGitHub": "View on GitHub",
+  "settingsAgentDocs": "Agent integration docs"
 }
