@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "_comment": "Curated ~60-emoji set for the step emoji picker (docs/SPEC.md §7, screen 6). Category display labels are NOT stored here — they resolve through ARB keys emojiCategory<Id> in app/lib/l10n/, per §13's no-hardcoded-strings rule.",
+  "categories": [
+    {
+      "id": "activities",
+      "emojis": ["🏃", "🚶", "🚴", "🏋️", "🧗", "🎨", "📖", "🎸", "🧩", "🎮", "⚽", "🚗"]
+    },
+    {
+      "id": "food",
+      "emojis": ["🍎", "🥗", "🍳", "☕", "🍵", "🥤", "🍽️", "🥪", "🍲", "🧃", "🥑", "🍇"]
+    },
+    {
+      "id": "self_care",
+      "emojis": ["🪥", "🚿", "🧴", "🧖", "💊", "🛁", "😴", "🧼", "🪒", "💅", "🧘", "🌙"]
+    },
+    {
+      "id": "work",
+      "emojis": ["💻", "📝", "📧", "📅", "📊", "🖊️", "📞", "🗂️", "⏰", "🎯", "📚", "✅"]
+    },
+    {
+      "id": "home",
+      "emojis": ["🏠", "🧹", "🧺", "🧽", "🪴", "🛏️", "🗑️", "🐶", "🧻", "🔑", "🪟", "🛒"]
+    }
+  ]
+}

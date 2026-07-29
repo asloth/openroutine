@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "_comment": "Hardcoded seed list for the 'Add step' template picker (docs/SPEC.md §7, screen 5). Stub only for M1 — real template steps are populated in M2.",
+  "templates": [
+    { "id": "morning", "steps": [] },
+    { "id": "evening", "steps": [] },
+    { "id": "study", "steps": [] },
+    { "id": "selfcare", "steps": [] }
+  ]
+}

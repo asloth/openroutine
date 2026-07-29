@@ -1,0 +1,58 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "OpenRoutine",
+  "@appTitle": {
+    "description": "The application's display name, shown in the OS app switcher and as the default screen title."
+  },
+
+  "skeletonPlaceholderMessage": "OpenRoutine — skeleton build. Screens land in M2.",
+  "@skeletonPlaceholderMessage": {
+    "description": "Placeholder text shown on the single M1 scaffold screen, before any real UI exists."
+  },
+
+  "connectGoogleDrive": "Connect Google Drive",
+  "@connectGoogleDrive": {
+    "description": "Button label to link a Google Drive account as the storage backend. Must never say 'Sign in' — see docs/SPEC.md §15.3."
+  },
+
+  "googleDriveConnected": "Connected",
+  "@googleDriveConnected": {
+    "description": "Status label shown once Google Drive has been linked as the storage backend."
+  },
+
+  "storageModeLocalOnly": "Local only",
+  "@storageModeLocalOnly": {
+    "description": "Storage backend option: routines are kept only on this device."
+  },
+
+  "storageModeGoogleDrive": "Google Drive",
+  "@storageModeGoogleDrive": {
+    "description": "Storage backend option: routines sync to the user's own Google Drive."
+  },
+
+  "emojiCategoryActivities": "Activities",
+  "@emojiCategoryActivities": {
+    "description": "Emoji picker category label for activity-themed emojis (exercise, hobbies, errands)."
+  },
+
+  "emojiCategoryFood": "Food",
+  "@emojiCategoryFood": {
+    "description": "Emoji picker category label for food and drink emojis."
+  },
+
+  "emojiCategorySelfCare": "Self-care",
+  "@emojiCategorySelfCare": {
+    "description": "Emoji picker category label for hygiene, wellness, and self-care emojis."
+  },
+
+  "emojiCategoryWork": "Work",
+  "@emojiCategoryWork": {
+    "description": "Emoji picker category label for work and study emojis."
+  },
+
+  "emojiCategoryHome": "Home",
+  "@emojiCategoryHome": {
+    "description": "Emoji picker category label for household and home emojis."
+  }
+}

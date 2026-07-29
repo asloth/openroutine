@@ -1,0 +1,42 @@
+name: Flutter CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the exact Flutter version this repo develops against, so CI
+      # resolves the same dependency graph as local dev (see the "Dependency
+      # notes" comment in app/pubspec.yaml for why several deps are held back
+      # from latest). Bump deliberately, in its own PR.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.4
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      # M1 intentionally stops at analyze + test. §15.12 also wants APK/IPA
+      # builds on every PR, but those need signing config we don't have yet —
+      # deferred until M4/M6.

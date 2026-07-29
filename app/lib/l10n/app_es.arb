@@ -1,0 +1,25 @@
+{
+  "@@locale": "es",
+
+  "appTitle": "OpenRoutine",
+
+  "skeletonPlaceholderMessage": "OpenRoutine — versión esqueleto. Las pantallas llegan en M2.",
+
+  "connectGoogleDrive": "Conectar Google Drive",
+
+  "googleDriveConnected": "Conectado",
+
+  "storageModeLocalOnly": "Solo local",
+
+  "storageModeGoogleDrive": "Google Drive",
+
+  "emojiCategoryActivities": "Actividades",
+
+  "emojiCategoryFood": "Comida",
+
+  "emojiCategorySelfCare": "Cuidado personal",
+
+  "emojiCategoryWork": "Trabajo",
+
+  "emojiCategoryHome": "Hogar"
+}

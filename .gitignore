@@ -1,0 +1,72 @@
+# ---- Flutter / Dart ----
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/build/
+**/.pub-cache/
+**/.pub/
+**/flutter_export_environment.sh
+**/generated_plugin_registrant.dart
+**/gen_l10n_inputs_and_outputs.json
+app/lib/l10n/app_localizations*.dart
+
+# App package lockfiles ARE committed for reproducible builds (do not ignore):
+# app/pubspec.lock
+
+# ---- macOS ----
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.history/
+
+# ---- Android ----
+**/android/local.properties
+**/android/key.properties
+**/android/**/*.jks
+**/android/**/*.keystore
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/gradle-wrapper.jar
+*.hprof
+
+# ---- iOS ----
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/App.framework
+**/ios/Flutter/ephemeral/
+**/ios/**/*.xcuserdatad
+**/ios/**/*.xcuserdatad/**
+**/ios/**/xcuserdata/
+**/*.xcworkspace/xcuserdata/
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+DerivedData/
+
+# ---- Secrets ----
+.env
+.env.*
+*.pem
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# ---- Coverage / misc ----
+coverage/
+*.log
