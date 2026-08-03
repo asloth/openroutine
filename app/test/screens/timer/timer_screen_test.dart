@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
+import 'package:openroutine/models/completion_log.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
@@ -14,6 +15,7 @@ import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
+import 'package:openroutine/theme/theme.dart';
 
 /// The real service would reach for platform channels that don't exist under
 /// flutter_test. Scheduling is covered by the machine's own tests; here we only
@@ -210,24 +212,19 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
-    final back = tester.widget<IconButton>(
+    NeumorphicCircleButton backButton() => tester.widget(
       find.ancestor(
         of: find.byIcon(Icons.skip_previous),
-        matching: find.byType(IconButton),
+        matching: find.byType(NeumorphicCircleButton),
       ),
     );
-    expect(back.onPressed, isNull);
+
+    expect(backButton().onPressed, isNull);
 
     // ...and becomes available once past it.
     await tester.tap(find.text(l10n.timerDone));
     await tester.pumpAndSettle();
-    final backLater = tester.widget<IconButton>(
-      find.ancestor(
-        of: find.byIcon(Icons.skip_previous),
-        matching: find.byType(IconButton),
-      ),
-    );
-    expect(backLater.onPressed, isNotNull);
+    expect(backButton().onPressed, isNotNull);
 
     await _disposeCleanly(tester);
   });
@@ -246,6 +243,51 @@ void main() {
     // play_arrow belongs to the resume control only.
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
     expect(find.byIcon(Icons.pause), findsNothing);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('Do later defers the step and brings it back at the end', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [
+        _step('s1', order: 0, name: 'Brush my teeth'),
+        _step('s2', order: 1, name: 'Shower'),
+      ],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    await tester.tap(find.text(l10n.timerDoLater));
+    await tester.pumpAndSettle();
+
+    // The next step is promoted into the current slot. The counter still reads
+    // 1 of 2 because nothing was completed — the queue only reordered.
+    expect(find.text('Shower'), findsOneWidget);
+    expect(find.text(l10n.timerStepCounter(1, 2)), findsOneWidget);
+
+    await tester.tap(find.text(l10n.timerDone));
+    await tester.pumpAndSettle();
+
+    // The deferred step comes back last, and can't be deferred again.
+    expect(find.text('Brush my teeth'), findsOneWidget);
+    expect(find.text(l10n.timerStepCounter(2, 2)), findsOneWidget);
+    expect(find.text(l10n.timerDoLater), findsNothing);
+
+    await tester.tap(find.text(l10n.timerFinish));
+    await tester.pumpAndSettle();
+
+    final logs = await adapter.getCompletions('r1');
+    expect(logs.single.steps.map((s) => s.stepId), ['s2', 's1']);
+    expect(
+      logs.single.steps.every(
+        (s) => s.state == CompletionStepState.completed,
+      ),
+      isTrue,
+    );
 
     await _disposeCleanly(tester);
   });

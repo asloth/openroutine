@@ -8,6 +8,7 @@ import '../../models/step.dart';
 import '../../services/timer/timer_machine.dart';
 import '../../state/routines_provider.dart';
 import '../../state/timer_provider.dart';
+import '../../theme/theme.dart';
 
 /// docs/SPEC.md §7 screen 7 — the full-screen playlist runner.
 ///
@@ -212,7 +213,7 @@ class _Running extends ConsumerWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
           child: SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -222,6 +223,23 @@ class _Running extends ConsumerWidget {
                 state.isLastStep ? l10n.timerFinish : l10n.timerDone,
               ),
             ),
+          ),
+        ),
+        // Sits below the primary action and stays out of the way: deferring a
+        // step is the rarer intent, and it must not compete with Done.
+        // Hidden rather than disabled on the last step and on a step already
+        // deferred once — a permanently greyed control is just noise.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          child: SizedBox(
+            height: 40,
+            child: state.canPostpone
+                ? TextButton.icon(
+                    onPressed: notifier.postpone,
+                    icon: const Icon(Icons.schedule, size: 20),
+                    label: Text(l10n.timerDoLater),
+                  )
+                : null,
           ),
         ),
       ],
@@ -356,6 +374,10 @@ class _Summary extends ConsumerWidget {
   }
 }
 
+/// Neutral neumorphic circles rather than `IconButton.filledTonal`, which
+/// paints itself `secondaryContainer` — a mint green that shouts louder than
+/// the primary Done action sitting right beneath it. Same size, same icons,
+/// same positions; only the surface treatment changes.
 class _CircleAction extends StatelessWidget {
   const _CircleAction({
     required this.icon,
@@ -369,8 +391,8 @@ class _CircleAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton.filledTonal(
-      icon: Icon(icon),
+    return NeumorphicCircleButton(
+      icon: icon,
       tooltip: label,
       onPressed: onPressed,
     );

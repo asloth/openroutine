@@ -13,6 +13,7 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/step_form/step_form_screen.dart';
 import 'screens/timer/timer_screen.dart';
 import 'state/app_prefs_provider.dart';
+import 'theme/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,9 +105,8 @@ class OpenRoutineApp extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: localeOverride != null ? Locale(localeOverride) : null,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
       routerConfig: router,
     );
   }

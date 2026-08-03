@@ -254,6 +254,90 @@ void main() {
     });
   });
 
+  group('postpone', () {
+    test('moves the step to the end and carries on with the next', () {
+      final state = _machine().start(_t0).postpone(_at(20));
+
+      expect(state.currentStep?.id, 'b');
+      expect(state.steps.map((s) => s.id), ['b', 'c', 'a']);
+      // Nothing is recorded — the step is deferred, not resolved.
+      expect(state.outcomes, isEmpty);
+    });
+
+    test('the deferred step comes back at the end of the run', () {
+      final state = _machine()
+          .start(_t0)
+          .postpone(_at(20))
+          .completeStep(_at(30))
+          .completeStep(_at(40));
+
+      expect(state.phase, TimerPhase.running);
+      expect(state.currentStep?.id, 'a');
+      expect(state.isLastStep, isTrue);
+    });
+
+    test('the clock restarts for the step moved into place', () {
+      final state = _machine().start(_t0).postpone(_at(20));
+
+      expect(state.elapsed(_at(20)), Duration.zero);
+      expect(state.elapsed(_at(35)), const Duration(seconds: 15));
+    });
+
+    test('stays paused when the run was paused', () {
+      final state = _machine().start(_t0).pause(_at(10)).postpone(_at(15));
+
+      expect(state.phase, TimerPhase.paused);
+      expect(state.elapsed(_at(300)), Duration.zero);
+    });
+
+    test('a step can only be deferred once', () {
+      final once = _machine().start(_t0).postpone(_at(10));
+      // Come back round to 'a' and try again.
+      final backToA = once.completeStep(_at(20)).completeStep(_at(30));
+
+      expect(backToA.currentStep?.id, 'a');
+      expect(backToA.canPostpone, isFalse);
+      expect(backToA.postpone(_at(40)), backToA);
+    });
+
+    test('is unavailable on the last remaining step', () {
+      final state = _machine(steps: [_step('a')]).start(_t0);
+
+      expect(state.canPostpone, isFalse);
+      expect(state.postpone(_at(10)), state);
+    });
+
+    test('a run where every step is deferred still terminates', () {
+      // Defer all three, then finish them in the order they come back. The
+      // once-only cap is what guarantees this loop ends at all.
+      var state = _machine().start(_t0);
+      var clock = 0;
+      while (state.canPostpone) {
+        clock += 5;
+        state = state.postpone(_at(clock));
+      }
+      while (state.phase != TimerPhase.complete) {
+        clock += 5;
+        state = state.completeStep(_at(clock));
+      }
+
+      expect(state.outcome, CompletionOutcome.completed);
+      expect(state.outcomes, hasLength(3));
+      expect(
+        state.outcomes.map((o) => o.stepId).toSet(),
+        {'a', 'b', 'c'},
+      );
+    });
+
+    test('is unavailable once the run is complete', () {
+      final finished = _machine(steps: [_step('a')])
+          .start(_t0)
+          .completeStep(_at(10));
+
+      expect(finished.canPostpone, isFalse);
+    });
+  });
+
   group('abandon', () {
     test('ends the run and keeps only the steps already finished', () {
       final state = _machine()

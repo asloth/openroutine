@@ -35,6 +35,11 @@ abstract class TimerState with _$TimerState {
     required int currentIndex,
     required Duration pausedAccumulated,
     required List<CompletionStep> outcomes,
+
+    /// Steps deferred by [postpone] this run. Kept so a step can only be put
+    /// off once — see that method for why the run would otherwise not have to
+    /// terminate.
+    @Default(<String>{}) Set<String> postponedIds,
     DateTime? startedAt,
     DateTime? stepStartedAt,
     DateTime? pausedAt,
@@ -160,6 +165,40 @@ abstract class TimerState with _$TimerState {
   TimerState resetStep(DateTime now) {
     if (!isActive) return this;
     return _restartStepClock(now);
+  }
+
+  /// Whether "Do Later" is available for the current step.
+  ///
+  /// False on the last remaining step — there is nothing to defer past, so it
+  /// would be a no-op — and false for a step already deferred once.
+  bool get canPostpone {
+    final step = currentStep;
+    if (!isActive || step == null || isLastStep) return false;
+    return !postponedIds.contains(step.id);
+  }
+
+  /// Move the current step to the end of the run and carry on with the next
+  /// one. Unlike [skip], the step is *not* resolved: it comes back, and
+  /// whatever happens to it then is what lands in the log.
+  ///
+  /// A step may only be deferred once per run. Without that cap, postponing
+  /// repeatedly would cycle the queue forever and the run would have no
+  /// guaranteed end — [canPostpone] enforces it and the guard here makes the
+  /// rule hold even if a caller ignores that.
+  TimerState postpone(DateTime now) {
+    final step = currentStep;
+    if (!canPostpone || step == null) return this;
+
+    final reordered = [...steps]
+      ..removeAt(currentIndex)
+      ..add(step);
+
+    // currentIndex is deliberately unchanged: removing the current step slides
+    // the next one into this slot, so the index already points at it.
+    return copyWith(
+      steps: reordered,
+      postponedIds: {...postponedIds, step.id},
+    )._restartStepClock(now);
   }
 
   /// End the run early. The in-progress step is deliberately not recorded:

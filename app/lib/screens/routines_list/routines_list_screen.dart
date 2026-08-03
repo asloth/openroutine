@@ -7,6 +7,7 @@ import '../../models/routine.dart';
 import '../../models/schedule.dart';
 import '../../models/trigger.dart';
 import '../../state/routines_provider.dart';
+import '../../theme/theme.dart';
 
 /// docs/SPEC.md §7 screen 2: tabs Scheduled/Flexible, sections by trigger,
 /// FAB for new routine, overflow menu with Import/Settings.
@@ -126,22 +127,63 @@ class _RoutineSectionList extends StatelessWidget {
         ),
       );
 
+    final theme = Theme.of(context);
+
     return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.element,
+        AppSpacing.base,
+        AppSpacing.element,
+        // Clears the FAB so the last card is never trapped underneath it.
+        AppSpacing.section * 2.5,
+      ),
       children: [
         for (final triggerId in sectionKeys) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.base,
+              AppSpacing.element,
+              AppSpacing.base,
+              AppSpacing.base,
+            ),
             child: Text(
               triggersById[triggerId]?.name ?? l10n.routinesNoTrigger,
-              style: Theme.of(context).textTheme.labelLarge,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           for (final routine in byTrigger[triggerId]!)
-            ListTile(
-              title: Text(routine.name),
-              subtitle: Text(l10n.routinesStepCount(routine.stepIds.length)),
-              trailing: const Icon(Icons.chevron_right),
+            NeumorphicCard(
+              margin: const EdgeInsets.only(bottom: AppSpacing.element),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.element,
+                vertical: AppSpacing.element,
+              ),
               onTap: () => context.push('/routines/${routine.id}'),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(routine.name, style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          l10n.routinesStepCount(routine.stepIds.length),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
             ),
         ],
       ],

@@ -9,6 +9,7 @@ import '../../state/import_export_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../state/timer_provider.dart';
+import '../../theme/theme.dart';
 
 /// docs/SPEC.md §7 screen 3. The last-7-day dots read the CompletionLogs that
 /// Timer Mode writes (M3); a routine that has never been run still falls back
@@ -90,11 +91,10 @@ class RoutineDetailScreen extends ConsumerWidget {
                 trigger?.name ?? l10n.routinesNoTrigger,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
+              const SizedBox(height: AppSpacing.element),
+              NeumorphicCard(
+                padding: const EdgeInsets.all(AppSpacing.element),
+                child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
@@ -122,9 +122,8 @@ class RoutineDetailScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.container),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -167,22 +166,46 @@ class RoutineDetailScreen extends ConsumerWidget {
                 )
               else
                 for (final step in steps)
-                  ListTile(
-                    leading: Text(
-                      step.emoji,
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                    title: Text(step.name),
-                    subtitle: Text(
-                      step.noExplicitTime
-                          ? l10n.routineDetailNoExplicitTime
-                          : l10n.stepDurationMinutes(
-                              ((step.durationSeconds ?? 0) / 60).ceil(),
-                            ),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
+                  NeumorphicCard(
+                    margin: const EdgeInsets.only(bottom: AppSpacing.element),
                     onTap: () => context.push(
                       '/routines/$routineId/steps/${step.id}/edit',
+                    ),
+                    child: Row(
+                      children: [
+                        Text(step.emoji, style: const TextStyle(fontSize: 28)),
+                        const SizedBox(width: AppSpacing.element),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                step.name,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                step.noExplicitTime
+                                    ? l10n.routineDetailNoExplicitTime
+                                    : l10n.stepDurationMinutes(
+                                        ((step.durationSeconds ?? 0) / 60)
+                                            .ceil(),
+                                      ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ],
                     ),
                   ),
             ],

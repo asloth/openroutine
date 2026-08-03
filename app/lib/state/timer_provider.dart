@@ -68,6 +68,7 @@ class RoutineTimer extends _$RoutineTimer {
   void completeStep() => _apply(state.completeStep(DateTime.now()));
   void skip() => _apply(state.skip(DateTime.now()));
   void back() => _apply(state.back(DateTime.now()));
+  void postpone() => _apply(state.postpone(DateTime.now()));
   void resetStep() => _apply(state.resetStep(DateTime.now()));
   void abandon() => _apply(state.abandon(DateTime.now()));
 
