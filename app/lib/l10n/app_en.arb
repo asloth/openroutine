@@ -244,8 +244,6 @@
   "timerFinish": "Finish",
   "timerRestartStep": "Restart step",
   "timerDoLater": "Do later",
-  "timerRemaining": "remaining",
-  "timerElapsed": "elapsed",
   "timerAbandonConfirmTitle": "Stop this routine?",
   "timerAbandonConfirmBody": "The steps you've already finished will still be logged.",
   "timerAbandonConfirmAction": "Stop",

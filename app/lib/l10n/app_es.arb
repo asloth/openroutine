@@ -144,8 +144,6 @@
   "timerFinish": "Terminar",
   "timerRestartStep": "Reiniciar paso",
   "timerDoLater": "Dejar para después",
-  "timerRemaining": "restante",
-  "timerElapsed": "transcurrido",
   "timerAbandonConfirmTitle": "¿Detener esta rutina?",
   "timerAbandonConfirmBody": "Los pasos que ya terminaste igual quedan registrados.",
   "timerAbandonConfirmAction": "Detener",

@@ -197,7 +197,11 @@ Use **Riverpod** for state, **go_router** for navigation, **drift** for local pe
 | 8 | **Import** | File picker → validate JSON → preview → confirm merge or replace. |
 | 9 | **Settings** | Storage backend (Local / Google Drive), sync status, connect / disconnect Drive, language, "Export all", about, links to agent-integration docs. |
 
-Design tokens: define once in `app/lib/theme/`. Match the RoutineFlow-style visual language (primary blue, rounded 20px cards, big display type, emoji-forward) but freshened for OpenRoutine — final tokens come from the Figma pass.
+Design tokens: defined once in `app/lib/theme/`. **The design pass has happened** — the tokens come from the "FocusFlow Routine Timer" Stitch project, whose export carries a full Material 3 role set, so `theme/colors.dart` is a literal `ColorScheme` rather than an approximation from a seed. Primary `#0051c0`, secondary `#006c47`, surface `#f7f9fc`; Lexend for structure and actions, Inter for prose, both bundled as static weights (never fetched at runtime — see §1); radii 4/8/12/full; spacing 8/16/24/32 with a 48px minimum touch target. Neumorphic surfaces (paired light/dark shadows) are a `ThemeExtension` so they adapt to brightness.
+
+The light scheme is the designed one. Dark is derived from the same primary and is approximate — the mockups are light-only, and neumorphism is a light-surface idiom.
+
+Screens are styled from these tokens and their component themes; a screen that needs a local appearance override means a component theme is missing. Note the Stitch project also contains a bottom-nav shell, a "Today" home screen and a Weekly Insights view — **none of these are adopted**; the app keeps the screen set in the table above, and Insights remains out of scope for v1 per §2.
 
 ---
 
