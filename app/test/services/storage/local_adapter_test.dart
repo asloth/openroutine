@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openroutine/models/completion_log.dart';
 import 'package:openroutine/models/export_bundle.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
@@ -102,6 +103,108 @@ void main() {
       final triggers = await adapter.getTriggers();
       expect(triggers, hasLength(1));
       expect(triggers.single.name, 'Waking up');
+    });
+  });
+
+  group('completion logs', () {
+    CompletionLog completion({
+      String id = 'c1',
+      DateTime? startedAt,
+      CompletionOutcome outcome = CompletionOutcome.completed,
+      List<CompletionStep> steps = const [
+        CompletionStep(
+          stepId: 's1',
+          state: CompletionStepState.completed,
+          actualDurationSeconds: 42,
+        ),
+      ],
+    }) {
+      final started = startedAt ?? DateTime.utc(2026, 8, 2, 9);
+      return CompletionLog(
+        id: id,
+        routineId: 'r1',
+        startedAt: started,
+        endedAt: started.add(const Duration(minutes: 10)),
+        outcome: outcome,
+        steps: steps,
+      );
+    }
+
+    setUp(() => adapter.saveRoutine(_routine()));
+
+    test('a completion round-trips including its nested steps', () async {
+      final log = completion(
+        steps: const [
+          CompletionStep(
+            stepId: 's1',
+            state: CompletionStepState.overrun,
+            actualDurationSeconds: 91,
+          ),
+          CompletionStep(
+            stepId: 's2',
+            state: CompletionStepState.skipped,
+            actualDurationSeconds: 3,
+          ),
+        ],
+      );
+      await adapter.appendCompletion(log);
+
+      expect(await adapter.getCompletions('r1'), [log]);
+    });
+
+    test('completions come back newest first', () async {
+      await adapter.appendCompletion(
+        completion(id: 'older', startedAt: DateTime.utc(2026, 8, 1)),
+      );
+      await adapter.appendCompletion(
+        completion(id: 'newer', startedAt: DateTime.utc(2026, 8, 3)),
+      );
+
+      final logs = await adapter.getCompletions('r1');
+      expect(logs.map((l) => l.id), ['newer', 'older']);
+    });
+
+    test('since filters out older runs, inclusive of the boundary', () async {
+      final boundary = DateTime.utc(2026, 8, 2);
+      await adapter.appendCompletion(
+        completion(id: 'before', startedAt: DateTime.utc(2026, 8, 1)),
+      );
+      await adapter.appendCompletion(
+        completion(id: 'on', startedAt: boundary),
+      );
+      await adapter.appendCompletion(
+        completion(id: 'after', startedAt: DateTime.utc(2026, 8, 3)),
+      );
+
+      final logs = await adapter.getCompletions('r1', since: boundary);
+      expect(logs.map((l) => l.id), ['after', 'on']);
+    });
+
+    test('another routine\'s completions are not returned', () async {
+      await adapter.saveRoutine(_routine(id: 'r2'));
+      await adapter.appendCompletion(completion());
+
+      expect(await adapter.getCompletions('r2'), isEmpty);
+    });
+
+    test('an abandoned run keeps its outcome', () async {
+      await adapter.appendCompletion(
+        completion(outcome: CompletionOutcome.abandoned),
+      );
+
+      final logs = await adapter.getCompletions('r1');
+      expect(logs.single.outcome, CompletionOutcome.abandoned);
+    });
+
+    test('re-appending the same id throws rather than overwriting', () async {
+      await adapter.appendCompletion(completion());
+
+      // The log is append-only (docs/SPEC.md §4); a duplicate id is a bug, and
+      // silently absorbing it would corrupt the history.
+      expect(
+        () => adapter.appendCompletion(completion()),
+        throwsA(anything),
+      );
     });
   });
 

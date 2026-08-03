@@ -11,6 +11,7 @@ import 'screens/routine_form/routine_form_screen.dart';
 import 'screens/routines_list/routines_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/step_form/step_form_screen.dart';
+import 'screens/timer/timer_screen.dart';
 import 'state/app_prefs_provider.dart';
 
 Future<void> main() async {
@@ -60,6 +61,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/routines/:routineId/edit',
         builder: (context, state) =>
             RoutineFormScreen(routineId: state.pathParameters['routineId']),
+      ),
+      GoRoute(
+        path: '/routines/:routineId/timer',
+        builder: (context, state) =>
+            TimerScreen(routineId: state.pathParameters['routineId']!),
       ),
       GoRoute(
         path: '/routines/:routineId/steps/new',

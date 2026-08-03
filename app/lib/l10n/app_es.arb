@@ -109,7 +109,10 @@
   "routineDetailHistory": "Últimos 7 días",
   "routineDetailNoHistoryYet": "Aún no hay historial",
   "routineDetailStartTimer": "Iniciar cronómetro",
-  "routineDetailTimerComingSoon": "El modo cronómetro llegará pronto",
+  "routineDetailNeedsStepsToStart": "Añade un paso para poder ejecutar esta rutina",
+  "routineDetailHistoryCompleted": "Completada",
+  "routineDetailHistoryAbandoned": "Empezada, sin terminar",
+  "routineDetailHistoryNothing": "Sin registro",
   "routineDetailSteps": "Pasos",
   "routineDetailAddStep": "Añadir paso",
   "routineDetailNoSteps": "Aún no hay pasos. Toca \"Añadir paso\" para agregar uno.",
@@ -120,6 +123,44 @@
   "@stepDurationMinutes": {
     "placeholders": { "minutes": { "type": "int" } }
   },
+
+  "timerStepCounter": "Paso {current} de {total}",
+  "@timerStepCounter": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "timerNoSetTime": "Sin hora definida",
+  "timerOverrunBy": "{duration} de más",
+  "@timerOverrunBy": {
+    "placeholders": { "duration": { "type": "String" } }
+  },
+  "timerPause": "Pausar",
+  "timerResume": "Reanudar",
+  "timerBack": "Atrás",
+  "timerSkip": "Saltar",
+  "timerDone": "Listo",
+  "timerFinish": "Terminar",
+  "timerRestartStep": "Reiniciar paso",
+  "timerAbandonConfirmTitle": "¿Detener esta rutina?",
+  "timerAbandonConfirmBody": "Los pasos que ya terminaste igual quedan registrados.",
+  "timerAbandonConfirmAction": "Detener",
+  "timerCompleteTitle": "Rutina completada",
+  "timerAbandonedTitle": "Rutina detenida",
+  "timerCompleteSummary": "{completed} de {total} pasos en {duration}",
+  "@timerCompleteSummary": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" },
+      "duration": { "type": "String" }
+    }
+  },
+  "timerCompleteSkipped": "{count, plural, =0{} =1{1 salteado} other{{count} salteados}}",
+  "@timerCompleteSkipped": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timerCloseSummary": "Cerrar",
 
   "stepFormAddTitle": "Añadir paso",
   "stepFormEditTitle": "Editar paso",

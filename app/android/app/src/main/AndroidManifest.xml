@@ -1,4 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Timer Mode's step-expiry notifications (docs/SPEC.md §8). Since v16 the
+         flutter_local_notifications plugin only declares POST_NOTIFICATIONS and
+         VIBRATE itself; everything else is the app's to declare.
+
+         RECEIVE_BOOT_COMPLETED lets pending step alarms survive a reboot.
+
+         USE_EXACT_ALARM is what keeps a 3-minute step honest — an inexact alarm
+         can drift by minutes, which is useless for a timer. Play policy allows
+         it for apps whose core function is a timer, which Timer Mode is, but it
+         is reviewed: see docs/SPEC.md §15 for the M6 declaration. On API 31-32,
+         SCHEDULE_EXACT_ALARM covers the same ground. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
     <application
         android:label="openroutine"
         android:name="${applicationName}"
@@ -25,6 +41,22 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Delivers scheduled step-expiry notifications, and re-registers any
+             still-pending ones after a reboot or an app update. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

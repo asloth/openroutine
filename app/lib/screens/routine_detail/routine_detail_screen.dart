@@ -8,11 +8,12 @@ import '../../models/trigger.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
+import '../../state/timer_provider.dart';
 
-/// docs/SPEC.md §7 screen 3. "Last 7-day dots" needs CompletionLog data,
-/// which doesn't exist until M3's Timer Mode writes it — shows a static
-/// "no history yet" state instead of fake dots. "Start Timer" is present
-/// but disabled, since Timer Mode is M3.
+/// docs/SPEC.md §7 screen 3. The last-7-day dots read the CompletionLogs that
+/// Timer Mode writes (M3); a routine that has never been run still falls back
+/// to the "no history yet" text rather than a row of empty dots, which would
+/// read as seven missed days.
 class RoutineDetailScreen extends ConsumerWidget {
   const RoutineDetailScreen({super.key, required this.routineId});
 
@@ -116,10 +117,7 @@ class RoutineDetailScreen extends ConsumerWidget {
                             l10n.routineDetailHistory,
                             style: Theme.of(context).textTheme.labelMedium,
                           ),
-                          Text(
-                            l10n.routineDetailNoHistoryYet,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
+                          _HistoryDots(routineId: routineId),
                         ],
                       ),
                     ],
@@ -130,19 +128,22 @@ class RoutineDetailScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: null,
+                  onPressed: steps.isEmpty
+                      ? null
+                      : () => context.push('/routines/$routineId/timer'),
                   icon: const Icon(Icons.play_arrow),
                   label: Text(l10n.routineDetailStartTimer),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  l10n.routineDetailTimerComingSoon,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center,
+              if (steps.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    l10n.routineDetailNeedsStepsToStart,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -228,3 +229,76 @@ class RoutineDetailScreen extends ConsumerWidget {
 }
 
 enum _MenuAction { delete }
+
+/// Seven dots, oldest to newest, ending on today. Filled means the routine was
+/// completed that day, outlined means it was started but stopped early, and
+/// hollow means it wasn't run.
+class _HistoryDots extends ConsumerWidget {
+  const _HistoryDots({required this.routineId});
+
+  final String routineId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final history = ref.watch(routineCompletionsProvider(routineId));
+    final entries = history.value;
+
+    // Both while loading and before a routine's first run, keep the M2 text
+    // rather than showing seven empty dots — that would read as seven days of
+    // missed routine rather than "nothing recorded yet".
+    if (entries == null || entries.isEmpty) {
+      return Text(
+        l10n.routineDetailNoHistoryYet,
+        style: theme.textTheme.bodyMedium,
+      );
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var daysAgo = 6; daysAgo >= 0; daysAgo--)
+          Builder(
+            builder: (context) {
+              final day = today.subtract(Duration(days: daysAgo));
+              final runs = entries.where((e) => e.localDay == day);
+              // A day with any completed run counts as completed, even if the
+              // user also abandoned an attempt earlier that day.
+              final completed = runs.any((e) => e.completed);
+              final attempted = runs.isNotEmpty;
+              return Padding(
+                padding: const EdgeInsets.only(right: 4, top: 4),
+                child: Tooltip(
+                  message: completed
+                      ? l10n.routineDetailHistoryCompleted
+                      : attempted
+                      ? l10n.routineDetailHistoryAbandoned
+                      : l10n.routineDetailHistoryNothing,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: completed
+                          ? theme.colorScheme.primary
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: attempted
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outlineVariant,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+}

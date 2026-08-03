@@ -219,9 +219,17 @@ IDLE ─────────► RUNNING ──────────► RU
 States: `idle`, `running`, `paused`, `complete`.
 Events: `start`, `tick` (1s), `pause`, `resume`, `skip`, `complete_step`, `back`, `reset_step`, `abandon`.
 
-Each event produces a new immutable state (Riverpod `StateNotifier`). On `complete_step` or `skip` we push a step outcome onto a pending `CompletionLog`. On `COMPLETE` or `abandon` we persist the log and append to `completions/YYYY-MM.ndjson`.
+Each event produces a new immutable state (a codegen Riverpod `Notifier` — `StateNotifier` is legacy as of Riverpod 3). On `complete_step` or `skip` we push a step outcome onto a pending `CompletionLog`. On `COMPLETE` or `abandon` we persist the log and append to `completions/YYYY-MM.ndjson`.
 
-Local notifications: fire a local push when the app is backgrounded and a step timer expires (uses `flutter_local_notifications`). Android needs a foreground service to keep timers alive under battery optimization.
+A timed step does **not** auto-advance when it reaches zero; it keeps counting into overrun until the user acts. That is what makes `overrun` a reachable `CompletionLog` step state.
+
+### Surviving the background (revised in M3)
+
+**Elapsed time is derived from wall-clock timestamps, never accumulated from ticks.** The state stores when the current step started and how long it has been paused; elapsed time is recomputed on every read. The 1-second `tick` exists only to trigger a repaint, so a tick that is delayed or never delivered — which is exactly what happens while the process is suspended — costs a frame of smoothness rather than correctness.
+
+Local notifications: fire a local push when the app is backgrounded and a step timer expires (uses `flutter_local_notifications`). Each step's expiry is registered as an OS-scheduled exact alarm at the moment the step starts, and cancelled or rescheduled on pause/resume/skip.
+
+This **replaces the foreground service** this section originally called for. Handing the alarm to the OS is strictly more robust — it fires whether or not our process survived, which a foreground service cannot promise — and it avoids declaring an Android 14+ `foregroundServiceType` of `specialUse`, which would need justifying at store review. Since the timer's state no longer depends on a live process either, there is nothing left for the service to keep alive. Exact alarms need `USE_EXACT_ALARM`, which Play permits for apps whose core function is a timer; see §15.14.
 
 ---
 
@@ -500,3 +508,12 @@ Required by both stores even if you collect nothing. One page, hosted on GitHub 
 - [ ] TestFlight beta with ≥5 external testers for one week
 - [ ] Play Internal Testing with ≥5 testers for one week
 - [ ] Localizations for en + es complete and reviewed by a native speaker
+- [ ] `USE_EXACT_ALARM` justified in Play Console — see §15.14
+
+### 15.14 Exact alarm permission (Play review)
+
+Timer Mode schedules each step's expiry as an exact alarm so a 3-minute step is actually 3 minutes; an inexact alarm can drift by minutes, which is useless for a timer (§8). The Android manifest declares `USE_EXACT_ALARM`, plus `SCHEDULE_EXACT_ALARM` for API 31–32.
+
+Play policy restricts `USE_EXACT_ALARM` to apps whose **core function** is an alarm clock, timer, or calendar reminder. OpenRoutine qualifies on the timer clause — guided step-by-step routine timing is the app's headline feature, not an incidental one — but this is reviewed rather than assumed, so the Play Console declaration must state that plainly. If it is ever rejected, the fallback is `SCHEDULE_EXACT_ALARM` with a runtime permission prompt, degrading to inexact alarms when denied.
+
+Chosen deliberately over a foreground service, which would have needed a `specialUse` `foregroundServiceType` and its own justification while giving weaker guarantees. See §8.

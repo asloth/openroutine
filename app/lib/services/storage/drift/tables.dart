@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../models/completion_log.dart';
 import '../../../models/schedule.dart';
 
 /// Comma-joined list of [DayOfWeek] enum names, e.g. "mon,tue,wed". Simpler
@@ -54,6 +55,28 @@ class RoutineSteps extends Table {
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Matches schemas/completion.schema.json. Append-only — nothing updates or
+/// deletes these rows, so there are no `updated_at`/`deleted_at` columns to
+/// mirror the other tables.
+///
+/// The per-step outcomes live in a JSON `stepsJson` column rather than a child
+/// table. Each row then maps 1:1 onto a line of `completions/YYYY-MM.ndjson`
+/// for M4, and v1 has no local query that filters on individual step outcomes —
+/// the insights dashboard is out of scope per docs/SPEC.md §2, and agents do
+/// that analysis against the exported JSON (§9). A child table would buy a
+/// query nothing in v1 asks for.
+class CompletionLogs extends Table {
+  TextColumn get id => text()();
+  TextColumn get routineId => text().references(Routines, #id)();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime()();
+  TextColumn get outcome => textEnum<CompletionOutcome>()();
+  TextColumn get stepsJson => text()();
 
   @override
   Set<Column> get primaryKey => {id};

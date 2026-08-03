@@ -209,7 +209,10 @@
   "routineDetailHistory": "Last 7 days",
   "routineDetailNoHistoryYet": "No history yet",
   "routineDetailStartTimer": "Start Timer",
-  "routineDetailTimerComingSoon": "Timer Mode is coming soon",
+  "routineDetailNeedsStepsToStart": "Add a step to run this routine",
+  "routineDetailHistoryCompleted": "Completed",
+  "routineDetailHistoryAbandoned": "Started, not finished",
+  "routineDetailHistoryNothing": "Nothing logged",
   "routineDetailSteps": "Steps",
   "routineDetailAddStep": "Add step",
   "routineDetailNoSteps": "No steps yet. Tap \"Add step\" to add one.",
@@ -220,6 +223,44 @@
   "@stepDurationMinutes": {
     "placeholders": { "minutes": { "type": "int" } }
   },
+
+  "timerStepCounter": "Step {current} of {total}",
+  "@timerStepCounter": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "timerNoSetTime": "No set time",
+  "timerOverrunBy": "{duration} over",
+  "@timerOverrunBy": {
+    "placeholders": { "duration": { "type": "String" } }
+  },
+  "timerPause": "Pause",
+  "timerResume": "Resume",
+  "timerBack": "Back",
+  "timerSkip": "Skip",
+  "timerDone": "Done",
+  "timerFinish": "Finish",
+  "timerRestartStep": "Restart step",
+  "timerAbandonConfirmTitle": "Stop this routine?",
+  "timerAbandonConfirmBody": "The steps you've already finished will still be logged.",
+  "timerAbandonConfirmAction": "Stop",
+  "timerCompleteTitle": "Routine complete",
+  "timerAbandonedTitle": "Routine stopped",
+  "timerCompleteSummary": "{completed} of {total} steps done in {duration}",
+  "@timerCompleteSummary": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" },
+      "duration": { "type": "String" }
+    }
+  },
+  "timerCompleteSkipped": "{count, plural, =0{} =1{1 skipped} other{{count} skipped}}",
+  "@timerCompleteSkipped": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "timerCloseSummary": "Close",
 
   "stepFormAddTitle": "Add step",
   "stepFormEditTitle": "Edit step",

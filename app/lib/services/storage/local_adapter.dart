@@ -1,8 +1,11 @@
 // `Trigger` is hidden: drift's core query_builder library exports its own
 // `Trigger` class (for SQL triggers), which collides with our domain model
 // of the same name — unrelated to the db.Trigger row-class collision below.
+import 'dart:convert';
+
 import 'package:drift/drift.dart' hide Trigger;
 
+import '../../models/completion_log.dart';
 import '../../models/export_bundle.dart';
 import '../../models/import_preview.dart';
 import '../../models/routine.dart';
@@ -113,6 +116,41 @@ class LocalAdapter implements StorageAdapter {
             updatedAt: trigger.updatedAt,
           ),
         );
+  }
+
+  @override
+  Future<void> appendCompletion(CompletionLog log) {
+    // insert, not insertOnConflictUpdate: these records are append-only, so a
+    // duplicate id means a bug worth surfacing rather than silently absorbing.
+    return _db
+        .into(_db.completionLogs)
+        .insert(
+          db.CompletionLogsCompanion.insert(
+            id: log.id,
+            routineId: log.routineId,
+            startedAt: log.startedAt,
+            endedAt: log.endedAt,
+            outcome: log.outcome,
+            stepsJson: jsonEncode(
+              log.steps.map((step) => step.toJson()).toList(),
+            ),
+          ),
+        );
+  }
+
+  @override
+  Future<List<CompletionLog>> getCompletions(
+    String routineId, {
+    DateTime? since,
+  }) async {
+    final query = _db.select(_db.completionLogs)
+      ..where((c) => c.routineId.equals(routineId))
+      ..orderBy([(c) => OrderingTerm.desc(c.startedAt)]);
+    if (since != null) {
+      query.where((c) => c.startedAt.isBiggerOrEqualValue(since));
+    }
+    final rows = await query.get();
+    return rows.map(_completionFromRow).toList();
   }
 
   @override
@@ -311,6 +349,24 @@ class LocalAdapter implements StorageAdapter {
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       deletedAt: row.deletedAt,
+    );
+  }
+
+  CompletionLog _completionFromRow(db.CompletionLog row) {
+    final steps = (jsonDecode(row.stepsJson) as List<dynamic>)
+        .map((step) => CompletionStep.fromJson(step as Map<String, dynamic>))
+        .toList();
+    return CompletionLog(
+      id: row.id,
+      routineId: row.routineId,
+      // Drift hands back local DateTimes; the domain model documents UTC
+      // (docs/SPEC.md §4). Same instant either way, but leaving it local makes
+      // the `isUtc` flag lie, which matters here because the history dots
+      // bucket runs by calendar day.
+      startedAt: row.startedAt.toUtc(),
+      endedAt: row.endedAt.toUtc(),
+      outcome: row.outcome,
+      steps: steps,
     );
   }
 

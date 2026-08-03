@@ -1,3 +1,4 @@
+import '../../models/completion_log.dart';
 import '../../models/export_bundle.dart';
 import '../../models/import_preview.dart';
 import '../../models/routine.dart';
@@ -29,6 +30,16 @@ abstract class StorageAdapter {
   /// removing the row — see docs/SPEC.md §5.
   Future<void> deleteRoutine(String id);
   Future<void> deleteStep(String id);
+
+  /// Append-only, per docs/SPEC.md §4 — there is deliberately no update or
+  /// delete counterpart. M4 turns each record into one line of
+  /// `completions/YYYY-MM.ndjson`, a format whose concurrent-append safety
+  /// depends on records never being rewritten (docs/SPEC.md §5).
+  Future<void> appendCompletion(CompletionLog log);
+
+  /// Newest first. [since] is inclusive and compared against `startedAt`;
+  /// pass it to avoid loading a routine's entire history for the 7-day dots.
+  Future<List<CompletionLog>> getCompletions(String routineId, {DateTime? since});
 
   Future<ExportBundle> exportAll();
   Future<ExportBundle> exportRoutine(String id);
