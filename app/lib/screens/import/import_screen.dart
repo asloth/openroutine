@@ -7,6 +7,7 @@ import '../../models/import_preview.dart';
 import '../../services/import_export/import_service.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/routines_provider.dart';
+import '../../theme/theme.dart';
 
 /// docs/SPEC.md §7 screen 8 / §10: file picker → validate against
 /// schemas/*.json → preview (X to add / Y to update) → confirm. §10 only
@@ -119,10 +120,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                 ),
               )
             else if (_preview != null) ...[
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+              const SizedBox(height: AppSpacing.element),
+              NeumorphicCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -155,9 +154,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                       ],
                     ],
                   ),
-                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.element),
               FilledButton(
                 onPressed: (_busy || _preview!.isEmpty) ? null : _confirm,
                 child: Text(l10n.importConfirm),

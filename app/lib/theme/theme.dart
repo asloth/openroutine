@@ -58,11 +58,12 @@ abstract final class AppTheme {
         titleTextStyle: textTheme.headlineSmall,
       ),
 
-      // Material's default Card is elevation + surface tint, which reads as a
-      // different material from the neumorphic surfaces. Stripped back so the
-      // rare stock Card doesn't stand out; prefer NeumorphicCard.
+      // Prefer NeumorphicCard. This exists so a stock Card still reads as a
+      // card: surfaceContainerLowest is a shade lighter than the background,
+      // where scheme.surface would make it exactly the same colour as what it
+      // sits on and leave it invisible at elevation 0.
       cardTheme: CardThemeData(
-        color: scheme.surface,
+        color: scheme.surfaceContainerLowest,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: const RoundedRectangleBorder(
