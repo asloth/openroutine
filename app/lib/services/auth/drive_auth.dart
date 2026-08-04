@@ -98,7 +98,13 @@ class DriveAuth {
   Future<bool> restore() async {
     await initialize();
     try {
-      await _signIn.attemptLightweightAuthentication();
+      // Same reason as [connect]: use the account the call returns rather than
+      // the field the event stream fills in later. Reading [_user] here raced
+      // the restore and made a perfectly good session look absent, so startup
+      // silently skipped syncing.
+      final pending = _signIn.attemptLightweightAuthentication();
+      final user = pending == null ? null : await pending;
+      if (user != null) _setUser(user);
     } on GoogleSignInException {
       return false;
     }
@@ -106,13 +112,21 @@ class DriveAuth {
   }
 
   /// Interactive. Must be called from a user gesture.
+  ///
+  /// Uses the account [GoogleSignIn.authenticate] returns rather than waiting
+  /// for [_user] to be filled in by the event stream: the stream is delivered
+  /// asynchronously, so reading the field here races the sign-in that just
+  /// succeeded and intermittently looks like no account at all.
   Future<void> connect() async {
     await initialize();
+    var user = _user;
     if (_signIn.supportsAuthenticate()) {
-      await _signIn.authenticate();
+      user = await _signIn.authenticate();
+      _setUser(user);
     }
-    final user = _user;
-    if (user == null) throw const DriveAuthExpired('authentication produced no account');
+    if (user == null) {
+      throw const DriveAuthExpired('authentication produced no account');
+    }
     await user.authorizationClient.authorizeScopes(scopes);
   }
 

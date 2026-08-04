@@ -82,10 +82,15 @@ class SettingsScreen extends ConsumerWidget {
           if (driveAvailable && storageMode == StorageMode.drive)
             ListTile(
               leading: const Icon(Icons.sync_outlined),
+              // The title has to match what tapping does, and in needsReauth
+              // tapping reconnects — showing "Disconnect" there read as an
+              // offer to undo something that had already come undone.
               title: Text(
-                sync.status == SyncStatus.disconnected
-                    ? l10n.driveConnect
-                    : l10n.driveDisconnect,
+                switch (sync.status) {
+                  SyncStatus.disconnected ||
+                  SyncStatus.needsReauth => l10n.driveConnect,
+                  _ => l10n.driveDisconnect,
+                },
               ),
               subtitle: Text(_syncLabel(l10n, sync)),
               onTap: () {

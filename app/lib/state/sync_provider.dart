@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -102,7 +103,11 @@ class SyncController extends _$SyncController {
     final auth = ref.read(driveAuthProvider);
     try {
       await auth.connect();
-    } on DriveAuthExpired {
+    } on Object catch (e) {
+      // Any failure to obtain the grant lands in the same place: the user has
+      // to try again. Cancelling the account picker arrives here too, which is
+      // why this is not treated as an error state.
+      debugPrint('Drive connect failed: $e');
       state = state.copyWith(status: SyncStatus.needsReauth);
       return;
     }

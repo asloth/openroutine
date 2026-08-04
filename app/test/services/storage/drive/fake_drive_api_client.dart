@@ -29,16 +29,21 @@ class FakeDriveApiClient implements DriveApiClient {
   }
 
   @override
-  Future<String> ensureFolder(String name) async {
+  Future<String> ensureFolder(String name, {String? parentId}) async {
     _maybeFail();
-    final existing = _nodes.entries.firstWhere(
-      (e) => e.value.parentId == null && e.value.name == name && e.value.isFolder,
-      orElse: () => const MapEntry('', _Node.missing),
-    );
-    if (existing.key.isNotEmpty) return existing.key;
+    final existing = _nodes.entries
+        .where(
+          (e) =>
+              e.value.isFolder &&
+              e.value.name == name &&
+              e.value.parentId == parentId,
+        )
+        .map((e) => e.key)
+        .firstOrNull;
+    if (existing != null) return existing;
 
     final id = _id();
-    _nodes[id] = _Node(name: name, parentId: null, isFolder: true);
+    _nodes[id] = _Node(name: name, parentId: parentId, isFolder: true);
     return id;
   }
 
@@ -71,6 +76,17 @@ class FakeDriveApiClient implements DriveApiClient {
     String mimeType = 'application/json',
   }) async {
     _maybeFail();
+    // Drive rejects this with `400 invalidContentType`: a folder is created by
+    // a metadata-only POST, never by an upload. The fake refused nothing here
+    // once, and the resulting bug reached the device — a fake that accepts
+    // what the real API rejects is worse than no fake at all.
+    if (mimeType == 'application/vnd.google-apps.folder') {
+      throw const DriveApiException(
+        400,
+        '{"error":{"code":400,"message":"Invalid MIME type provided for the '
+            'uploaded content.","errors":[{"reason":"invalidContentType"}]}}',
+      );
+    }
     uploads.add(name);
     if (fileId != null && _nodes.containsKey(fileId)) {
       _nodes[fileId] = _nodes[fileId]!.withContent(content);
@@ -158,8 +174,6 @@ class _Node {
     this.isFolder = false,
     this.content,
   });
-
-  static const missing = _Node(name: '', parentId: null);
 
   final String name;
   final String? parentId;

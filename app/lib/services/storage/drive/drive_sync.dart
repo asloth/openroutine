@@ -103,20 +103,9 @@ class DriveSync {
       );
     }
 
-    _completionsFolderId ??= await _ensureChildFolder(
-      folderId,
+    _completionsFolderId ??= await _api.ensureFolder(
       DriveLayout.completionsFolder,
-    );
-  }
-
-  Future<String> _ensureChildFolder(String parentId, String name) async {
-    final existing = await _api.findFile(parentId: parentId, name: name);
-    if (existing != null) return existing;
-    return _api.uploadText(
-      parentId: parentId,
-      name: name,
-      content: '',
-      mimeType: 'application/vnd.google-apps.folder',
+      parentId: folderId,
     );
   }
 

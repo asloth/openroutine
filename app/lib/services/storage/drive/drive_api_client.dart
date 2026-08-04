@@ -33,8 +33,14 @@ class DriveOffline implements Exception {
 /// Kept as an interface so the sync worker can be tested end to end against an
 /// in-memory fake — see test/services/storage/drive/fake_drive_api_client.dart.
 abstract class DriveApiClient {
-  /// Returns the folder's file ID, creating it if it does not exist.
-  Future<String> ensureFolder(String name);
+  /// Returns the folder's file ID, creating it if it does not exist. Omit
+  /// [parentId] for a folder at the root of My Drive.
+  ///
+  /// Folders cannot go through [uploadText]: Drive creates them with a
+  /// metadata-only POST, and sending `application/vnd.google-apps.folder` as
+  /// the media type of an upload is rejected with
+  /// `400 invalidContentType`.
+  Future<String> ensureFolder(String name, {String? parentId});
 
   /// File ID, or null when the folder holds no such file.
   Future<String?> findFile({required String parentId, required String name});
@@ -74,9 +80,12 @@ class HttpDriveApiClient implements DriveApiClient {
   static const _uploadBase = 'https://www.googleapis.com/upload/drive/v3/files';
 
   @override
-  Future<String> ensureFolder(String name) async {
+  Future<String> ensureFolder(String name, {String? parentId}) async {
+    final parentClause =
+        parentId == null ? '' : " and '${_escape(parentId)}' in parents";
     final existing = await _search(
-      "name = '${_escape(name)}' and mimeType = '$_folderMime' and trashed = false",
+      "name = '${_escape(name)}' and mimeType = '$_folderMime' "
+      'and trashed = false$parentClause',
     );
     if (existing != null) return existing;
 
@@ -84,7 +93,11 @@ class HttpDriveApiClient implements DriveApiClient {
       (h) => _http.post(
         _files,
         headers: {...h, 'Content-Type': 'application/json'},
-        body: jsonEncode({'name': name, 'mimeType': _folderMime}),
+        body: jsonEncode({
+          'name': name,
+          'mimeType': _folderMime,
+          if (parentId != null) 'parents': [parentId],
+        }),
       ),
     );
     return (jsonDecode(response.body) as Map<String, dynamic>)['id'] as String;
