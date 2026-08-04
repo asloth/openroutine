@@ -16,10 +16,17 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   );
 });
 
-@riverpod
+/// These four are `keepAlive` on purpose. They are device settings that live
+/// as long as the app, and — critically — nothing watches
+/// `onboardingCompleteProvider`: the router's redirect only `ref.read`s it so
+/// the GoRouter instance stays stable. Left auto-disposing, the notifier is
+/// torn down during the `await` inside `complete()`, and the `state = ...`
+/// after the gap throws "Cannot use the Ref after it has been disposed" —
+/// which swallowed the navigation off the onboarding screen.
+@Riverpod(keepAlive: true)
 AppPrefs appPrefs(Ref ref) => AppPrefs(ref.watch(sharedPreferencesProvider));
 
-@riverpod
+@Riverpod(keepAlive: true)
 class OnboardingComplete extends _$OnboardingComplete {
   @override
   bool build() => ref.watch(appPrefsProvider).onboardingComplete;
@@ -30,7 +37,7 @@ class OnboardingComplete extends _$OnboardingComplete {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class StorageModeSetting extends _$StorageModeSetting {
   @override
   StorageMode build() => ref.watch(appPrefsProvider).storageMode;
@@ -41,7 +48,7 @@ class StorageModeSetting extends _$StorageModeSetting {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class LocaleOverrideSetting extends _$LocaleOverrideSetting {
   @override
   String? build() => ref.watch(appPrefsProvider).localeOverride;
