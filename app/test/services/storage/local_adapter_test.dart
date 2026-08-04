@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/models/completion_log.dart';
@@ -6,6 +8,7 @@ import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
 import 'package:openroutine/models/trigger.dart';
+import 'package:openroutine/services/import_export/schema_validator.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
@@ -61,6 +64,9 @@ RoutineStep _step({
 }
 
 void main() {
+  // The schema-conformance group below reads the bundled schema assets.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late AppDatabase db;
   late LocalAdapter adapter;
 
@@ -299,5 +305,53 @@ void main() {
         expect(await adapter.getRoutine('r1'), isNull);
       },
     );
+  });
+
+  // What the adapter exports is a public contract: the same bytes go to the
+  // share sheet, to Drive, and to anyone who opens the folder. A regression
+  // here is invisible locally and only bites when someone tries to read the
+  // file back — so it is asserted against the published schemas, not against
+  // our own parser.
+  //
+  // Regression: flexible routines serialise `start_time: null`, and the
+  // schema originally allowed only a string there. Exporting a flexible
+  // routine therefore produced a file the app itself refused to import. Every
+  // routine on a test device happened to be scheduled, so nothing caught it
+  // until Drive started validating what it uploaded.
+  group('exports honour the published schemas', () {
+    const uuid = '019fc553-a96e-7cb7-84e8-93de8598e290';
+
+    Future<void> expectExportValidates() async {
+      final validator = await SchemaValidator.load();
+      final json =
+          jsonDecode(jsonEncode((await adapter.exportAll()).toJson()))
+              as Map<String, dynamic>;
+      validator.validateExportBundle(json);
+    }
+
+    test('a flexible routine, which has no start time', () async {
+      await adapter.saveRoutine(_routine(id: uuid));
+      await expectExportValidates();
+    });
+
+    test('a scheduled routine with days and a start time', () async {
+      await adapter.saveRoutine(
+        Routine(
+          id: uuid,
+          name: 'morning',
+          triggerId: null,
+          schedule: const Schedule(
+            mode: ScheduleMode.scheduled,
+            days: [DayOfWeek.mon, DayOfWeek.tue],
+            startTime: '07:20',
+          ),
+          stepIds: const [],
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+          deletedAt: null,
+        ),
+      );
+      await expectExportValidates();
+    });
   });
 }

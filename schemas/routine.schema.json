@@ -29,9 +29,11 @@
           "uniqueItems": true
         },
         "start_time": {
-          "type": "string",
-          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-          "description": "24-hour local time, HH:MM."
+          "oneOf": [
+            { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+            { "type": "null" }
+          ],
+          "description": "24-hour local time, HH:MM. Null for flexible routines, which have no start time — same treatment as the nullable trigger_id and deleted_at above."
         }
       },
       "required": ["mode"]
