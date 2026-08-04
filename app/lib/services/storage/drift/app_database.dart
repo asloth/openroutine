@@ -9,15 +9,17 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Routines, RoutineSteps, Triggers, CompletionLogs])
+@DriftDatabase(
+  tables: [Routines, RoutineSteps, Triggers, CompletionLogs, SyncState],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
-  /// v2 (M3) added [CompletionLogs]. Bump this and add an `onUpgrade` branch
-  /// for every schema change — installs from M2 carry real user routines, so
-  /// dropping and recreating is not an option.
+  /// v2 (M3) added [CompletionLogs]; v3 (M4) added [SyncState]. Bump this and
+  /// add an `onUpgrade` branch for every schema change — installs from M2
+  /// carry real user routines, so dropping and recreating is not an option.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -25,6 +27,9 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createTable(completionLogs);
+      }
+      if (from < 3) {
+        await m.createTable(syncState);
       }
     },
   );

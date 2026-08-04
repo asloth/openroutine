@@ -93,3 +93,26 @@ class Triggers extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+/// Sync bookkeeping for the Drive adapter (docs/SPEC.md §5). Exactly one row,
+/// pinned to [singletonId].
+///
+/// There is deliberately no per-record queue. Every push uploads the whole
+/// `routines.json`, so the only thing worth remembering is *that* local
+/// changes are unsynced, not which ones — a queue of individual edits would
+/// carry more state and still collapse to the same upload.
+///
+/// [dirtyCompletionMonths] is the exception: completions are sharded into
+/// `completions/YYYY-MM.ndjson`, so we track which shards need a round trip.
+/// Comma-joined "2026-07,2026-08", same reasoning as [DayListConverter].
+class SyncState extends Table {
+  IntColumn get id => integer()();
+  BoolColumn get routinesDirty => boolean().withDefault(const Constant(false))();
+  TextColumn get dirtyCompletionMonths =>
+      text().withDefault(const Constant(''))();
+  DateTimeColumn get lastSyncAt => dateTime().nullable()();
+  TextColumn get lastError => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

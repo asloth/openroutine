@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'l10n/app_localizations.dart';
+import 'services/app_prefs.dart';
 import 'screens/import/import_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/routine_detail/routine_detail_screen.dart';
@@ -13,6 +16,7 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/step_form/step_form_screen.dart';
 import 'screens/timer/timer_screen.dart';
 import 'state/app_prefs_provider.dart';
+import 'state/sync_provider.dart';
 import 'theme/theme.dart';
 
 Future<void> main() async {
@@ -92,11 +96,41 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class OpenRoutineApp extends ConsumerWidget {
+class OpenRoutineApp extends ConsumerStatefulWidget {
   const OpenRoutineApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OpenRoutineApp> createState() => _OpenRoutineAppState();
+}
+
+class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
+  AppLifecycleListener? _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // docs/SPEC.md §5 syncs on app open and on returning to the foreground.
+    // Both are deferred past the first frame: restoring a Drive grant is a
+    // platform-channel round trip, and startup should not wait on it to draw.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(storageModeSettingProvider) != StorageMode.drive) return;
+      final sync = ref.read(syncControllerProvider.notifier);
+      unawaited(sync.restore());
+      _lifecycle = AppLifecycleListener(
+        onResume: () => unawaited(sync.syncNow()),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _lifecycle?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(goRouterProvider);
     final localeOverride = ref.watch(localeOverrideSettingProvider);
 

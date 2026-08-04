@@ -328,5 +328,33 @@
     "placeholders": { "version": { "type": "String" }, "buildNumber": { "type": "String" } }
   },
   "settingsViewOnGitHub": "View on GitHub",
-  "settingsAgentDocs": "Agent integration docs"
+  "settingsAgentDocs": "Agent integration docs",
+
+  "driveConnect": "Connect Google Drive",
+  "@driveConnect": {
+    "description": "Action that grants the app access to a folder in the user's Drive. Never phrased as 'Sign in with Google' — the app has no account concept (docs/SPEC.md §6, §14)."
+  },
+  "driveDisconnect": "Disconnect Google Drive",
+  "driveUnavailable": "Not available in this build",
+  "@driveUnavailable": {
+    "description": "Shown instead of the connect action when the build carries no OAuth client IDs, e.g. a fresh clone of the public repo."
+  },
+  "driveExplainer": "OpenRoutine will create a folder called \"OpenRoutine\" in your Google Drive and store your routines there. It cannot see any other files.",
+  "@driveExplainer": {
+    "description": "Scope explanation shown next to the connect action. Required wording per docs/SPEC.md §14."
+  },
+  "syncStatusDisconnected": "Not connected",
+  "syncStatusIdle": "Up to date",
+  "syncStatusSyncing": "Syncing…",
+  "syncStatusOffline": "Offline — will sync later",
+  "syncStatusPending": "Changes waiting to sync",
+  "syncStatusNeedsReauth": "Tap to reconnect Google Drive",
+  "@syncStatusNeedsReauth": {
+    "description": "Shown when the Drive grant lapsed. Routine, not an error: Google expires refresh tokens weekly while the Cloud project is in Testing."
+  },
+  "syncStatusError": "Sync failed — will retry",
+  "syncLastSynced": "Last synced {time}",
+  "@syncLastSynced": {
+    "placeholders": { "time": { "type": "String" } }
+  }
 }

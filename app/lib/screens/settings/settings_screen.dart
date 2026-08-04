@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -7,14 +8,18 @@ import '../../services/app_prefs.dart';
 import '../../state/app_prefs_provider.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/package_info_provider.dart';
+import '../../state/sync_provider.dart';
 
 const _repoUrl = 'https://github.com/asloth/openroutine';
 const _agentDocsUrl =
     'https://github.com/asloth/openroutine/blob/main/docs/for-agents.md';
 
-/// docs/SPEC.md §7 screen 9, scoped to what M2 actually has: storage
-/// backend (Drive disabled — same "Coming soon" treatment as onboarding),
-/// language, Export all, About. Sync status / connect-Drive are M4.
+/// docs/SPEC.md §7 screen 9: storage backend, sync status, connect and
+/// disconnect Drive, language, Export all, About.
+///
+/// The Drive row is worded as "Connect Google Drive", never "Sign in with
+/// Google" — the app has no account concept and works fully without one, and
+/// §14 makes that framing part of how it is presented for App Store review.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -24,6 +29,8 @@ class SettingsScreen extends ConsumerWidget {
     final storageMode = ref.watch(storageModeSettingProvider);
     final localeOverride = ref.watch(localeOverrideSettingProvider);
     final packageInfoAsync = ref.watch(packageInfoProvider);
+    final driveAvailable = ref.watch(driveAvailableProvider);
+    final sync = ref.watch(syncControllerProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.routinesMenuSettings)),
@@ -33,8 +40,14 @@ class SettingsScreen extends ConsumerWidget {
           RadioGroup<StorageMode>(
             groupValue: storageMode,
             onChanged: (value) {
-              if (value != null) {
-                ref.read(storageModeSettingProvider.notifier).setMode(value);
+              if (value == null) return;
+              ref.read(storageModeSettingProvider.notifier).setMode(value);
+              // Choosing Drive is the consent moment, so the grant prompt
+              // belongs here rather than behind a second tap.
+              if (value == StorageMode.drive) {
+                ref.read(syncControllerProvider.notifier).connect();
+              } else {
+                ref.read(syncControllerProvider.notifier).disconnect();
               }
             },
             child: Column(
@@ -45,19 +58,47 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 RadioListTile<StorageMode>(
                   value: StorageMode.drive,
-                  enabled: false,
+                  // A build without OAuth client IDs — a fresh clone of the
+                  // public repo — keeps the M2 treatment rather than offering
+                  // an option that cannot work.
+                  enabled: driveAvailable,
                   title: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(l10n.storageModeGoogleDrive),
-                      const SizedBox(width: 8),
-                      _ComingSoonBadge(l10n.comingSoon),
+                      if (!driveAvailable) ...[
+                        const SizedBox(width: 8),
+                        _ComingSoonBadge(l10n.comingSoon),
+                      ],
                     ],
+                  ),
+                  subtitle: Text(
+                    driveAvailable ? l10n.driveExplainer : l10n.driveUnavailable,
                   ),
                 ),
               ],
             ),
           ),
+          if (driveAvailable && storageMode == StorageMode.drive)
+            ListTile(
+              leading: const Icon(Icons.sync_outlined),
+              title: Text(
+                sync.status == SyncStatus.disconnected
+                    ? l10n.driveConnect
+                    : l10n.driveDisconnect,
+              ),
+              subtitle: Text(_syncLabel(l10n, sync)),
+              onTap: () {
+                final controller = ref.read(syncControllerProvider.notifier);
+                switch (sync.status) {
+                  case SyncStatus.disconnected:
+                  case SyncStatus.needsReauth:
+                    controller.connect();
+                  default:
+                    controller.disconnect();
+                }
+              },
+            ),
           const Divider(),
           _SectionHeader(l10n.settingsLanguageSection),
           ListTile(
@@ -102,6 +143,24 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Pending changes are worth surfacing over a bare "up to date", but only
+  /// when nothing more urgent is happening — a lapsed grant or a failure is
+  /// the more useful thing to read.
+  String _syncLabel(AppLocalizations l10n, SyncSnapshot sync) {
+    return switch (sync.status) {
+      SyncStatus.disconnected => l10n.syncStatusDisconnected,
+      SyncStatus.syncing => l10n.syncStatusSyncing,
+      SyncStatus.offline => l10n.syncStatusOffline,
+      SyncStatus.needsReauth => l10n.syncStatusNeedsReauth,
+      SyncStatus.error => l10n.syncStatusError,
+      SyncStatus.idle when sync.pendingChanges => l10n.syncStatusPending,
+      SyncStatus.idle when sync.lastSyncAt != null => l10n.syncLastSynced(
+        DateFormat.yMMMd().add_jm().format(sync.lastSyncAt!.toLocal()),
+      ),
+      SyncStatus.idle => l10n.syncStatusIdle,
+    };
   }
 
   String _localeLabel(AppLocalizations l10n, String? override) {

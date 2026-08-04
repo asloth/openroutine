@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Only `local` is selectable in M2 — `drive` is reserved for the
@@ -14,6 +16,21 @@ class AppPrefs {
   static const _onboardingCompleteKey = 'onboarding_complete';
   static const _storageModeKey = 'storage_mode';
   static const _localeOverrideKey = 'locale_override';
+  static const _installClientIdKey = 'install_client_id';
+
+  /// Stable per-install UUID, minted on first read. Goes into
+  /// `meta.json.last_writer_client_id` so that, looking at a Drive folder two
+  /// devices write to, you can tell which one wrote last (docs/SPEC.md §5).
+  /// Debugging aid only — nothing keys off it.
+  String installClientId(String Function() generate) {
+    final existing = _prefs.getString(_installClientIdKey);
+    if (existing != null) return existing;
+    final minted = generate();
+    // Fire-and-forget: worst case a crash before the write lands mints a new
+    // one next launch, which costs nothing.
+    unawaited(_prefs.setString(_installClientIdKey, minted));
+    return minted;
+  }
 
   bool get onboardingComplete =>
       _prefs.getBool(_onboardingCompleteKey) ?? false;

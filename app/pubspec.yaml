@@ -68,6 +68,11 @@ dependencies:
   url_launcher: ^6.3.2
   package_info_plus: ^10.2.1
   uuid: ^4.6.0
+  # Drive is four REST endpoints (find folder, create folder, download, upload).
+  # google_sign_in v7's authorizationHeaders() already hands us the Authorization
+  # header, so the `googleapis` package would only add a generated client for the
+  # whole Drive surface to save no work — see docs/SPEC.md §5.
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

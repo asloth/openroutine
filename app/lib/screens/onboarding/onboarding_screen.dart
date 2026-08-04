@@ -5,11 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/app_prefs.dart';
 import '../../state/app_prefs_provider.dart';
+import '../../state/sync_provider.dart';
 
 /// 3 intro slides + a storage-choice page, per docs/SPEC.md §7 screen 1.
-/// Local-only is selected by default and fully functional; Google Drive is
-/// shown but disabled ("Coming soon") — this session's decision to lock the
-/// UI shape in now so M4 only flips a flag, not redesigns a screen.
+/// Local-only stays the default and is fully functional on its own; Drive is
+/// opt-in. M2 shipped this screen with Drive disabled behind a "Coming soon"
+/// badge specifically so M4 would only have to enable it — which is all that
+/// changed here. That badge now means "this build has no OAuth client IDs",
+/// which is the state a fresh clone of the public repo is in.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -165,6 +168,7 @@ class _StorageChoiceSlide extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final mode = ref.watch(storageModeSettingProvider);
+    final driveAvailable = ref.watch(driveAvailableProvider);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -187,8 +191,13 @@ class _StorageChoiceSlide extends ConsumerWidget {
           RadioGroup<StorageMode>(
             groupValue: mode,
             onChanged: (value) {
-              if (value != null) {
-                ref.read(storageModeSettingProvider.notifier).setMode(value);
+              if (value == null) return;
+              ref.read(storageModeSettingProvider.notifier).setMode(value);
+              // Ask for the Drive grant at the moment the user opts in, not
+              // after onboarding finishes: the explanation is on screen right
+              // now, which is what makes the prompt make sense (§14).
+              if (value == StorageMode.drive) {
+                ref.read(syncControllerProvider.notifier).connect();
               }
             },
             child: Column(
@@ -200,16 +209,24 @@ class _StorageChoiceSlide extends ConsumerWidget {
                 ),
                 RadioListTile<StorageMode>(
                   value: StorageMode.drive,
-                  enabled: false,
+                  // Unavailable rather than disabled-forever: a build without
+                  // OAuth client IDs keeps the M2 "Coming soon" treatment.
+                  enabled: driveAvailable,
                   title: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(l10n.storageModeGoogleDrive),
-                      const SizedBox(width: 8),
-                      _ComingSoonBadge(text: l10n.comingSoon),
+                      if (!driveAvailable) ...[
+                        const SizedBox(width: 8),
+                        _ComingSoonBadge(text: l10n.comingSoon),
+                      ],
                     ],
                   ),
-                  subtitle: Text(l10n.onboardingStorageDriveDescription),
+                  subtitle: Text(
+                    driveAvailable
+                        ? l10n.onboardingStorageDriveDescription
+                        : l10n.driveUnavailable,
+                  ),
                 ),
               ],
             ),

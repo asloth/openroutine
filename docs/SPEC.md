@@ -157,10 +157,13 @@ My Drive/
 Splitting completions by month keeps the main file small and lets clients (and agents) lazy-load history. The auto-generated `README.md` inside the folder tells any human or agent that opens it what these files are and links to the schema repo.
 
 ### Sync strategy (v1)
-- **Read:** on app open + on pull-to-refresh + before every write.
-- **Write:** merge → upload full `routines.json`. Conflict resolution = last-writer-wins per routine using `updated_at`. Deletions are soft (`deleted_at`) so an offline client can't resurrect deleted data. Agent edits (which change `updated_at`) win over stale local edits — this is a feature.
-- **Completions:** append-only, filename is deterministic (`YYYY-MM.ndjson`), so multiple writers can safely append. Reader dedupes by `id`.
+- **Read:** on app open and on returning to the foreground.
+- **Write:** the local write commits to SQLite and returns immediately; a debounced (2s) background sync then does pull → merge → push. **This supersedes an earlier "read before every write" rule.** That rule put a network round trip in front of every step edit, which contradicts the offline-first principle in §1 — an app whose edits block on connectivity is not offline-first, and the offline path had to exist anyway, so the blocking path bought nothing.
+- **Merge:** last-writer-wins per record using `updated_at`, compared against the raw (soft-delete-inclusive) row. Deletions are soft (`deleted_at`) so an offline client can't resurrect deleted data. Agent edits (which change `updated_at`) win over stale local edits — this is a feature. This is the same code path as file Import (§10); Drive is just another source of a bundle and must not get merge rules of its own to drift apart from.
+- **Push:** upload the full `routines.json`. Because the unit of upload is the whole file, the offline queue is a single dirty flag rather than a list of pending edits — per-record queueing would carry more state and still collapse to the same upload.
+- **Completions:** append-only, filename is deterministic (`YYYY-MM.ndjson`), so multiple writers can safely append. Reader dedupes by `id`. Drive has no append operation, so a sync rebuilds the shard as the union of remote and local by `id`; only months with local changes are touched.
 - **Client ID:** each install writes a UUID to local storage; included in `meta.json.last_writer_client_id` for debugging.
+- **Auth expiry is a state, not an error.** A lapsed Drive grant parks sync in `needsReauth` and stops retrying, because no amount of waiting restores a revoked grant. While the Cloud project is in Testing, Google expires refresh tokens after seven days, so this happens routinely during development.
 
 Future (v1.5): CRDT-lite per-field merging if LWW proves painful.
 
@@ -355,6 +358,8 @@ The Flutter app validates every JSON read against `schemas/*.json` at runtime.
 
 4. **M4 — Drive adapter (week 4)**
    `google_sign_in` (v7.1.0+), `drive_adapter.dart` targeting `/OpenRoutine/` folder in user's Drive, sync worker, in-folder `README.md` write, offline queue.
+   `DriveAdapter` is a **decorator over `LocalAdapter`**, not a sibling backend: SQLite stays the source of truth for every read (see §5), so switching storage mode swaps a wrapper rather than moving data. Drive is reached through its REST v3 endpoints over plain `http` — `google_sign_in` v7 already hands over the authorization headers, so the `googleapis` package would add a generated client for the entire Drive surface to save no work.
+   OAuth client IDs are supplied at build time (`--dart-define-from-file=dart_define.json`, see `app/dart_define.example.json`) and are absent from this repo per §13. A build without them keeps Drive visibly unavailable and runs Local-only, which is the state a fresh clone is in.
 
 5. **M5 — Polish + i18n + agent docs (week 5)**
    Spanish translations, empty states, error handling, app icons + splash. `docs/for-agents.md`. README with GIFs and sample agent prompts.

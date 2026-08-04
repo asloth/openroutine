@@ -65,6 +65,10 @@ app/lib/**/*.g.dart
 DerivedData/
 
 # ---- Secrets ----
+# OAuth client IDs are not secrets — they ship inside the app binary — but they
+# point at a specific Google Cloud project, so they stay out of a public repo.
+# Copy dart_define.example.json to dart_define.json and fill in your own.
+app/dart_define.json
 .env
 .env.*
 *.pem

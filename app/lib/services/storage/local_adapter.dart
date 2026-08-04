@@ -153,6 +153,56 @@ class LocalAdapter implements StorageAdapter {
     return rows.map(_completionFromRow).toList();
   }
 
+  /// Every completion whose `startedAt` falls in [from, to). Not on
+  /// StorageAdapter: the domain never asks "what happened in July", only the
+  /// Drive sync does, because completions are sharded into monthly ndjson
+  /// files (docs/SPEC.md §5) and a shard has to be rebuilt from exactly the
+  /// records that belong in it.
+  Future<List<CompletionLog>> completionsInRange(
+    DateTime from,
+    DateTime to,
+  ) async {
+    final rows =
+        await (_db.select(_db.completionLogs)
+              ..where((c) => c.startedAt.isBiggerOrEqualValue(from))
+              ..where((c) => c.startedAt.isSmallerThanValue(to))
+              ..orderBy([(c) => OrderingTerm.asc(c.startedAt)]))
+            .get();
+    return rows.map(_completionFromRow).toList();
+  }
+
+  /// Absorbs completions that came from Drive — runs another device or an
+  /// agent recorded. Unlike [appendCompletion] a repeated id is expected here,
+  /// not a bug: §5 says readers dedupe by `id`, so re-seeing a line we already
+  /// have is the normal outcome of every pull.
+  /// A completion whose routine this device has never seen is stored anyway.
+  /// The `routine_id` reference is declarative — this database does not turn
+  /// on `PRAGMA foreign_keys` — and keeping the row is the better outcome for
+  /// sync: pulls have no ordering guarantee against a folder an agent is also
+  /// writing, and a run discarded for arriving early is a run lost for good.
+  /// Until its routine shows up it is simply invisible, since every read is
+  /// scoped by routine.
+  Future<void> importCompletions(Iterable<CompletionLog> logs) async {
+    await _db.batch((batch) {
+      for (final log in logs) {
+        batch.insert(
+          _db.completionLogs,
+          db.CompletionLogsCompanion.insert(
+            id: log.id,
+            routineId: log.routineId,
+            startedAt: log.startedAt,
+            endedAt: log.endedAt,
+            outcome: log.outcome,
+            stepsJson: jsonEncode(
+              log.steps.map((step) => step.toJson()).toList(),
+            ),
+          ),
+          mode: InsertMode.insertOrIgnore,
+        );
+      }
+    });
+  }
+
   @override
   Future<void> deleteRoutine(String id) async {
     final now = nowUtc();

@@ -228,5 +228,21 @@
     "placeholders": { "version": { "type": "String" }, "buildNumber": { "type": "String" } }
   },
   "settingsViewOnGitHub": "Ver en GitHub",
-  "settingsAgentDocs": "Documentación para agentes"
+  "settingsAgentDocs": "Documentación para agentes",
+
+  "driveConnect": "Conectar Google Drive",
+  "driveDisconnect": "Desconectar Google Drive",
+  "driveUnavailable": "No disponible en esta versión",
+  "driveExplainer": "OpenRoutine va a crear una carpeta llamada \"OpenRoutine\" en tu Google Drive y guardar ahí tus rutinas. No puede ver ningún otro archivo.",
+  "syncStatusDisconnected": "Sin conectar",
+  "syncStatusIdle": "Todo sincronizado",
+  "syncStatusSyncing": "Sincronizando…",
+  "syncStatusOffline": "Sin conexión — se sincroniza después",
+  "syncStatusPending": "Hay cambios sin sincronizar",
+  "syncStatusNeedsReauth": "Tocá para reconectar Google Drive",
+  "syncStatusError": "Falló la sincronización — se reintenta",
+  "syncLastSynced": "Última sincronización: {time}",
+  "@syncLastSynced": {
+    "placeholders": { "time": { "type": "String" } }
+  }
 }

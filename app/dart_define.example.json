@@ -1,0 +1,6 @@
+{
+  "_comment": "Copy to dart_define.json (gitignored) and fill in your own OAuth client IDs, then build with --dart-define-from-file=dart_define.json. Without these the app still works: Google Drive stays unavailable and the app runs in Local-only mode. See docs/SPEC.md §6.",
+  "_how_to_get_these": "Google Cloud Console > APIs & Services > Credentials. You need three OAuth clients: Android (package app.openroutine.mobile + your keystore SHA-1, never referenced in code), Web (used below as the serverClientId, because google_sign_in v7 on Android issues tokens to a Web-type audience), and iOS (bundle app.openroutine.mobile).",
+  "DRIVE_WEB_CLIENT_ID": "000000000000-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
+  "DRIVE_IOS_CLIENT_ID": "000000000000-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+}
