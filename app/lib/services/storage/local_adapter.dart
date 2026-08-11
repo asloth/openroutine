@@ -236,6 +236,30 @@ class LocalAdapter implements StorageAdapter {
     );
   }
 
+  /// The full last-writer-wins dataset, including soft-deleted records.
+  /// User-facing exports intentionally omit tombstones; Drive must carry them
+  /// so a stale client cannot resurrect a routine or step deleted elsewhere.
+  Future<ExportBundle> exportForSync() async {
+    final routineRows = await _db.select(_db.routines).get();
+    final stepRows = await _db.select(_db.routineSteps).get();
+    final routines = <Routine>[];
+    for (final row in routineRows) {
+      routines.add(
+        _routineFromRow(
+          row,
+          await _orderedStepIds(row.id, includeDeleted: true),
+        ),
+      );
+    }
+    return ExportBundle(
+      schemaVersion: _schemaVersion,
+      exportedAt: nowUtc(),
+      routines: routines,
+      steps: stepRows.map(_stepFromRow).toList(),
+      triggers: await getTriggers(),
+    );
+  }
+
   @override
   Future<ExportBundle> exportRoutine(String id) async {
     final routine = await getRoutine(id);
@@ -347,14 +371,17 @@ class LocalAdapter implements StorageAdapter {
     );
   }
 
-  Future<List<String>> _orderedStepIds(String routineId) async {
-    final rows =
-        await (_db.select(_db.routineSteps)
-              ..where(
-                (s) => s.routineId.equals(routineId) & s.deletedAt.isNull(),
-              )
-              ..orderBy([(s) => OrderingTerm.asc(s.order)]))
-            .get();
+  Future<List<String>> _orderedStepIds(
+    String routineId, {
+    bool includeDeleted = false,
+  }) async {
+    final query = _db.select(_db.routineSteps)
+      ..where((s) => s.routineId.equals(routineId))
+      ..orderBy([(s) => OrderingTerm.asc(s.order)]);
+    if (!includeDeleted) {
+      query.where((s) => s.deletedAt.isNull());
+    }
+    final rows = await query.get();
     return rows.map((row) => row.id).toList();
   }
 

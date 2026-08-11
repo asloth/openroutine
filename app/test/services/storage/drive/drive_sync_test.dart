@@ -195,6 +195,59 @@ void main() {
       expect(await local.getRoutine(_routineId), isNull);
     });
 
+    test(
+      'a tombstone reaches another client and suppresses its stale copy',
+      () async {
+        await local.saveRoutine(_routine());
+        await queue.markRoutinesDirty();
+        await sync.sync();
+
+        final otherDb = AppDatabase(NativeDatabase.memory());
+        addTearDown(otherDb.close);
+        final otherLocal = LocalAdapter(otherDb);
+        final otherQueue = SyncQueue(otherDb);
+        final otherSync = DriveSync(
+          api: api,
+          local: otherLocal,
+          queue: otherQueue,
+          validator: validator,
+          installClientId: 'other-client',
+        );
+        await otherSync.sync();
+        expect(await otherLocal.getRoutine(_routineId), isNotNull);
+
+        await local.deleteRoutine(_routineId);
+        await queue.markRoutinesDirty();
+        await sync.sync();
+
+        final remoteAfterDelete =
+            jsonDecode(api.contentOf(DriveLayout.routinesFile)!)
+                as Map<String, dynamic>;
+        expect(
+          (remoteAfterDelete['routines'] as List).single['deleted_at'],
+          isNotNull,
+        );
+
+        await otherLocal.saveRoutine(
+          _routine(
+            name: 'stale offline edit',
+            updatedAt: _t0.add(const Duration(hours: 1)),
+          ),
+        );
+        await otherQueue.markRoutinesDirty();
+        await otherSync.sync();
+
+        expect(await otherLocal.getRoutine(_routineId), isNull);
+        final remoteAfterStaleSync =
+            jsonDecode(api.contentOf(DriveLayout.routinesFile)!)
+                as Map<String, dynamic>;
+        expect(
+          (remoteAfterStaleSync['routines'] as List).single['deleted_at'],
+          isNotNull,
+        );
+      },
+    );
+
     test('malformed remote JSON leaves local data alone', () async {
       await local.saveRoutine(_routine(name: 'local name'));
       api.seed(

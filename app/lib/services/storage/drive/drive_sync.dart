@@ -143,7 +143,7 @@ class DriveSync {
   Future<void> _pushRoutines() async {
     if (!await _queue.routinesDirty) return;
 
-    final bundle = await _local.exportAll();
+    final bundle = await _local.exportForSync();
     final existing = await _api.findFile(
       parentId: _folderId!,
       name: DriveLayout.routinesFile,
