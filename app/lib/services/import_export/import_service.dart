@@ -45,11 +45,17 @@ class ImportService {
   /// Split out from [pickAndValidate] so tests can exercise validation
   /// without a real file picker.
   ExportBundle validateJsonString(String contents) {
-    final Map<String, dynamic> decoded;
+    final Object? decoded;
     try {
-      decoded = jsonDecode(contents) as Map<String, dynamic>;
+      decoded = jsonDecode(contents);
     } on FormatException catch (e) {
       throw ImportException(ImportFailureReason.invalidJson, e.message);
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw ImportException(
+        ImportFailureReason.invalidJson,
+        'The import must contain a JSON object.',
+      );
     }
 
     try {

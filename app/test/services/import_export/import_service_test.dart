@@ -30,6 +30,27 @@ void main() {
     );
   });
 
+  for (final entry in {
+    'array': '[]',
+    'null': 'null',
+    'string': '"text"',
+    'number': '42',
+    'boolean': 'true',
+  }.entries) {
+    test('valid JSON ${entry.key} root throws ImportException(invalidJson)', () {
+      expect(
+        () => service.validateJsonString(entry.value),
+        throwsA(
+          isA<ImportException>().having(
+            (e) => e.reason,
+            'reason',
+            ImportFailureReason.invalidJson,
+          ),
+        ),
+      );
+    });
+  }
+
   test(
     'valid JSON that violates the schema throws ImportException(schemaViolation)',
     () {
