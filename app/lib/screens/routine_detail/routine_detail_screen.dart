@@ -71,13 +71,19 @@ class RoutineDetailScreen extends ConsumerWidget {
       body: routineAsync.when(
         data: (routine) {
           if (routine == null) {
-            return Center(child: Text(l10n.routinesLoadError));
+            return Center(child: Text(l10n.commonItemUnavailable));
+          }
+          if (stepsAsync.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (stepsAsync.hasError) {
+            return Center(child: Text(l10n.commonLoadError));
           }
           final trigger = triggersAsync.value
               ?.where((t) => t.id == routine.triggerId)
               .cast<Trigger?>()
               .firstOrNull;
-          final steps = stepsAsync.value ?? const <RoutineStep>[];
+          final steps = stepsAsync.requireValue;
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -266,6 +272,12 @@ class _HistoryDots extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final history = ref.watch(routineCompletionsProvider(routineId));
+    if (history.hasError) {
+      return Text(
+        l10n.routineDetailHistoryLoadError,
+        style: theme.textTheme.bodyMedium,
+      );
+    }
     final entries = history.value;
 
     // Both while loading and before a routine's first run, keep the M2 text

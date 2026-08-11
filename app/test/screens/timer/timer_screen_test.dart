@@ -13,6 +13,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
+import 'package:openroutine/state/routines_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
 import 'package:openroutine/theme/theme.dart';
@@ -118,6 +119,36 @@ RoutineStep _step(
 }
 
 void main() {
+  testWidgets('shows a localized error when steps cannot load', (tester) async {
+    final adapter = await _seed(steps: const []);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageAdapterProvider.overrideWithValue(adapter),
+          routineStepsProvider(
+            'r1',
+          ).overrideWith((ref) => Future.error(StateError('failed'))),
+          notificationServiceProvider.overrideWithValue(
+            _NoopNotificationService(),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('es'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const TimerScreen(routineId: 'r1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    expect(find.text(l10n.commonLoadError), findsOneWidget);
+
+    await _disposeCleanly(tester);
+  });
+
   testWidgets('schedules timer copy in the selected locale', (tester) async {
     final adapter = await _seed(steps: [_step('s1', order: 0)]);
     final notifications = _NoopNotificationService();

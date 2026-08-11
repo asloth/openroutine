@@ -164,6 +164,18 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
           body: const Center(child: CircularProgressIndicator()),
         );
       }
+      if (routineAsync.hasError) {
+        return Scaffold(
+          appBar: AppBar(),
+          body: Center(child: Text(l10n.commonLoadError)),
+        );
+      }
+      if (!routineAsync.isLoading && routine == null) {
+        return Scaffold(
+          appBar: AppBar(),
+          body: Center(child: Text(l10n.commonItemUnavailable)),
+        );
+      }
     }
 
     return Scaffold(

@@ -78,6 +78,8 @@
   "commonAdd": "Añadir",
   "commonSave": "Guardar",
   "commonDelete": "Eliminar",
+  "commonLoadError": "No se pudo cargar este contenido. Inténtalo de nuevo.",
+  "commonItemUnavailable": "Este elemento ya no está disponible.",
 
   "dayMon": "Lun",
   "dayTue": "Mar",
@@ -108,6 +110,7 @@
   },
   "routineDetailHistory": "Últimos 7 días",
   "routineDetailNoHistoryYet": "Aún no hay historial",
+  "routineDetailHistoryLoadError": "Historial no disponible",
   "routineDetailStartTimer": "Iniciar cronómetro",
   "routineDetailNeedsStepsToStart": "Añade un paso para poder ejecutar esta rutina",
   "routineDetailHistoryCompleted": "Completada",

@@ -193,6 +193,18 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
           body: const Center(child: CircularProgressIndicator()),
         );
       }
+      if (stepAsync.hasError) {
+        return Scaffold(
+          appBar: AppBar(),
+          body: Center(child: Text(l10n.commonLoadError)),
+        );
+      }
+      if (!stepAsync.isLoading && step == null) {
+        return Scaffold(
+          appBar: AppBar(),
+          body: Center(child: Text(l10n.commonItemUnavailable)),
+        );
+      }
     }
 
     return Scaffold(

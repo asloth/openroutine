@@ -66,11 +66,15 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
       },
       child: Scaffold(
         body: SafeArea(
-          child: switch (timer.phase) {
-            TimerPhase.idle => const Center(child: CircularProgressIndicator()),
-            TimerPhase.complete => _Summary(state: timer),
-            _ => _Running(state: timer, routineId: widget.routineId),
-          },
+          child: stepsAsync.hasError
+              ? Center(child: Text(l10n.commonLoadError))
+              : switch (timer.phase) {
+                  TimerPhase.idle => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  TimerPhase.complete => _Summary(state: timer),
+                  _ => _Running(state: timer, routineId: widget.routineId),
+                },
         ),
       ),
     );

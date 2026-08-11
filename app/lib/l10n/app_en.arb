@@ -178,6 +178,8 @@
   "commonAdd": "Add",
   "commonSave": "Save",
   "commonDelete": "Delete",
+  "commonLoadError": "Couldn't load this content. Try again.",
+  "commonItemUnavailable": "This item is no longer available.",
 
   "dayMon": "Mon",
   "dayTue": "Tue",
@@ -208,6 +210,7 @@
   },
   "routineDetailHistory": "Last 7 days",
   "routineDetailNoHistoryYet": "No history yet",
+  "routineDetailHistoryLoadError": "History unavailable",
   "routineDetailStartTimer": "Start Timer",
   "routineDetailNeedsStepsToStart": "Add a step to run this routine",
   "routineDetailHistoryCompleted": "Completed",
