@@ -18,17 +18,44 @@ Full product and technical spec: [`docs/SPEC.md`](docs/SPEC.md).
 
 ## Status
 
-🚧 Early development (Milestone M1 — skeleton). Not yet published to any app store.
+Milestone **M5 — Polish, i18n, and agent documentation** is in progress. The
+local-first app, routine timer, import/export, and optional Google Drive sync
+from M1-M4 are implemented. OpenRoutine is not yet published to an app store.
 
 ## How agents fit in
 
-There's no custom server or API. The published JSON schema plus your own Google Drive access *is* the integration surface. If you connect Drive in OpenRoutine and connect the same Drive account to an AI agent, you can ask it things like:
+There's no custom server or API. The published JSON schema plus your own Google
+Drive access *is* the integration surface. If you connect Drive in OpenRoutine
+and connect the same Drive account to an AI agent, start with one of these
+prompts.
 
-> *"Read `OpenRoutine/routines.json` in my Drive. Which steps have I skipped most in the last 30 days based on `completions/`? Propose a shorter evening routine and write the changes back."*
+**Review adherence without editing:**
 
-> *"Design me a study routine for deep work + Spanish practice. Add it to `OpenRoutine/routines.json`."*
+> Read `OpenRoutine/routines.json` and `OpenRoutine/completions/` in my Drive.
+> Summarize which routine steps I skip most often and which regularly overrun.
+> Do not change any files.
 
-See [`docs/for-agents.md`](docs/for-agents.md) for the full guide written for agents.
+**Propose a smaller routine:**
+
+> Read my evening routine and its completion history in the `OpenRoutine`
+> folder. Propose a version I can finish in 20 minutes. Show the exact changes
+> first, but do not write them until I confirm.
+
+**Add a routine safely:**
+
+> Read `OpenRoutine/README.md`, `OpenRoutine/routines.json`, and the OpenRoutine
+> agent guide. Design a study routine for deep work and Spanish practice. After
+> I approve it, add schema-valid routine and step records with UUIDv7 IDs, keep
+> `step_ids` and `order` consistent, and use current UTC timestamps.
+
+**Apply a confirmed edit:**
+
+> Rename the routine with ID `<routine-id>` to "Short evening reset". Preserve
+> every other field and unknown field, bump only that routine's `updated_at` to
+> the current UTC time, validate the full document, and write it back.
+
+See [`docs/for-agents.md`](docs/for-agents.md) for schemas, valid enums, merge
+rules, tombstones, timestamp requirements, and safe-edit examples.
 
 ## Repo layout
 
