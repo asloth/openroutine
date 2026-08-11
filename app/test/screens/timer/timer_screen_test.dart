@@ -184,6 +184,29 @@ void main() {
     await _disposeCleanly(tester);
   });
 
+  testWidgets('abandoning the first step writes an empty abandoned log', (
+    tester,
+  ) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+    expect(await adapter.getCompletions('r1'), isEmpty);
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.timerAbandonConfirmAction));
+    await tester.pumpAndSettle();
+
+    final logs = await adapter.getCompletions('r1');
+    expect(logs, hasLength(1));
+    expect(logs.single.outcome, CompletionOutcome.abandoned);
+    expect(logs.single.steps, isEmpty);
+
+    await _disposeCleanly(tester);
+  });
+
   testWidgets('a step with no explicit time counts up instead of down', (
     tester,
   ) async {

@@ -122,7 +122,7 @@ class RoutineTimer extends _$RoutineTimer {
 
   Future<void> _persist(TimerState finished) async {
     final log = finished.toLog(newId());
-    if (log == null || log.steps.isEmpty) return;
+    if (log == null) return;
     await ref.read(storageAdapterProvider).appendCompletion(log);
     ref.invalidate(routineCompletionsProvider(finished.routineId));
   }
