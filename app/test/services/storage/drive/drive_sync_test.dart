@@ -345,6 +345,33 @@ void main() {
         1,
       );
     });
+
+    test('a routine write during upload remains queued for the next push',
+        () async {
+      await local.saveRoutine(_routine());
+      await queue.markRoutinesDirty();
+      api.gateNextUpload(DriveLayout.routinesFile);
+
+      final firstSync = sync.sync();
+      await api.gatedUploadStarted;
+      await local.saveRoutine(
+        _routine(
+          name: 'written during upload',
+          updatedAt: _t0.add(const Duration(hours: 1)),
+        ),
+      );
+      await queue.markRoutinesDirty();
+      api.releaseGatedUpload();
+      await firstSync;
+
+      expect(await queue.routinesDirty, isTrue);
+      await sync.sync();
+      expect(await queue.routinesDirty, isFalse);
+      final remote =
+          jsonDecode(api.contentOf(DriveLayout.routinesFile)!)
+              as Map<String, dynamic>;
+      expect((remote['routines'] as List).single['name'], 'written during upload');
+    });
   });
 
   group('completions', () {
@@ -453,6 +480,30 @@ void main() {
 
       expect(api.exists('2026-08.ndjson'), isTrue);
       expect(api.exists('2026-07.ndjson'), isFalse);
+    });
+
+    test('a completion written during upload remains queued', () async {
+      await local.appendCompletion(_completion('c-first'));
+      await queue.markCompletionMonthDirty('2026-08');
+      api.gateNextUpload('2026-08.ndjson');
+
+      final firstSync = sync.sync();
+      await api.gatedUploadStarted;
+      await local.appendCompletion(_completion('c-during-upload'));
+      await queue.markCompletionMonthDirty('2026-08');
+      api.releaseGatedUpload();
+      await firstSync;
+
+      expect(await queue.dirtyCompletionMonths, contains('2026-08'));
+      await sync.sync();
+      expect(await queue.dirtyCompletionMonths, isEmpty);
+      final ids = api
+          .contentOf('2026-08.ndjson')!
+          .trim()
+          .split('\n')
+          .map((line) => jsonDecode(line)['id'])
+          .toList();
+      expect(ids, containsAll(['c-first', 'c-during-upload']));
     });
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 
 import '../drift/app_database.dart' as db;
@@ -29,6 +31,9 @@ class SyncQueue {
   static const _backoffCeiling = Duration(minutes: 5);
 
   int _consecutiveFailures = 0;
+  int _routinesGeneration = 0;
+  final Map<String, int> _completionGenerations = {};
+  Future<void> _pendingWrite = Future.value();
 
   Future<db.SyncStateData> _read() async {
     final existing = await (_db.select(
@@ -44,11 +49,20 @@ class SyncQueue {
     )..where((r) => r.id.equals(_rowId))).getSingle();
   }
 
-  Future<void> _write(db.SyncStateCompanion values) async {
+  Future<void> _writeNow(db.SyncStateCompanion values) async {
     await _read();
-    await (_db.update(_db.syncState)
-          ..where((r) => r.id.equals(_rowId)))
-        .write(values);
+    await (_db.update(
+      _db.syncState,
+    )..where((r) => r.id.equals(_rowId))).write(values);
+  }
+
+  Future<void> _write(db.SyncStateCompanion values) =>
+      _serialize(() => _writeNow(values));
+
+  Future<void> _serialize(Future<void> Function() write) {
+    final result = _pendingWrite.then((_) => write());
+    _pendingWrite = result.catchError((_) {});
+    return result;
   }
 
   Future<bool> get routinesDirty async => (await _read()).routinesDirty;
@@ -66,30 +80,48 @@ class SyncQueue {
   Future<bool> get hasWork async =>
       await routinesDirty || (await dirtyCompletionMonths).isNotEmpty;
 
-  Future<void> markRoutinesDirty() =>
-      _write(const db.SyncStateCompanion(routinesDirty: Value(true)));
+  int get routinesGeneration => _routinesGeneration;
+
+  int completionGeneration(String month) => _completionGenerations[month] ?? 0;
+
+  Future<void> markRoutinesDirty() {
+    _routinesGeneration++;
+    return _write(const db.SyncStateCompanion(routinesDirty: Value(true)));
+  }
 
   /// [month] is `YYYY-MM`, matching the shard filename.
   Future<void> markCompletionMonthDirty(String month) async {
-    final months = {...await dirtyCompletionMonths, month};
-    await _write(
-      db.SyncStateCompanion(
-        dirtyCompletionMonths: Value((months.toList()..sort()).join(',')),
-      ),
-    );
+    _completionGenerations[month] = completionGeneration(month) + 1;
+    await _serialize(() async {
+      final months = {...await dirtyCompletionMonths, month};
+      await _writeNow(
+        db.SyncStateCompanion(
+          dirtyCompletionMonths: Value((months.toList()..sort()).join(',')),
+        ),
+      );
+    });
   }
 
-  Future<void> clearRoutines() =>
-      _write(const db.SyncStateCompanion(routinesDirty: Value(false)));
+  /// Acknowledges only the snapshot that was uploaded. A write that arrives
+  /// during the upload increments the generation before its database write is
+  /// queued, so this cannot clear newer work.
+  Future<void> clearRoutinesIfGeneration(int generation) => _serialize(
+    () async {
+      if (_routinesGeneration != generation) return;
+      await _writeNow(const db.SyncStateCompanion(routinesDirty: Value(false)));
+    },
+  );
 
-  Future<void> clearCompletionMonth(String month) async {
-    final months = {...await dirtyCompletionMonths}..remove(month);
-    await _write(
-      db.SyncStateCompanion(
-        dirtyCompletionMonths: Value((months.toList()..sort()).join(',')),
-      ),
-    );
-  }
+  Future<void> clearCompletionMonthIfGeneration(String month, int generation) =>
+      _serialize(() async {
+        if (completionGeneration(month) != generation) return;
+        final months = {...await dirtyCompletionMonths}..remove(month);
+        await _writeNow(
+          db.SyncStateCompanion(
+            dirtyCompletionMonths: Value((months.toList()..sort()).join(',')),
+          ),
+        );
+      });
 
   Future<void> recordSuccess(DateTime at) async {
     _consecutiveFailures = 0;

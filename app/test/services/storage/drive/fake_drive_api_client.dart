@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:openroutine/services/auth/drive_auth.dart';
 import 'package:openroutine/services/storage/drive/drive_api_client.dart';
 
@@ -18,6 +20,10 @@ class FakeDriveApiClient implements DriveApiClient {
 
   /// Every uploadText call, for asserting that a clean sync uploads nothing.
   final List<String> uploads = [];
+
+  String? _gatedUploadName;
+  Completer<void>? _uploadStarted;
+  Completer<void>? _releaseUpload;
 
   String _id() => 'id-${_nextId++}';
 
@@ -76,6 +82,11 @@ class FakeDriveApiClient implements DriveApiClient {
     String mimeType = 'application/json',
   }) async {
     _maybeFail();
+    if (name == _gatedUploadName) {
+      _uploadStarted!.complete();
+      await _releaseUpload!.future;
+      _gatedUploadName = null;
+    }
     // Drive rejects this with `400 invalidContentType`: a folder is created by
     // a metadata-only POST, never by an upload. The fake refused nothing here
     // once, and the resulting bug reached the device — a fake that accepts
@@ -103,6 +114,16 @@ class FakeDriveApiClient implements DriveApiClient {
   }
 
   // ---- Test-facing helpers ----
+
+  void gateNextUpload(String name) {
+    _gatedUploadName = name;
+    _uploadStarted = Completer<void>();
+    _releaseUpload = Completer<void>();
+  }
+
+  Future<void> get gatedUploadStarted => _uploadStarted!.future;
+
+  void releaseGatedUpload() => _releaseUpload!.complete();
 
   /// Content of a file by name, wherever it sits. Names are unique across the
   /// folders this app writes, so this is unambiguous.

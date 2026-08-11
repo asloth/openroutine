@@ -143,6 +143,7 @@ class DriveSync {
   Future<void> _pushRoutines() async {
     if (!await _queue.routinesDirty) return;
 
+    final generation = _queue.routinesGeneration;
     final bundle = await _local.exportForSync();
     final existing = await _api.findFile(
       parentId: _folderId!,
@@ -156,7 +157,7 @@ class DriveSync {
     );
 
     await _writeMeta(bundle.schemaVersion);
-    await _queue.clearRoutines();
+    await _queue.clearRoutinesIfGeneration(generation);
   }
 
   Future<void> _writeMeta(String schemaVersion) async {
@@ -184,6 +185,7 @@ class DriveSync {
   /// lets two devices write the same file without a lock (docs/SPEC.md §5).
   Future<void> _syncCompletions() async {
     for (final month in await _queue.dirtyCompletionMonths) {
+      final generation = _queue.completionGeneration(month);
       final parts = month.split('-');
       final from = DateTime.utc(int.parse(parts[0]), int.parse(parts[1]));
       final to = DateTime.utc(from.year, from.month + 1);
@@ -216,7 +218,7 @@ class DriveSync {
         mimeType: 'application/x-ndjson',
       );
 
-      await _queue.clearCompletionMonth(month);
+      await _queue.clearCompletionMonthIfGeneration(month, generation);
     }
   }
 

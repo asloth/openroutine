@@ -149,11 +149,16 @@ class SyncController extends _$SyncController {
 
     switch (outcome) {
       case SyncOutcome.synced:
+        final pendingChanges = await queue.hasWork;
         state = SyncSnapshot(
           status: SyncStatus.idle,
           lastSyncAt: await queue.lastSyncAt,
-          pendingChanges: await queue.hasWork,
+          pendingChanges: pendingChanges,
         );
+        // A debounce can fire while this run is still uploading. Generational
+        // acknowledgment keeps that write dirty; this immediate follow-up is
+        // what guarantees it is uploaded without waiting for another event.
+        if (pendingChanges) unawaited(syncNow());
       case SyncOutcome.offline:
         state = state.copyWith(status: SyncStatus.offline);
         _scheduleRetry(queue.backoff);
