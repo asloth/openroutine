@@ -27,21 +27,6 @@ class NotificationService {
 
   static const _channelId = 'timer_mode';
 
-  static const AndroidNotificationDetails _androidDetails =
-      AndroidNotificationDetails(
-        _channelId,
-        'Timer Mode',
-        channelDescription: 'Tells you when a routine step is up.',
-        importance: Importance.high,
-        priority: Priority.high,
-        category: AndroidNotificationCategory.alarm,
-      );
-
-  static const NotificationDetails _details = NotificationDetails(
-    android: _androidDetails,
-    iOS: DarwinNotificationDetails(),
-  );
-
   Future<void> init() async {
     if (_ready) return;
     tz_data.initializeTimeZones();
@@ -90,6 +75,8 @@ class NotificationService {
     required DateTime endsAt,
     required String title,
     required String body,
+    required String channelName,
+    required String channelDescription,
   }) async {
     await init();
     await cancelPending();
@@ -106,7 +93,17 @@ class NotificationService {
       title: title,
       body: body,
       scheduledDate: scheduledAt,
-      notificationDetails: _details,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          channelName,
+          channelDescription: channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+          category: AndroidNotificationCategory.alarm,
+        ),
+        iOS: const DarwinNotificationDetails(),
+      ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }

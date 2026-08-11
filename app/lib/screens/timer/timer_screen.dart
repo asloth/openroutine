@@ -45,7 +45,12 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
           routineTimerProvider(widget.routineId).notifier,
         );
         notifier.load(steps);
-        notifier.start();
+        notifier.start(
+          notificationBody: l10n.timerNotificationBody,
+          notificationChannelName: l10n.timerNotificationChannelName,
+          notificationChannelDescription:
+              l10n.timerNotificationChannelDescription,
+        );
       });
     }
 

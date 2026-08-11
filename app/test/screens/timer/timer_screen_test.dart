@@ -21,6 +21,8 @@ import 'package:openroutine/theme/theme.dart';
 /// flutter_test. Scheduling is covered by the machine's own tests; here we only
 /// need it to stay out of the way.
 class _NoopNotificationService implements NotificationService {
+  String? lastBody;
+
   @override
   Future<void> init() async {}
 
@@ -32,7 +34,11 @@ class _NoopNotificationService implements NotificationService {
     required DateTime endsAt,
     required String title,
     required String body,
-  }) async {}
+    required String channelName,
+    required String channelDescription,
+  }) async {
+    lastBody = body;
+  }
 
   @override
   Future<void> cancelPending() async {}
@@ -41,15 +47,22 @@ class _NoopNotificationService implements NotificationService {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Widget _wrap(StorageAdapter adapter) {
+Widget _wrap(
+  StorageAdapter adapter, {
+  NotificationService? notifications,
+  Locale? locale,
+}) {
   return ProviderScope(
     overrides: [
       storageAdapterProvider.overrideWithValue(adapter),
-      notificationServiceProvider.overrideWithValue(_NoopNotificationService()),
+      notificationServiceProvider.overrideWithValue(
+        notifications ?? _NoopNotificationService(),
+      ),
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      locale: locale,
       home: const TimerScreen(routineId: 'r1'),
     ),
   );
@@ -105,6 +118,24 @@ RoutineStep _step(
 }
 
 void main() {
+  testWidgets('schedules timer copy in the selected locale', (tester) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+    final notifications = _NoopNotificationService();
+
+    await tester.pumpWidget(
+      _wrap(
+        adapter,
+        notifications: notifications,
+        locale: const Locale('es'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(notifications.lastBody, '🪥 Se acabó el tiempo.');
+
+    await _disposeCleanly(tester);
+  });
+
   testWidgets('starts on the first step and shows its countdown', (
     tester,
   ) async {

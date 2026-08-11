@@ -263,6 +263,19 @@
   },
   "timerCloseSummary": "Close",
 
+  "timerNotificationBody": "Time is up.",
+  "@timerNotificationBody": {
+    "description": "Body of the local notification shown when a timed routine step ends."
+  },
+  "timerNotificationChannelName": "Routine timer",
+  "@timerNotificationChannelName": {
+    "description": "Android notification channel name for timer alerts."
+  },
+  "timerNotificationChannelDescription": "Alerts you when a routine step ends.",
+  "@timerNotificationChannelDescription": {
+    "description": "Android notification channel description for timer alerts."
+  },
+
   "stepFormAddTitle": "Add step",
   "stepFormEditTitle": "Edit step",
   "stepFormTemplatesLabel": "Templates",

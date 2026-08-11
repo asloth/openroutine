@@ -26,6 +26,9 @@ NotificationService notificationService(Ref ref) => NotificationService();
 @riverpod
 class RoutineTimer extends _$RoutineTimer {
   Timer? _ticker;
+  String? _notificationBody;
+  String? _notificationChannelName;
+  String? _notificationChannelDescription;
 
   /// Purely to force a repaint. It deliberately does not advance any counter:
   /// elapsed time is recomputed from wall-clock timestamps on every read, so a
@@ -55,8 +58,15 @@ class RoutineTimer extends _$RoutineTimer {
     state = TimerState.idle(routineId: routineId, steps: steps);
   }
 
-  Future<void> start() async {
+  Future<void> start({
+    required String notificationBody,
+    required String notificationChannelName,
+    required String notificationChannelDescription,
+  }) async {
     if (state.phase != TimerPhase.idle) return;
+    _notificationBody = notificationBody;
+    _notificationChannelName = notificationChannelName;
+    _notificationChannelDescription = notificationChannelDescription;
     // Asked for here rather than at launch so the prompt has visible context.
     // A refusal doesn't block the run — it only costs background alerts.
     await ref.read(notificationServiceProvider).requestPermission();
@@ -104,21 +114,25 @@ class RoutineTimer extends _$RoutineTimer {
     final notifications = ref.read(notificationServiceProvider);
     final endsAt = state.currentStepEndsAt(DateTime.now());
     final step = state.currentStep;
-    if (endsAt == null || step == null) {
+    final body = _notificationBody;
+    final channelName = _notificationChannelName;
+    final channelDescription = _notificationChannelDescription;
+    if (endsAt == null ||
+        step == null ||
+        body == null ||
+        channelName == null ||
+        channelDescription == null) {
       await notifications.cancelPending();
       return;
     }
     await notifications.scheduleStepEnd(
       endsAt: endsAt,
       title: step.name,
-      body: '${step.emoji} ${_bodyFor(step)}',
+      body: '${step.emoji} $body',
+      channelName: channelName,
+      channelDescription: channelDescription,
     );
   }
-
-  // Kept deliberately short and locale-free: this string is built off the UI
-  // thread with no BuildContext to hand. Localizing it means passing the
-  // strings down from the screen, which is a follow-up if it matters.
-  String _bodyFor(RoutineStep step) => 'Time is up';
 
   Future<void> _persist(TimerState finished) async {
     final log = finished.toLog(newId());
