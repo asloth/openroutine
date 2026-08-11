@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -190,6 +191,9 @@ class SyncController extends _$SyncController {
       queue: ref.read(syncQueueProvider),
       validator: await ref.read(schemaValidatorProvider.future),
       installClientId: prefs.installClientId(() => const Uuid().v4()),
+      folderReadme: await rootBundle.loadString(
+        'assets/drive_folder_readme.md',
+      ),
     );
   }
 }

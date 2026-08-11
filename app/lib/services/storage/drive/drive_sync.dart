@@ -31,17 +31,20 @@ class DriveSync {
     required SyncQueue queue,
     required SchemaValidator validator,
     required String installClientId,
+    required String folderReadme,
   }) : _api = api,
        _local = local,
        _queue = queue,
        _validator = validator,
-       _installClientId = installClientId;
+       _installClientId = installClientId,
+       _folderReadme = folderReadme;
 
   final DriveApiClient _api;
   final LocalAdapter _local;
   final SyncQueue _queue;
   final SchemaValidator _validator;
   final String _installClientId;
+  final String _folderReadme;
 
   /// Serialises overlapping triggers. A foreground event and a debounced write
   /// can land together; without this they would both pull, both merge, and the
@@ -98,7 +101,7 @@ class DriveSync {
       await _api.uploadText(
         parentId: folderId,
         name: DriveLayout.readmeFile,
-        content: driveFolderReadme,
+        content: _folderReadme,
         mimeType: 'text/markdown',
       );
     }

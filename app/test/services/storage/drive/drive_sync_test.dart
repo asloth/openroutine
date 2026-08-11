@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/native.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/models/completion_log.dart';
 import 'package:openroutine/models/export_bundle.dart';
@@ -72,8 +73,14 @@ void main() {
   late FakeDriveApiClient api;
   late DriveSync sync;
   late SchemaValidator validator;
+  late String folderReadme;
 
-  setUpAll(() async => validator = await SchemaValidator.load());
+  setUpAll(() async {
+    validator = await SchemaValidator.load();
+    folderReadme = await rootBundle.loadString(
+      'assets/drive_folder_readme.md',
+    );
+  });
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
@@ -86,6 +93,7 @@ void main() {
       queue: queue,
       validator: validator,
       installClientId: 'client-under-test',
+      folderReadme: folderReadme,
     );
   });
 
@@ -99,6 +107,7 @@ void main() {
       expect(await sync.sync(), SyncOutcome.synced);
 
       expect(api.exists(DriveLayout.readmeFile), isTrue);
+      expect(api.contentOf(DriveLayout.readmeFile), folderReadme);
       expect(api.exists(DriveLayout.routinesFile), isTrue);
       expect(api.exists(DriveLayout.metaFile), isTrue);
       expect(api.exists(DriveLayout.completionsFolder), isTrue);
@@ -212,6 +221,7 @@ void main() {
           queue: otherQueue,
           validator: validator,
           installClientId: 'other-client',
+          folderReadme: folderReadme,
         );
         await otherSync.sync();
         expect(await otherLocal.getRoutine(_routineId), isNotNull);
