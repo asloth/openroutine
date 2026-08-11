@@ -96,6 +96,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
+/// Keeps app lifecycle tests independent from OAuth and the network while the
+/// production callback still resolves the current sync controller.
+final foregroundSyncCallbackProvider = Provider<Future<void> Function()>((ref) {
+  return ref.read(syncControllerProvider.notifier).syncNow;
+});
+
 class OpenRoutineApp extends ConsumerStatefulWidget {
   const OpenRoutineApp({super.key});
 
@@ -114,12 +120,14 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
     // platform-channel round trip, and startup should not wait on it to draw.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (ref.read(storageModeSettingProvider) != StorageMode.drive) return;
-      final sync = ref.read(syncControllerProvider.notifier);
-      unawaited(sync.restore());
       _lifecycle = AppLifecycleListener(
-        onResume: () => unawaited(sync.syncNow()),
+        onResume: () {
+          if (ref.read(storageModeSettingProvider) != StorageMode.drive) return;
+          unawaited(ref.read(foregroundSyncCallbackProvider)());
+        },
       );
+      if (ref.read(storageModeSettingProvider) != StorageMode.drive) return;
+      unawaited(ref.read(syncControllerProvider.notifier).restore());
     });
   }
 

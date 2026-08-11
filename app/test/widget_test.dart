@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/main.dart';
+import 'package:openroutine/services/app_prefs.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
@@ -83,6 +84,48 @@ void main() {
     expect(find.text(l10n.appTitle), findsOneWidget);
     expect(prefs.getBool('onboarding_complete'), isTrue);
 
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('enabling Drive after startup syncs on the next resume', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    final prefs = await SharedPreferences.getInstance();
+    var foregroundSyncs = 0;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          storageAdapterProvider.overrideWithValue(
+            LocalAdapter(AppDatabase(NativeDatabase.memory())),
+          ),
+          foregroundSyncCallbackProvider.overrideWithValue(() async {
+            foregroundSyncs++;
+          }),
+        ],
+        child: const OpenRoutineApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(foregroundSyncs, 0);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(OpenRoutineApp)),
+    );
+    await container
+        .read(storageModeSettingProvider.notifier)
+        .setMode(StorageMode.drive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    expect(foregroundSyncs, 1);
     await _disposeCleanly(tester);
   });
 }
