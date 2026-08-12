@@ -186,6 +186,21 @@ void main() {
     await _disposeCleanly(tester);
   });
 
+  testWidgets(
+    'shows a compassionate semantic estimate zone without color alone',
+    (tester) async {
+      final adapter = await _seed(
+        steps: [_step('s1', order: 0, durationSeconds: 1)],
+      );
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      expect(find.text("You're in the zone"), findsOneWidget);
+
+      await _disposeCleanly(tester);
+    },
+  );
+
   testWidgets('Low Mode runs only the supplied core-step snapshot', (
     tester,
   ) async {

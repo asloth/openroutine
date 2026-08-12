@@ -9,6 +9,9 @@ part 'timer_machine.freezed.dart';
 /// reaches `complete` it is terminal, whether it finished or was abandoned.
 enum TimerPhase { idle, running, paused, complete }
 
+/// Calm elapsed-time guidance for a timed step. This is never a failure state.
+enum EstimateZone { green, yellow, orange, unbounded }
+
 /// Timer Mode's state machine (docs/SPEC.md §8), as a pure immutable value.
 ///
 /// Deliberately free of Flutter, Riverpod and drift imports: every transition
@@ -112,6 +115,20 @@ abstract class TimerState with _$TimerState {
     return target - elapsed(now);
   }
 
+  /// Derives calm estimate guidance without changing the timer's progression.
+  EstimateZone estimateZone(DateTime now) {
+    final step = currentStep;
+    if (step == null || step.noExplicitTime) return EstimateZone.unbounded;
+    final estimate = Duration(seconds: step.durationSeconds ?? 0);
+    if (estimate <= Duration.zero) return EstimateZone.unbounded;
+    final spent = elapsed(now);
+    if (spent <= estimate) return EstimateZone.green;
+    if (spent <= estimate + const Duration(minutes: 2)) {
+      return EstimateZone.yellow;
+    }
+    return EstimateZone.orange;
+  }
+
   /// When the current step's timer should fire, or null if it has no target.
   /// Used to schedule the expiry notification.
   DateTime? currentStepEndsAt(DateTime now) {
@@ -158,8 +175,7 @@ abstract class TimerState with _$TimerState {
     );
   }
 
-  /// Finish the current step, recording it as `completed` — or `overrun` if it
-  /// ran past its target.
+  /// Finish the current step as user-completed, regardless of its estimate.
   TimerState completeStep(DateTime now) => _advance(now, skipped: false);
 
   /// Finish the current step, recording it as `skipped`. The elapsed time is
@@ -284,13 +300,8 @@ abstract class TimerState with _$TimerState {
     )._restartStepClock(now);
   }
 
-  /// A step with no target can never overrun — there is nothing to exceed.
   CompletionStepState _finishedState(RoutineStep step, Duration spent) {
-    if (step.noExplicitTime) return CompletionStepState.completed;
-    final target = Duration(seconds: step.durationSeconds ?? 0);
-    return spent > target
-        ? CompletionStepState.overrun
-        : CompletionStepState.completed;
+    return CompletionStepState.completed;
   }
 
   /// Point the clock at a fresh step. Navigating between steps preserves

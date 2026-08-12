@@ -139,10 +139,9 @@
     }
   },
   "timerNoSetTime": "Sin hora definida",
-  "timerOverrunBy": "{duration} de más",
-  "@timerOverrunBy": {
-    "placeholders": { "duration": { "type": "String" } }
-  },
+  "timerZoneGreen": "Estás en tu zona",
+  "timerZoneYellow": "Un poquito más",
+  "timerZoneOrange": "¿Está todo bien?",
   "timerPause": "Pausar",
   "timerResume": "Reanudar",
   "timerBack": "Atrás",

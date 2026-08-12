@@ -239,10 +239,9 @@
     }
   },
   "timerNoSetTime": "No set time",
-  "timerOverrunBy": "{duration} over",
-  "@timerOverrunBy": {
-    "placeholders": { "duration": { "type": "String" } }
-  },
+  "timerZoneGreen": "You're in the zone",
+  "timerZoneYellow": "A little longer",
+  "timerZoneOrange": "Everything okay?",
   "timerPause": "Pause",
   "timerResume": "Resume",
   "timerBack": "Back",

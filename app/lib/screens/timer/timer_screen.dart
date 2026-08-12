@@ -116,24 +116,39 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
   }
 }
 
-class _Running extends ConsumerWidget {
+class _Running extends ConsumerStatefulWidget {
   const _Running({required this.state, required this.routineId});
 
   final TimerState state;
   final String routineId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Running> createState() => _RunningState();
+}
+
+class _RunningState extends ConsumerState<_Running> {
+  EstimateZone? _announcedZone;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final notifier = ref.read(routineTimerProvider(routineId).notifier);
+    final notifier = ref.read(routineTimerProvider(widget.routineId).notifier);
+    final state = widget.state;
     final step = state.currentStep;
     if (step == null) return const SizedBox.shrink();
 
     final now = DateTime.now();
     final elapsed = state.elapsed(now);
     final remaining = state.remaining(now);
-    final overrun = remaining != null && remaining.isNegative;
+    final zone = state.estimateZone(now);
+    final announceZone =
+        zone != EstimateZone.unbounded && zone != _announcedZone;
+    if (announceZone) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _announcedZone = zone);
+      });
+    }
 
     return Column(
       children: [
@@ -182,14 +197,12 @@ class _Running extends ConsumerWidget {
                     remaining: remaining,
                     paused: state.phase == TimerPhase.paused,
                   ),
-                  if (overrun)
+                  if (zone != EstimateZone.unbounded)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        l10n.timerOverrunBy(_format(-remaining)),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
+                      child: _EstimateZoneLabel(
+                        zone: zone,
+                        announce: announceZone,
                       ),
                     ),
                   const SizedBox(height: 16),
@@ -261,6 +274,31 @@ class _Running extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+String _zoneLabel(AppLocalizations l10n, EstimateZone zone) => switch (zone) {
+  EstimateZone.green => l10n.timerZoneGreen,
+  EstimateZone.yellow => l10n.timerZoneYellow,
+  EstimateZone.orange => l10n.timerZoneOrange,
+  EstimateZone.unbounded => '',
+};
+
+class _EstimateZoneLabel extends StatelessWidget {
+  const _EstimateZoneLabel({required this.zone, required this.announce});
+
+  final EstimateZone zone;
+  final bool announce;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _zoneLabel(AppLocalizations.of(context)!, zone);
+    return Semantics(
+      container: true,
+      label: label,
+      liveRegion: announce,
+      child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
     );
   }
 }

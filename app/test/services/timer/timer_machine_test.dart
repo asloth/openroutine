@@ -81,6 +81,25 @@ void main() {
       expect(state.elapsed(_at(120)), const Duration(seconds: 120));
       expect(state.remaining(_at(120)), isNull);
     });
+
+    test('derives calm estimate zones at the exact thresholds', () {
+      final state = _machine(
+        steps: [_step('a', durationSeconds: 60)],
+      ).start(_t0);
+
+      expect(state.estimateZone(_at(60)), EstimateZone.green);
+      expect(state.estimateZone(_at(61)), EstimateZone.yellow);
+      expect(state.estimateZone(_at(150)), EstimateZone.yellow);
+      expect(state.estimateZone(_at(181)), EstimateZone.orange);
+    });
+
+    test('has no estimate zone when a step has no explicit time', () {
+      final state = _machine(
+        steps: [_step('a', noExplicitTime: true)],
+      ).start(_t0);
+
+      expect(state.estimateZone(_at(999)), EstimateZone.unbounded);
+    });
   });
 
   group('pause and resume', () {
@@ -126,10 +145,10 @@ void main() {
       expect(state.currentIndex, 1);
     });
 
-    test('records a step finished past its target as overrun', () {
+    test('records a step finished past its target as completed', () {
       final state = _machine().start(_t0).completeStep(_at(75));
 
-      expect(state.outcomes.single.state, CompletionStepState.overrun);
+      expect(state.outcomes.single.state, CompletionStepState.completed);
       expect(state.outcomes.single.actualDurationSeconds, 75);
     });
 
