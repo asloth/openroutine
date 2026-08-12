@@ -325,6 +325,17 @@ void main() {
       expect(await adapter.getCompletions('r1'), [log]);
     });
 
+    test('a low-mode completion round-trips its planned scope', () async {
+      final log = completion().copyWith(
+        mode: RunMode.low,
+        plannedStepIds: const ['s1', 's3'],
+      );
+
+      await adapter.appendCompletion(log);
+
+      expect((await adapter.getCompletions('r1')).single, log);
+    });
+
     test('completions come back newest first', () async {
       await adapter.appendCompletion(
         completion(id: 'older', startedAt: DateTime.utc(2026, 8, 1)),

@@ -11,6 +11,11 @@
     "started_at": { "type": "string", "format": "date-time" },
     "ended_at": { "type": "string", "format": "date-time" },
     "outcome": { "enum": ["completed", "abandoned"] },
+    "mode": { "enum": ["full", "low"] },
+    "planned_step_ids": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/uuid" }
+    },
     "steps": {
       "type": "array",
       "items": {

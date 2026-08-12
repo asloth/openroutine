@@ -8,6 +8,9 @@ part 'completion_log.g.dart';
 /// Matches schemas/completion.schema.json's `outcome` enum.
 enum CompletionOutcome { completed, abandoned }
 
+/// The intentional scope selected when a timer run starts.
+enum RunMode { full, low }
+
 /// Matches schemas/completion.schema.json's `steps[].state` enum.
 ///
 /// `overrun` means the step was finished, but took longer than its
@@ -45,6 +48,8 @@ abstract class CompletionLog with _$CompletionLog {
     @UtcDateTimeConverter() required DateTime endedAt,
     required CompletionOutcome outcome,
     required List<CompletionStep> steps,
+    @Default(RunMode.full) RunMode mode,
+    @Default(<String>[]) List<String> plannedStepIds,
   }) = _CompletionLog;
 
   factory CompletionLog.fromJson(Map<String, dynamic> json) =>

@@ -273,7 +273,7 @@ void main() {
     });
   });
 
-  group('a v3 install upgrading to v4', () {
+  group('a v3 install upgrading to v5', () {
     late sqlite.Database rawV3;
     late AppDatabase dbV3;
     late LocalAdapter adapterV3;
@@ -299,12 +299,17 @@ void main() {
 
     tearDown(() => dbV3.close());
 
-    test('preserves steps and defaults their core marker to false', () async {
+    test('preserves steps and adds default low-mode evidence', () async {
       final steps = await adapterV3.getSteps('r1');
 
-      expect(rawV3.userVersion, 4);
+      expect(rawV3.userVersion, 5);
       expect(steps.map((step) => step.id), ['s1', 's2']);
       expect(steps.every((step) => step.isCore == false), isTrue);
+      final columns = rawV3
+          .select('PRAGMA table_info(completion_logs)')
+          .map((column) => column['name'])
+          .toList();
+      expect(columns, containsAll(['mode', 'planned_step_ids_json']));
     });
   });
 }

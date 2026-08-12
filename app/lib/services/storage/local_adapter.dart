@@ -184,6 +184,8 @@ class LocalAdapter implements StorageAdapter {
             stepsJson: jsonEncode(
               log.steps.map((step) => step.toJson()).toList(),
             ),
+            mode: Value(log.mode),
+            plannedStepIdsJson: Value(jsonEncode(log.plannedStepIds)),
           ),
         );
   }
@@ -246,6 +248,8 @@ class LocalAdapter implements StorageAdapter {
             stepsJson: jsonEncode(
               log.steps.map((step) => step.toJson()).toList(),
             ),
+            mode: Value(log.mode),
+            plannedStepIdsJson: Value(jsonEncode(log.plannedStepIds)),
           ),
           mode: InsertMode.insertOrIgnore,
         );
@@ -496,6 +500,9 @@ class LocalAdapter implements StorageAdapter {
       endedAt: row.endedAt.toUtc(),
       outcome: row.outcome,
       steps: steps,
+      mode: row.mode,
+      plannedStepIds: (jsonDecode(row.plannedStepIdsJson) as List<dynamic>)
+          .cast<String>(),
     );
   }
 

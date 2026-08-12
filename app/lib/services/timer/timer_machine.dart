@@ -32,6 +32,8 @@ abstract class TimerState with _$TimerState {
     required TimerPhase phase,
     required String routineId,
     required List<RoutineStep> steps,
+    @Default(RunMode.full) RunMode mode,
+    @Default(<String>[]) List<String> plannedStepIds,
     required int currentIndex,
     required Duration pausedAccumulated,
     required List<CompletionStep> outcomes,
@@ -60,6 +62,20 @@ abstract class TimerState with _$TimerState {
     pausedAccumulated: Duration.zero,
     outcomes: const [],
   );
+
+  factory TimerState.forMode({
+    required String routineId,
+    required List<RoutineStep> steps,
+    required RunMode mode,
+  }) {
+    final planned = mode == RunMode.low
+        ? steps.where((step) => step.isCore).toList()
+        : steps;
+    return TimerState.idle(routineId: routineId, steps: planned).copyWith(
+      mode: mode,
+      plannedStepIds: planned.map((step) => step.id).toList(),
+    );
+  }
 
   RoutineStep? get currentStep =>
       currentIndex >= 0 && currentIndex < steps.length
@@ -231,6 +247,8 @@ abstract class TimerState with _$TimerState {
       endedAt: ended.toUtc(),
       outcome: outcome!,
       steps: outcomes,
+      mode: mode,
+      plannedStepIds: plannedStepIds,
     );
   }
 

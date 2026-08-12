@@ -78,6 +78,10 @@ class CompletionLogs extends Table {
   DateTimeColumn get endedAt => dateTime()();
   TextColumn get outcome => textEnum<CompletionOutcome>()();
   TextColumn get stepsJson => text()();
+  TextColumn get mode =>
+      textEnum<RunMode>().withDefault(const Constant('full'))();
+  TextColumn get plannedStepIdsJson =>
+      text().withDefault(const Constant('[]'))();
 
   @override
   Set<Column> get primaryKey => {id};

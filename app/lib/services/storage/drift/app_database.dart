@@ -16,11 +16,12 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   /// v2 (M3) added [CompletionLogs]; v3 (M4) added [SyncState]; v4 adds
-  /// the additive Low Mode core-step marker. Bump this and
+  /// the additive Low Mode core-step marker; v5 records Low Mode run evidence.
+  /// Bump this and
   /// add an `onUpgrade` branch for every schema change — installs from M2
   /// carry real user routines, so dropping and recreating is not an option.
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -34,6 +35,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await m.addColumn(routineSteps, routineSteps.isCore);
+      }
+      if (from >= 2 && from < 5) {
+        await m.addColumn(completionLogs, completionLogs.mode);
+        await m.addColumn(completionLogs, completionLogs.plannedStepIdsJson);
       }
     },
   );

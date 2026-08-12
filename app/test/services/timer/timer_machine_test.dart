@@ -14,6 +14,7 @@ RoutineStep _step(
   String id, {
   int? durationSeconds = 60,
   bool noExplicitTime = false,
+  bool isCore = false,
 }) => RoutineStep(
   id: id,
   routineId: 'r1',
@@ -22,6 +23,7 @@ RoutineStep _step(
   durationSeconds: noExplicitTime ? null : durationSeconds,
   order: 0,
   noExplicitTime: noExplicitTime,
+  isCore: isCore,
   createdAt: _t0,
   updatedAt: _t0,
 );
@@ -83,10 +85,7 @@ void main() {
 
   group('pause and resume', () {
     test('paused time does not count toward elapsed', () {
-      final state = _machine()
-          .start(_t0)
-          .pause(_at(10))
-          .resume(_at(40));
+      final state = _machine().start(_t0).pause(_at(10)).resume(_at(40));
 
       // 10s ran, 30s paused: at t=50 only 20s of the step has actually elapsed.
       expect(state.elapsed(_at(50)), const Duration(seconds: 20));
@@ -195,10 +194,7 @@ void main() {
 
   group('back', () {
     test('returns to the previous step and drops its recorded outcome', () {
-      final state = _machine()
-          .start(_t0)
-          .completeStep(_at(30))
-          .back(_at(40));
+      final state = _machine().start(_t0).completeStep(_at(30)).back(_at(40));
 
       expect(state.currentIndex, 0);
       expect(state.currentStep?.id, 'a');
@@ -323,16 +319,13 @@ void main() {
 
       expect(state.outcome, CompletionOutcome.completed);
       expect(state.outcomes, hasLength(3));
-      expect(
-        state.outcomes.map((o) => o.stepId).toSet(),
-        {'a', 'b', 'c'},
-      );
+      expect(state.outcomes.map((o) => o.stepId).toSet(), {'a', 'b', 'c'});
     });
 
     test('is unavailable once the run is complete', () {
-      final finished = _machine(steps: [_step('a')])
-          .start(_t0)
-          .completeStep(_at(10));
+      final finished = _machine(
+        steps: [_step('a')],
+      ).start(_t0).completeStep(_at(10));
 
       expect(finished.canPostpone, isFalse);
     });
@@ -354,9 +347,9 @@ void main() {
     });
 
     test('is a no-op once the run is complete', () {
-      final finished = _machine(steps: [_step('a')])
-          .start(_t0)
-          .completeStep(_at(10));
+      final finished = _machine(
+        steps: [_step('a')],
+      ).start(_t0).completeStep(_at(10));
       expect(finished.abandon(_at(20)), finished);
     });
   });
@@ -367,11 +360,9 @@ void main() {
     });
 
     test('builds a completed record with UTC timestamps', () {
-      final log = _machine(steps: [_step('a'), _step('b')])
-          .start(_t0)
-          .completeStep(_at(30))
-          .completeStep(_at(90))
-          .toLog('c1');
+      final log = _machine(
+        steps: [_step('a'), _step('b')],
+      ).start(_t0).completeStep(_at(30)).completeStep(_at(90)).toLog('c1');
 
       expect(log, isNotNull);
       expect(log!.id, 'c1');
@@ -384,18 +375,16 @@ void main() {
     });
 
     test('round-trips through JSON in the shape the schema expects', () {
-      final log = _machine(steps: [_step('a')])
-          .start(_t0)
-          .skip(_at(15))
-          .toLog('c1')!;
+      final log = _machine(
+        steps: [_step('a')],
+      ).start(_t0).skip(_at(15)).toLog('c1')!;
 
       // Encode and decode rather than inspecting toJson() directly: nested
       // freezed objects are only converted during encoding (explicit_to_json
       // is off project-wide, as ExportBundle already relies on), so this is
       // the shape that actually reaches drift today and
       // completions/YYYY-MM.ndjson in M4.
-      final json =
-          jsonDecode(jsonEncode(log.toJson())) as Map<String, dynamic>;
+      final json = jsonDecode(jsonEncode(log.toJson())) as Map<String, dynamic>;
 
       expect(json['routine_id'], 'r1');
       expect(json['outcome'], 'completed');
@@ -407,5 +396,38 @@ void main() {
       });
       expect(CompletionLog.fromJson(json), log);
     });
+  });
+
+  group('low mode', () {
+    test('snapshots only core steps in their persisted order', () {
+      final state = TimerState.forMode(
+        routineId: 'r1',
+        mode: RunMode.low,
+        steps: [
+          _step('later-core', isCore: true),
+          _step('not-core'),
+          _step('first-core', isCore: true),
+        ],
+      ).start(_t0);
+
+      expect(state.steps.map((step) => step.id), ['later-core', 'first-core']);
+      expect(state.plannedStepIds, ['later-core', 'first-core']);
+      expect(state.mode, RunMode.low);
+    });
+
+    test(
+      'records low mode and planned steps without outcomes for non-core steps',
+      () {
+        final log = TimerState.forMode(
+          routineId: 'r1',
+          mode: RunMode.low,
+          steps: [_step('core', isCore: true), _step('not-core')],
+        ).start(_t0).completeStep(_at(10)).toLog('c1');
+
+        expect(log!.mode, RunMode.low);
+        expect(log.plannedStepIds, ['core']);
+        expect(log.steps.map((step) => step.stepId), ['core']);
+      },
+    );
   });
 }
