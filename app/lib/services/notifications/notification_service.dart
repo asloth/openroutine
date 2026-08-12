@@ -2,8 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
-/// Fires a local notification when a step's timer expires while the app is
-/// backgrounded (docs/SPEC.md §8).
+/// Fires one calm local notification when a step reaches its estimate.
 ///
 /// The scheduling is handed to the OS rather than kept alive in-process. That
 /// is deliberate and replaces SPEC §8's original foreground-service plan: an
@@ -25,7 +24,26 @@ class NotificationService {
   /// any stale notification we forgot to cancel.
   static const _stepEndNotificationId = 1;
 
-  static const _channelId = 'timer_mode';
+  // Channels are immutable on Android after creation. A new ID prevents old
+  // alarm/high-priority settings from leaking into this calmer reminder.
+  static const stepBoundaryChannelId = 'gentle_estimate_boundary_v1';
+
+  static NotificationDetails stepBoundaryDetails({
+    required String channelName,
+    required String channelDescription,
+  }) => NotificationDetails(
+    android: AndroidNotificationDetails(
+      stepBoundaryChannelId,
+      channelName,
+      channelDescription: channelDescription,
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
+      category: AndroidNotificationCategory.reminder,
+      playSound: false,
+      enableVibration: false,
+    ),
+    iOS: const DarwinNotificationDetails(presentSound: false),
+  );
 
   Future<void> init() async {
     if (_ready) return;
@@ -62,12 +80,12 @@ class NotificationService {
           IOSFlutterLocalNotificationsPlugin
         >();
     if (ios != null) {
-      return await ios.requestPermissions(alert: true, sound: true) ?? false;
+      return await ios.requestPermissions(alert: true, sound: false) ?? false;
     }
     return false;
   }
 
-  /// Schedule the "step is up" notification for [endsAt], replacing whatever
+  /// Schedule the estimate-boundary notification for [endsAt], replacing whatever
   /// was pending. Times already in the past are dropped rather than fired
   /// immediately — that only happens for a step that is already overrunning,
   /// which the user can see for themselves.
@@ -93,16 +111,9 @@ class NotificationService {
       title: title,
       body: body,
       scheduledDate: scheduledAt,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          channelName,
-          channelDescription: channelDescription,
-          importance: Importance.high,
-          priority: Priority.high,
-          category: AndroidNotificationCategory.alarm,
-        ),
-        iOS: const DarwinNotificationDetails(),
+      notificationDetails: stepBoundaryDetails(
+        channelName: channelName,
+        channelDescription: channelDescription,
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );

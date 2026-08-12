@@ -23,6 +23,10 @@ import 'package:openroutine/theme/theme.dart';
 /// need it to stay out of the way.
 class _NoopNotificationService implements NotificationService {
   String? lastBody;
+  String? lastChannelName;
+  String? lastChannelDescription;
+  int scheduledCount = 0;
+  int cancelledCount = 0;
 
   @override
   Future<void> init() async {}
@@ -39,10 +43,13 @@ class _NoopNotificationService implements NotificationService {
     required String channelDescription,
   }) async {
     lastBody = body;
+    lastChannelName = channelName;
+    lastChannelDescription = channelDescription;
+    scheduledCount++;
   }
 
   @override
-  Future<void> cancelPending() async {}
+  Future<void> cancelPending() async => cancelledCount++;
 
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -160,7 +167,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(notifications.lastBody, '🪥 Se acabó el tiempo.');
+    expect(notifications.lastBody, '🪥 Un poquito más está bien.');
+    expect(notifications.lastChannelName, 'Tiempo con calma');
+    expect(
+      notifications.lastChannelDescription,
+      'Un recordatorio suave cuando tu estimación termina.',
+    );
 
     await _disposeCleanly(tester);
   });
@@ -325,11 +337,12 @@ void main() {
   testWidgets('a step with no explicit time counts up instead of down', (
     tester,
   ) async {
+    final notifications = _NoopNotificationService();
     final adapter = await _seed(
       steps: [_step('s1', order: 0, noExplicitTime: true)],
     );
 
-    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpWidget(_wrap(adapter, notifications: notifications));
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
@@ -337,6 +350,7 @@ void main() {
     expect(find.text(l10n.timerNoSetTime), findsOneWidget);
     // No target means no ring to fill.
     expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(notifications.scheduledCount, 0);
 
     await _disposeCleanly(tester);
   });

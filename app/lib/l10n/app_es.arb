@@ -178,9 +178,9 @@
   },
   "timerCloseSummary": "Cerrar",
 
-  "timerNotificationBody": "Se acabó el tiempo.",
-  "timerNotificationChannelName": "Temporizador de rutinas",
-  "timerNotificationChannelDescription": "Te avisa cuando termina un paso de la rutina.",
+  "timerNotificationBody": "Un poquito más está bien.",
+  "timerNotificationChannelName": "Tiempo con calma",
+  "timerNotificationChannelDescription": "Un recordatorio suave cuando tu estimación termina.",
 
   "stepFormAddTitle": "Añadir paso",
   "stepFormEditTitle": "Editar paso",

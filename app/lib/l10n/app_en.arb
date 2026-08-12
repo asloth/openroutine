@@ -278,15 +278,15 @@
   },
   "timerCloseSummary": "Close",
 
-  "timerNotificationBody": "Time is up.",
+  "timerNotificationBody": "A little longer is okay.",
   "@timerNotificationBody": {
     "description": "Body of the local notification shown when a timed routine step ends."
   },
-  "timerNotificationChannelName": "Routine timer",
+  "timerNotificationChannelName": "Gentle timing",
   "@timerNotificationChannelName": {
     "description": "Android notification channel name for timer alerts."
   },
-  "timerNotificationChannelDescription": "Alerts you when a routine step ends.",
+  "timerNotificationChannelDescription": "A gentle reminder when your estimate ends.",
   "@timerNotificationChannelDescription": {
     "description": "Android notification channel description for timer alerts."
   },
