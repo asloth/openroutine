@@ -84,6 +84,22 @@ void main() {
   tearDown(() => db.close());
 
   group('CRUD round-trips', () {
+    test('a schema 1.0 step defaults its additive core marker to false', () {
+      final step = RoutineStep.fromJson({
+        'id': 's1',
+        'routine_id': 'r1',
+        'name': 'Brush teeth',
+        'emoji': '🪥',
+        'duration_seconds': 180,
+        'order': 0,
+        'no_explicit_time': false,
+        'created_at': '2026-01-01T00:00:00.000Z',
+        'updated_at': '2026-01-01T00:00:00.000Z',
+      });
+
+      expect(step.isCore, isFalse);
+    });
+
     test('saveRoutine then getRoutine returns the same routine', () async {
       await adapter.saveRoutine(_routine());
       final result = await adapter.getRoutine('r1');
@@ -386,6 +402,17 @@ void main() {
   });
 
   group('import last-writer-wins', () {
+    test('refuses a newer bundle before changing local rows', () async {
+      await adapter.saveRoutine(_routine(name: 'Local routine'));
+      final newer = _bundleWithRoutine(
+        _routine(name: 'Remote routine'),
+      ).copyWith(schemaVersion: '1.2.0');
+
+      await expectLater(adapter.confirmImport(newer), throwsFormatException);
+
+      expect((await adapter.getRoutine('r1'))!.name, 'Local routine');
+    });
+
     test(
       'previewImport and confirmImport agree: new routine counted and written',
       () async {

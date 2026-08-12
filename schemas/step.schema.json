@@ -25,6 +25,11 @@
       "description": "Zero-based position within the routine's step_ids."
     },
     "no_explicit_time": { "type": "boolean" },
+    "is_core": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this step is intentionally included in a Low Mode run."
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": {
       "type": "string",

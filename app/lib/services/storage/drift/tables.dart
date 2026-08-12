@@ -52,6 +52,7 @@ class RoutineSteps extends Table {
   IntColumn get durationSeconds => integer().nullable()();
   IntColumn get order => integer()();
   BoolColumn get noExplicitTime => boolean()();
+  BoolColumn get isCore => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
@@ -107,7 +108,8 @@ class Triggers extends Table {
 /// Comma-joined "2026-07,2026-08", same reasoning as [DayListConverter].
 class SyncState extends Table {
   IntColumn get id => integer()();
-  BoolColumn get routinesDirty => boolean().withDefault(const Constant(false))();
+  BoolColumn get routinesDirty =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get dirtyCompletionMonths =>
       text().withDefault(const Constant(''))();
   DateTimeColumn get lastSyncAt => dateTime().nullable()();

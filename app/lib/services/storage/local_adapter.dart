@@ -12,10 +12,11 @@ import '../../models/routine.dart';
 import '../../models/schedule.dart';
 import '../../models/step.dart';
 import '../../models/trigger.dart';
+import '../schema_version.dart';
 import 'drift/app_database.dart' as db;
 import 'storage_adapter.dart';
 
-const _schemaVersion = '1.0.0';
+const _schemaVersion = SchemaVersion.currentValue;
 
 /// Drift-backed StorageAdapter — the only adapter in M2. Drift's generated
 /// row classes (`db.Routine`, `db.RoutineStep`, `db.Trigger`) collide by
@@ -96,6 +97,7 @@ class LocalAdapter implements StorageAdapter {
             durationSeconds: Value(step.durationSeconds),
             order: step.order,
             noExplicitTime: step.noExplicitTime,
+            isCore: Value(step.isCore),
             createdAt: step.createdAt,
             updatedAt: step.updatedAt,
             deletedAt: Value(step.deletedAt),
@@ -362,6 +364,7 @@ class LocalAdapter implements StorageAdapter {
   /// (soft-delete-inclusive) row so an older import can't resurrect
   /// something the user deleted locally — see docs/SPEC.md §5.
   Future<_ImportPlan> _planImport(ExportBundle bundle) async {
+    SchemaVersion.parseSupported(bundle.schemaVersion);
     final routinesToWrite = <Routine>[];
     var newRoutines = 0;
     var updatedRoutines = 0;
@@ -471,6 +474,7 @@ class LocalAdapter implements StorageAdapter {
       durationSeconds: row.durationSeconds,
       order: row.order,
       noExplicitTime: row.noExplicitTime,
+      isCore: row.isCore,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       deletedAt: row.deletedAt,

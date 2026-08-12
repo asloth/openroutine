@@ -167,6 +167,7 @@ void main() {
     expect(steps.map((s) => s.name), ['Brush my teeth', 'Shower']);
     expect(steps.map((s) => s.durationSeconds), [180, 300]);
     expect(steps.every((s) => s.noExplicitTime == false), isTrue);
+    expect(steps.every((s) => s.isCore == false), isTrue);
     expect(steps.first.emoji, '🪥');
   });
 
@@ -269,6 +270,41 @@ void main() {
       expect(row.routinesDirty, isTrue);
       expect(row.dirtyCompletionMonths, isEmpty);
       expect(row.lastSyncAt, isNull);
+    });
+  });
+
+  group('a v3 install upgrading to v4', () {
+    late sqlite.Database rawV3;
+    late AppDatabase dbV3;
+    late LocalAdapter adapterV3;
+
+    setUp(() {
+      rawV3 = _seedV1Database();
+      rawV3.execute('''
+        CREATE TABLE completion_logs (
+          id TEXT NOT NULL, routine_id TEXT NOT NULL REFERENCES routines (id),
+          started_at INTEGER NOT NULL, ended_at INTEGER NOT NULL,
+          outcome TEXT NOT NULL, steps_json TEXT NOT NULL, PRIMARY KEY (id)
+        )''');
+      rawV3.execute('''
+        CREATE TABLE sync_state (
+          id INTEGER NOT NULL, routines_dirty INTEGER NOT NULL DEFAULT 0,
+          dirty_completion_months TEXT NOT NULL DEFAULT '', last_sync_at INTEGER,
+          last_error TEXT, PRIMARY KEY (id)
+        )''');
+      rawV3.execute('PRAGMA user_version = 3');
+      dbV3 = AppDatabase(NativeDatabase.opened(rawV3));
+      adapterV3 = LocalAdapter(dbV3);
+    });
+
+    tearDown(() => dbV3.close());
+
+    test('preserves steps and defaults their core marker to false', () async {
+      final steps = await adapterV3.getSteps('r1');
+
+      expect(rawV3.userVersion, 4);
+      expect(steps.map((step) => step.id), ['s1', 's2']);
+      expect(steps.every((step) => step.isCore == false), isTrue);
     });
   });
 }
