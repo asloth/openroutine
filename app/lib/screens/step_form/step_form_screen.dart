@@ -33,6 +33,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
   String? _emoji;
   int _minutes = 5;
   bool _noExplicitTime = false;
+  bool _isCore = false;
   bool _loaded = false;
   bool _saving = false;
 
@@ -50,6 +51,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
     _nameController.text = step.name;
     _emoji = step.emoji;
     _noExplicitTime = step.noExplicitTime;
+    _isCore = step.isCore;
     if (step.durationSeconds != null) {
       _minutes = (step.durationSeconds! / 60).ceil().clamp(1, 999);
     }
@@ -120,6 +122,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
         emoji: _emoji!,
         durationSeconds: durationSeconds,
         noExplicitTime: _noExplicitTime,
+        isCore: _isCore,
         updatedAt: now,
       );
       await storage.saveStep(updated);
@@ -136,6 +139,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
         durationSeconds: durationSeconds,
         order: existingSteps.length,
         noExplicitTime: _noExplicitTime,
+        isCore: _isCore,
         createdAt: now,
         updatedAt: now,
       );
@@ -312,6 +316,40 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
               title: Text(l10n.stepFormNoExplicitTime),
               value: _noExplicitTime,
               onChanged: (value) => setState(() => _noExplicitTime = value),
+            ),
+            Builder(
+              builder: (context) {
+                final existingSteps =
+                    ref.watch(routineStepsProvider(widget.routineId)).value ??
+                    const <RoutineStep>[];
+                final otherCoreCount = existingSteps
+                    .where((step) => step.id != widget.stepId && step.isCore)
+                    .length;
+                final canSelect = _isCore || otherCoreCount < 3;
+                return Semantics(
+                  label: l10n.stepFormCoreGuidance,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l10n.stepFormCoreLabel),
+                        value: _isCore,
+                        onChanged: canSelect
+                            ? (value) =>
+                                  setState(() => _isCore = value ?? false)
+                            : null,
+                      ),
+                      Text(
+                        canSelect
+                            ? l10n.stepFormCoreGuidance
+                            : l10n.stepFormCoreLimit,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
             if (!_noExplicitTime) ...[
               const SizedBox(height: 8),

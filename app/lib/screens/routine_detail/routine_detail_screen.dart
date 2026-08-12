@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/step.dart';
+import '../../models/completion_log.dart';
 import '../../models/trigger.dart';
 import '../../services/storage/storage_adapter.dart';
 import '../../state/import_export_provider.dart';
@@ -443,7 +444,9 @@ class _HistoryDots extends ConsumerWidget {
                 padding: const EdgeInsets.only(right: 4, top: 4),
                 child: Tooltip(
                   message: completed
-                      ? l10n.routineDetailHistoryCompleted
+                      ? runs.any((e) => e.mode == RunMode.low)
+                            ? l10n.routineDetailHistoryLowModeCompleted
+                            : l10n.routineDetailHistoryCompleted
                       : attempted
                       ? l10n.routineDetailHistoryAbandoned
                       : l10n.routineDetailHistoryNothing,

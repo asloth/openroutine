@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
+import 'package:openroutine/models/step.dart';
 import 'package:openroutine/screens/routines_list/routines_list_screen.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
@@ -72,6 +73,70 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Morning Routine'), findsOneWidget);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('offers Low Mode only for a routine with core steps', (
+    tester,
+  ) async {
+    final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+    final now = DateTime.utc(2026, 1, 1);
+    await adapter.saveRoutine(
+      Routine(
+        id: 'r1',
+        name: 'Morning Routine',
+        triggerId: null,
+        schedule: const Schedule(mode: ScheduleMode.scheduled, days: []),
+        stepIds: const ['s1'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await adapter.saveRoutine(
+      Routine(
+        id: 'r2',
+        name: 'Other Routine',
+        triggerId: null,
+        schedule: const Schedule(mode: ScheduleMode.scheduled, days: []),
+        stepIds: const ['s2'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await adapter.saveStep(
+      RoutineStep(
+        id: 's1',
+        routineId: 'r1',
+        name: 'Core',
+        emoji: '✅',
+        durationSeconds: 60,
+        order: 0,
+        noExplicitTime: false,
+        isCore: true,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await adapter.saveStep(
+      RoutineStep(
+        id: 's2',
+        routineId: 'r2',
+        name: 'Regular',
+        emoji: '✅',
+        durationSeconds: 60,
+        order: 0,
+        noExplicitTime: false,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    expect(find.text(l10n.routinesStartLowMode), findsOneWidget);
 
     await _disposeCleanly(tester);
   });

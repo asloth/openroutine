@@ -103,6 +103,7 @@ RoutineStep _step(
   String name = 'Step',
   int? durationSeconds = 60,
   bool noExplicitTime = false,
+  bool isCore = false,
 }) {
   final now = DateTime.utc(2026, 8, 2);
   return RoutineStep(
@@ -113,6 +114,7 @@ RoutineStep _step(
     durationSeconds: noExplicitTime ? null : durationSeconds,
     order: order,
     noExplicitTime: noExplicitTime,
+    isCore: isCore,
     createdAt: now,
     updatedAt: now,
   );
@@ -154,11 +156,7 @@ void main() {
     final notifications = _NoopNotificationService();
 
     await tester.pumpWidget(
-      _wrap(
-        adapter,
-        notifications: notifications,
-        locale: const Locale('es'),
-      ),
+      _wrap(adapter, notifications: notifications, locale: const Locale('es')),
     );
     await tester.pumpAndSettle();
 
@@ -184,6 +182,46 @@ void main() {
     expect(find.text('Brush my teeth'), findsOneWidget);
     expect(find.text(l10n.timerStepCounter(1, 2)), findsOneWidget);
     expect(find.text('01:00'), findsOneWidget);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('Low Mode runs only the supplied core-step snapshot', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [
+        _step('core-1', order: 0, name: 'Core first', isCore: true),
+        _step('non-core', order: 1, name: 'Not planned'),
+        _step('core-2', order: 2, name: 'Core second', isCore: true),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageAdapterProvider.overrideWithValue(adapter),
+          notificationServiceProvider.overrideWithValue(
+            _NoopNotificationService(),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const TimerScreen(
+            routineId: 'r1',
+            mode: RunMode.low,
+            plannedStepIds: ['core-1', 'core-2'],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    expect(find.text('Core first'), findsOneWidget);
+    expect(find.text('Not planned'), findsNothing);
+    expect(find.text(l10n.timerStepCounter(1, 2)), findsOneWidget);
 
     await _disposeCleanly(tester);
   });
@@ -368,9 +406,7 @@ void main() {
     final logs = await adapter.getCompletions('r1');
     expect(logs.single.steps.map((s) => s.stepId), ['s2', 's1']);
     expect(
-      logs.single.steps.every(
-        (s) => s.state == CompletionStepState.completed,
-      ),
+      logs.single.steps.every((s) => s.state == CompletionStepState.completed),
       isTrue,
     );
 
@@ -391,10 +427,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final logs = await adapter.getCompletions('r1');
-    expect(logs.single.steps.map((s) => s.state.name), [
-      'skipped',
-      'skipped',
-    ]);
+    expect(logs.single.steps.map((s) => s.state.name), ['skipped', 'skipped']);
 
     await _disposeCleanly(tester);
   });

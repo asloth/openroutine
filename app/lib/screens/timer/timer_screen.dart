@@ -17,9 +17,16 @@ import '../../theme/theme.dart';
 /// keeps the display honest after the app has been backgrounded, where a
 /// locally decremented counter would come back stale.
 class TimerScreen extends ConsumerStatefulWidget {
-  const TimerScreen({super.key, required this.routineId});
+  const TimerScreen({
+    super.key,
+    required this.routineId,
+    this.mode = RunMode.full,
+    this.plannedStepIds,
+  });
 
   final String routineId;
+  final RunMode mode;
+  final List<String>? plannedStepIds;
 
   @override
   ConsumerState<TimerScreen> createState() => _TimerScreenState();
@@ -44,7 +51,11 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
         final notifier = ref.read(
           routineTimerProvider(widget.routineId).notifier,
         );
-        notifier.load(steps);
+        notifier.load(
+          steps,
+          mode: widget.mode,
+          plannedStepIds: widget.plannedStepIds,
+        );
         notifier.start(
           notificationBody: l10n.timerNotificationBody,
           notificationChannelName: l10n.timerNotificationChannelName,
@@ -228,9 +239,7 @@ class _Running extends ConsumerWidget {
             child: FilledButton.icon(
               onPressed: notifier.completeStep,
               icon: const Icon(Icons.check),
-              label: Text(
-                state.isLastStep ? l10n.timerFinish : l10n.timerDone,
-              ),
+              label: Text(state.isLastStep ? l10n.timerFinish : l10n.timerDone),
             ),
           ),
         ),
@@ -353,13 +362,23 @@ class _Summary extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              abandoned ? l10n.timerAbandonedTitle : l10n.timerCompleteTitle,
+              abandoned
+                  ? l10n.timerAbandonedTitle
+                  : state.mode == RunMode.low
+                  ? l10n.timerLowModeCompleteTitle
+                  : l10n.timerCompleteTitle,
               style: theme.textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              l10n.timerCompleteSummary(completed, total, _format(ran)),
+              state.mode == RunMode.low
+                  ? l10n.timerLowModeCompleteSummary(
+                      completed,
+                      total,
+                      _format(ran),
+                    )
+                  : l10n.timerCompleteSummary(completed, total, _format(ran)),
               style: theme.textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),

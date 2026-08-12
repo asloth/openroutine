@@ -53,9 +53,18 @@ class RoutineTimer extends _$RoutineTimer {
 
   /// Steps are loaded by the screen and handed in, so this notifier stays
   /// synchronous and the machine keeps its pure-value shape.
-  void load(List<RoutineStep> steps) {
+  void load(
+    List<RoutineStep> steps, {
+    RunMode mode = RunMode.full,
+    List<String>? plannedStepIds,
+  }) {
     if (state.phase != TimerPhase.idle) return;
-    state = TimerState.idle(routineId: routineId, steps: steps);
+    state = TimerState.forMode(
+      routineId: routineId,
+      steps: steps,
+      mode: mode,
+      plannedStepIds: plannedStepIds,
+    );
   }
 
   Future<void> start({
@@ -152,9 +161,11 @@ Future<List<CompletionLogView>> routineCompletions(
   // Midnight-anchored rather than "now minus 7 days" so the dots line up with
   // calendar days, which is what a row of day dots implies.
   final now = DateTime.now();
-  final since = DateTime(now.year, now.month, now.day)
-      .subtract(const Duration(days: 6))
-      .toUtc();
+  final since = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).subtract(const Duration(days: 6)).toUtc();
   final logs = await ref
       .watch(storageAdapterProvider)
       .getCompletions(routineId, since: since);
@@ -167,6 +178,7 @@ Future<List<CompletionLogView>> routineCompletions(
             log.startedAt.toLocal().day,
           ),
           completed: log.outcome == CompletionOutcome.completed,
+          mode: log.mode,
         ),
       )
       .toList();
@@ -175,8 +187,13 @@ Future<List<CompletionLogView>> routineCompletions(
 /// A completion reduced to what the dots actually need: which local calendar
 /// day it happened on, and whether it finished.
 class CompletionLogView {
-  const CompletionLogView({required this.localDay, required this.completed});
+  const CompletionLogView({
+    required this.localDay,
+    required this.completed,
+    required this.mode,
+  });
 
   final DateTime localDay;
   final bool completed;
+  final RunMode mode;
 }

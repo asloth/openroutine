@@ -67,9 +67,12 @@ abstract class TimerState with _$TimerState {
     required String routineId,
     required List<RoutineStep> steps,
     required RunMode mode,
+    List<String>? plannedStepIds,
   }) {
     final planned = mode == RunMode.low
-        ? steps.where((step) => step.isCore).toList()
+        ? plannedStepIds == null
+              ? steps.where((step) => step.isCore).toList()
+              : steps.where((step) => plannedStepIds.contains(step.id)).toList()
         : steps;
     return TimerState.idle(routineId: routineId, steps: planned).copyWith(
       mode: mode,

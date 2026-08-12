@@ -68,6 +68,7 @@
   "routinesLoadError": "No se pudieron cargar tus rutinas. Intenta reiniciar la app.",
 
   "routinesStepCount": "{count, plural, =0{Sin pasos} =1{1 paso} other{{count} pasos}}",
+  "routinesStartLowMode": "Iniciar modo bajo",
   "@routinesStepCount": {
     "placeholders": {
       "count": { "type": "int" }
@@ -114,6 +115,7 @@
   "routineDetailStartTimer": "Iniciar cronómetro",
   "routineDetailNeedsStepsToStart": "Añade un paso para poder ejecutar esta rutina",
   "routineDetailHistoryCompleted": "Completada",
+  "routineDetailHistoryLowModeCompleted": "Completada en modo bajo",
   "routineDetailHistoryAbandoned": "Empezada, sin terminar",
   "routineDetailHistoryNothing": "Sin registro",
   "routineDetailSteps": "Pasos",
@@ -153,8 +155,17 @@
   "timerAbandonConfirmBody": "Los pasos que ya terminaste igual quedan registrados.",
   "timerAbandonConfirmAction": "Detener",
   "timerCompleteTitle": "Rutina completada",
+  "timerLowModeCompleteTitle": "Modo bajo completado",
   "timerAbandonedTitle": "Rutina detenida",
   "timerCompleteSummary": "{completed} de {total} pasos en {duration}",
+  "timerLowModeCompleteSummary": "Completaste {completed} {total, plural, =1{paso esencial} other{pasos esenciales}} en {duration}. El resto quedó fuera de alcance hoy.",
+  "@timerLowModeCompleteSummary": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" },
+      "duration": { "type": "String" }
+    }
+  },
   "@timerCompleteSummary": {
     "placeholders": {
       "completed": { "type": "int" },
@@ -181,6 +192,9 @@
   "stepFormNoExplicitTime": "Sin hora definida",
   "stepFormDurationLabel": "Duración",
   "stepFormDeleteConfirmTitle": "¿Eliminar este paso?",
+  "stepFormCoreLabel": "Esencial para el modo bajo",
+  "stepFormCoreGuidance": "Elige 2 o 3 esenciales para los días con menos energía. Puedes cambiarlo cuando quieras.",
+  "stepFormCoreLimit": "Guárdalo para otro día o desmarca primero un paso esencial.",
 
   "stepTemplateCategoryMorning": "Mañana",
   "stepTemplateCategoryEvening": "Noche",

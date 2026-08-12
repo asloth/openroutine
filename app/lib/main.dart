@@ -15,6 +15,7 @@ import 'screens/routines_list/routines_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/step_form/step_form_screen.dart';
 import 'screens/timer/timer_screen.dart';
+import 'models/completion_log.dart';
 import 'state/app_prefs_provider.dart';
 import 'state/sync_provider.dart';
 import 'theme/theme.dart';
@@ -69,8 +70,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/routines/:routineId/timer',
-        builder: (context, state) =>
-            TimerScreen(routineId: state.pathParameters['routineId']!),
+        builder: (context, state) => TimerScreen(
+          routineId: state.pathParameters['routineId']!,
+          mode: state.uri.queryParameters['mode'] == 'low'
+              ? RunMode.low
+              : RunMode.full,
+          plannedStepIds: state.uri.queryParameters['steps']?.split(','),
+        ),
       ),
       GoRoute(
         path: '/routines/:routineId/steps/new',

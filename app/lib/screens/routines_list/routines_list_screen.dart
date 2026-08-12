@@ -93,7 +93,7 @@ class RoutinesListScreen extends ConsumerWidget {
 
 enum _OverflowAction { import, settings }
 
-class _RoutineSectionList extends StatelessWidget {
+class _RoutineSectionList extends ConsumerWidget {
   const _RoutineSectionList({
     required this.routines,
     required this.triggersById,
@@ -105,7 +105,7 @@ class _RoutineSectionList extends StatelessWidget {
   final String emptyMessage;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (routines.isEmpty) {
       return Center(
         child: Padding(
@@ -154,39 +154,68 @@ class _RoutineSectionList extends StatelessWidget {
             ),
           ),
           for (final routine in byTrigger[triggerId]!)
-            NeumorphicCard(
-              margin: const EdgeInsets.only(bottom: AppSpacing.element),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.element,
-                vertical: AppSpacing.element,
-              ),
-              onTap: () => context.push('/routines/${routine.id}'),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(routine.name, style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 2),
-                        Text(
-                          l10n.routinesStepCount(routine.stepIds.length),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-            ),
+            _RoutineCard(routine: routine),
         ],
       ],
+    );
+  }
+}
+
+class _RoutineCard extends ConsumerWidget {
+  const _RoutineCard({required this.routine});
+
+  final Routine routine;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final steps = ref.watch(routineStepsProvider(routine.id)).value;
+    final hasCoreSteps = steps?.any((step) => step.isCore) ?? false;
+    return NeumorphicCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.element),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.element,
+        vertical: AppSpacing.element,
+      ),
+      onTap: () => context.push('/routines/${routine.id}'),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(routine.name, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(
+                  l10n.routinesStepCount(routine.stepIds.length),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hasCoreSteps)
+            Semantics(
+              button: true,
+              child: SizedBox(
+                height: 48,
+                child: TextButton(
+                  onPressed: () => context.push(
+                    '/routines/${routine.id}/timer?mode=low&steps=${steps!.where((step) => step.isCore).map((step) => step.id).join(',')}',
+                  ),
+                  child: Text(l10n.routinesStartLowMode),
+                ),
+              ),
+            )
+          else
+            Icon(
+              Icons.chevron_right,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+        ],
+      ),
     );
   }
 }
