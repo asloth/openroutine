@@ -282,6 +282,11 @@ abstract class TimerState with _$TimerState {
           ? CompletionStepState.skipped
           : _finishedState(step, spent),
       actualDurationSeconds: spent.inSeconds,
+      // Immutable run evidence: later edits must not reinterpret what the
+      // estimate was when this completion happened.
+      estimatedDurationSeconds: step.noExplicitTime
+          ? null
+          : step.durationSeconds,
     );
     final nextOutcomes = [...outcomes, recorded];
 

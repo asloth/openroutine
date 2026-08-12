@@ -142,6 +142,7 @@ void main() {
       expect(state.outcomes.single.stepId, 'a');
       expect(state.outcomes.single.state, CompletionStepState.completed);
       expect(state.outcomes.single.actualDurationSeconds, 30);
+      expect(state.outcomes.single.estimatedDurationSeconds, 60);
       expect(state.currentIndex, 1);
     });
 
@@ -158,6 +159,7 @@ void main() {
       ).start(_t0).completeStep(_at(9999));
 
       expect(state.outcomes.single.state, CompletionStepState.completed);
+      expect(state.outcomes.single.estimatedDurationSeconds, isNull);
     });
 
     test('the clock restarts for the next step', () {
@@ -412,6 +414,7 @@ void main() {
         'step_id': 'a',
         'state': 'skipped',
         'actual_duration_seconds': 15,
+        'estimated_duration_seconds': 60,
       });
       expect(CompletionLog.fromJson(json), log);
     });

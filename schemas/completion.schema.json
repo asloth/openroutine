@@ -24,7 +24,8 @@
         "properties": {
           "step_id": { "$ref": "#/$defs/uuid" },
           "state": { "enum": ["completed", "skipped", "overrun"] },
-          "actual_duration_seconds": { "type": "integer", "minimum": 0 }
+          "actual_duration_seconds": { "type": "integer", "minimum": 0 },
+          "estimated_duration_seconds": { "type": "integer", "minimum": 0 }
         },
         "required": ["step_id", "state", "actual_duration_seconds"]
       }

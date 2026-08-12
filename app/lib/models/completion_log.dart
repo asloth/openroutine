@@ -26,6 +26,7 @@ abstract class CompletionStep with _$CompletionStep {
     required String stepId,
     required CompletionStepState state,
     required int actualDurationSeconds,
+    int? estimatedDurationSeconds,
   }) = _CompletionStep;
 
   factory CompletionStep.fromJson(Map<String, dynamic> json) =>
