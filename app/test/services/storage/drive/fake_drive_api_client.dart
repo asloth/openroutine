@@ -20,6 +20,7 @@ class FakeDriveApiClient implements DriveApiClient {
 
   /// Every uploadText call, for asserting that a clean sync uploads nothing.
   final List<String> uploads = [];
+  final List<String> mutations = [];
 
   String? _gatedUploadName;
   Completer<void>? _uploadStarted;
@@ -32,6 +33,22 @@ class FakeDriveApiClient implements DriveApiClient {
     if (failure == null) return;
     failNextWith = null;
     throw failure;
+  }
+
+  @override
+  Future<String?> discoverFolder(String name, {String? parentId}) async {
+    _maybeFail();
+    final matches = _nodes.entries
+        .where(
+          (e) =>
+              e.value.isFolder &&
+              e.value.name == name &&
+              e.value.parentId == parentId,
+        )
+        .map((e) => e.key)
+        .toList();
+    if (matches.length > 1) throw DriveAmbiguousDiscovery(name);
+    return matches.isEmpty ? null : matches.single;
   }
 
   @override
@@ -49,6 +66,7 @@ class FakeDriveApiClient implements DriveApiClient {
     if (existing != null) return existing;
 
     final id = _id();
+    mutations.add('ensure:$name');
     _nodes[id] = _Node(name: name, parentId: parentId, isFolder: true);
     return id;
   }
@@ -74,14 +92,44 @@ class FakeDriveApiClient implements DriveApiClient {
   }
 
   @override
+  Future<DriveAuthoritySnapshot?> readTextFile({
+    required String parentId,
+    required String name,
+  }) async {
+    final id = await findFile(parentId: parentId, name: name);
+    final node = id == null ? null : _nodes[id];
+    if (node == null || node.content == null) return null;
+    return DriveAuthoritySnapshot(
+      file: DriveFileRevision(
+        id: id!,
+        version: node.version,
+        etag: 'etag-${node.version}',
+      ),
+      content: node.content!,
+      schemaAuthority: _schemaAuthority(node.content!),
+    );
+  }
+
+  @override
   Future<String> uploadText({
     required String parentId,
     required String name,
     required String content,
     String? fileId,
+    DriveFileRevision? expectedRevision,
+    bool expectAbsent = false,
     String mimeType = 'application/json',
   }) async {
     _maybeFail();
+    final current = fileId == null ? null : _nodes[fileId];
+    if (expectedRevision != null &&
+        (current == null || current.version != expectedRevision.version)) {
+      throw DriveRevisionConflict(fileId!);
+    }
+    if (expectAbsent &&
+        await findFile(parentId: parentId, name: name) != null) {
+      throw const DriveRevisionConflict('expected-absent');
+    }
     if (name == _gatedUploadName) {
       _uploadStarted!.complete();
       await _releaseUpload!.future;
@@ -95,10 +143,11 @@ class FakeDriveApiClient implements DriveApiClient {
       throw const DriveApiException(
         400,
         '{"error":{"code":400,"message":"Invalid MIME type provided for the '
-            'uploaded content.","errors":[{"reason":"invalidContentType"}]}}',
+        'uploaded content.","errors":[{"reason":"invalidContentType"}]}}',
       );
     }
     uploads.add(name);
+    mutations.add('upload:$name');
     if (fileId != null && _nodes.containsKey(fileId)) {
       _nodes[fileId] = _nodes[fileId]!.withContent(content);
       return fileId;
@@ -134,8 +183,7 @@ class FakeDriveApiClient implements DriveApiClient {
     return null;
   }
 
-  bool exists(String name) =>
-      _nodes.values.any((node) => node.name == name);
+  bool exists(String name) => _nodes.values.any((node) => node.name == name);
 
   int countNamed(String name) =>
       _nodes.values.where((node) => node.name == name).length;
@@ -167,6 +215,16 @@ class FakeDriveApiClient implements DriveApiClient {
     _nodes[_id()] = _Node(name: name, parentId: parentId, content: content);
   }
 
+  void seedFolder(String name, {String? parentId}) {
+    _nodes[_id()] = _Node(name: name, parentId: parentId, isFolder: true);
+  }
+
+  String? _schemaAuthority(String content) {
+    return RegExp(
+      r'"schema_version"\s*:\s*"([^"]+)"',
+    ).firstMatch(content)?.group(1);
+  }
+
   /// Resolves (creating as needed) the OpenRoutine root, or a folder inside it.
   String _folderIdByPath(List<String> names, {String? under}) {
     final name = names.isEmpty ? 'OpenRoutine' : names.single;
@@ -194,18 +252,21 @@ class _Node {
     required this.parentId,
     this.isFolder = false,
     this.content,
+    this.version = 1,
   });
 
   final String name;
   final String? parentId;
   final bool isFolder;
   final String? content;
+  final int version;
 
   _Node withContent(String value) => _Node(
     name: name,
     parentId: parentId,
     isFolder: isFolder,
     content: value,
+    version: version + 1,
   );
 }
 
