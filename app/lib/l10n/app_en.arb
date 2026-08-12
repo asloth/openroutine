@@ -219,6 +219,8 @@
   "routineDetailSteps": "Steps",
   "routineDetailAddStep": "Add step",
   "routineDetailNoSteps": "No steps yet. Tap \"Add step\" to add one.",
+  "routineDetailReorderHandle": "Drag to reorder",
+  "routineDetailReorderError": "Couldn't save the step order. Try again.",
   "routineDetailNoExplicitTime": "No set time",
   "routineDetailDeleteConfirmTitle": "Delete this routine?",
   "routineDetailDeleteConfirmBody": "This can't be undone from within the app, though the data isn't permanently erased right away.",

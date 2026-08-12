@@ -83,6 +83,15 @@ class DriveAdapter implements StorageAdapter {
       _mutate(() => _local.saveTrigger(trigger));
 
   @override
+  Future<void> reorderSteps(
+    String routineId,
+    List<String> orderedStepIds, {
+    required DateTime updatedAt,
+  }) => _mutate(
+    () => _local.reorderSteps(routineId, orderedStepIds, updatedAt: updatedAt),
+  );
+
+  @override
   Future<void> deleteRoutine(String id) =>
       _mutate(() => _local.deleteRoutine(id));
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,20 +47,25 @@ RoutineStep _step({
   String id = 's1',
   String routineId = 'r1',
   int order = 0,
+  String name = 'Brush teeth',
+  String emoji = '🪥',
+  int? durationSeconds = 180,
+  bool noExplicitTime = false,
   DateTime? updatedAt,
+  DateTime? deletedAt,
 }) {
   final now = DateTime.utc(2026, 1, 1);
   return RoutineStep(
     id: id,
     routineId: routineId,
-    name: 'Brush teeth',
-    emoji: '🪥',
-    durationSeconds: 180,
+    name: name,
+    emoji: emoji,
+    durationSeconds: durationSeconds,
     order: order,
-    noExplicitTime: false,
+    noExplicitTime: noExplicitTime,
     createdAt: now,
     updatedAt: updatedAt ?? now,
-    deletedAt: null,
+    deletedAt: deletedAt,
   );
 }
 
@@ -110,6 +116,151 @@ void main() {
       expect(triggers, hasLength(1));
       expect(triggers.single.name, 'Waking up');
     });
+  });
+
+  group('step reordering', () {
+    final reorderedAt = DateTime.utc(2026, 8, 11, 12, 30);
+
+    Future<void> seedSteps() async {
+      await adapter.saveRoutine(_routine(name: 'Morning routine'));
+      await adapter.saveStep(
+        _step(id: 's1', order: 4, name: 'First', emoji: '1️⃣'),
+      );
+      await adapter.saveStep(
+        _step(
+          id: 's2',
+          order: 4,
+          name: 'Second',
+          durationSeconds: null,
+          noExplicitTime: true,
+        ),
+      );
+      await adapter.saveStep(_step(id: 's3', order: 9, name: 'Third'));
+      await adapter.saveStep(
+        _step(
+          id: 'deleted',
+          order: 1,
+          name: 'Deleted',
+          deletedAt: DateTime.utc(2026, 7, 1),
+        ),
+      );
+    }
+
+    test(
+      'reorders upward atomically and normalizes duplicate and gapped orders',
+      () async {
+        await seedSteps();
+
+        await adapter.reorderSteps('r1', [
+          's3',
+          's1',
+          's2',
+        ], updatedAt: reorderedAt);
+
+        final steps = await adapter.getSteps('r1');
+        expect(steps.map((step) => step.id), ['s3', 's1', 's2']);
+        expect(steps.map((step) => step.order), [0, 1, 2]);
+        expect(
+          steps.map((step) => step.updatedAt.toUtc()),
+          everyElement(reorderedAt),
+        );
+        final routine = (await adapter.getRoutine('r1'))!;
+        expect(routine.updatedAt.toUtc(), reorderedAt);
+        expect(routine.name, 'Morning routine');
+        expect(routine.schedule.mode, ScheduleMode.flexible);
+        expect(routine.stepIds, ['s3', 's1', 's2']);
+
+        expect(steps.singleWhere((step) => step.id == 's1').emoji, '1️⃣');
+        final second = steps.singleWhere((step) => step.id == 's2');
+        expect(second.name, 'Second');
+        expect(second.noExplicitTime, isTrue);
+        expect(second.durationSeconds, isNull);
+
+        final tombstone = await (db.select(
+          db.routineSteps,
+        )..where((step) => step.id.equals('deleted'))).getSingle();
+        expect(tombstone.order, 1);
+        expect(tombstone.updatedAt.toUtc(), DateTime.utc(2026, 1, 1));
+        expect(tombstone.deletedAt?.toUtc(), DateTime.utc(2026, 7, 1));
+      },
+    );
+
+    test('reorders downward with one shared timestamp', () async {
+      await seedSteps();
+
+      await adapter.reorderSteps('r1', [
+        's2',
+        's3',
+        's1',
+      ], updatedAt: reorderedAt);
+
+      final steps = await adapter.getSteps('r1');
+      expect(steps.map((step) => step.id), ['s2', 's3', 's1']);
+      expect(steps.map((step) => step.order), [0, 1, 2]);
+      expect([
+        (await adapter.getRoutine('r1'))!.updatedAt.toUtc(),
+        ...steps.map((step) => step.updatedAt.toUtc()),
+      ], everyElement(reorderedAt));
+    });
+
+    for (final invalidOrder in <String, List<String>>{
+      'missing ID': ['s1'],
+      'duplicate ID': ['s1', 's1'],
+      'foreign ID': ['s1', 'foreign'],
+    }.entries) {
+      test('${invalidOrder.key} rejects without partial writes', () async {
+        await adapter.saveRoutine(_routine());
+        await adapter.saveRoutine(_routine(id: 'r2'));
+        await adapter.saveStep(_step(id: 's1', order: 3));
+        await adapter.saveStep(_step(id: 's2', order: 8));
+        await adapter.saveStep(_step(id: 'foreign', routineId: 'r2', order: 0));
+        final routineBefore = await adapter.getRoutine('r1');
+        final stepsBefore = await adapter.getSteps('r1');
+
+        await expectLater(
+          adapter.reorderSteps(
+            'r1',
+            invalidOrder.value,
+            updatedAt: reorderedAt,
+          ),
+          throwsArgumentError,
+        );
+
+        expect(await adapter.getRoutine('r1'), routineBefore);
+        expect(await adapter.getSteps('r1'), stepsBefore);
+      });
+    }
+
+    test(
+      'persisted order survives closing and reopening a file database',
+      () async {
+        final directory = await Directory.systemTemp.createTemp(
+          'openroutine-reorder-',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        final file = File('${directory.path}/openroutine.sqlite');
+        var fileDb = AppDatabase(NativeDatabase(file));
+        var fileAdapter = LocalAdapter(fileDb);
+        await fileAdapter.saveRoutine(_routine());
+        await fileAdapter.saveStep(_step(id: 's1', order: 0));
+        await fileAdapter.saveStep(_step(id: 's2', order: 1));
+        await fileAdapter.reorderSteps('r1', [
+          's2',
+          's1',
+        ], updatedAt: reorderedAt);
+        await fileDb.close();
+
+        fileDb = AppDatabase(NativeDatabase(file));
+        fileAdapter = LocalAdapter(fileDb);
+        addTearDown(fileDb.close);
+
+        expect((await fileAdapter.getSteps('r1')).map((step) => step.id), [
+          's2',
+          's1',
+        ]);
+        expect((await fileAdapter.getRoutine('r1'))!.stepIds, ['s2', 's1']);
+      },
+    );
   });
 
   group('completion logs', () {
@@ -175,9 +326,7 @@ void main() {
       await adapter.appendCompletion(
         completion(id: 'before', startedAt: DateTime.utc(2026, 8, 1)),
       );
-      await adapter.appendCompletion(
-        completion(id: 'on', startedAt: boundary),
-      );
+      await adapter.appendCompletion(completion(id: 'on', startedAt: boundary));
       await adapter.appendCompletion(
         completion(id: 'after', startedAt: DateTime.utc(2026, 8, 3)),
       );
@@ -207,10 +356,7 @@ void main() {
 
       // The log is append-only (docs/SPEC.md §4); a duplicate id is a bug, and
       // silently absorbing it would corrupt the history.
-      expect(
-        () => adapter.appendCompletion(completion()),
-        throwsA(anything),
-      );
+      expect(() => adapter.appendCompletion(completion()), throwsA(anything));
     });
   });
 

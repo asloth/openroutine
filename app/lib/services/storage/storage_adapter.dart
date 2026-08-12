@@ -26,6 +26,12 @@ abstract class StorageAdapter {
   Future<void> saveStep(RoutineStep step);
   Future<void> saveTrigger(Trigger trigger);
 
+  Future<void> reorderSteps(
+    String routineId,
+    List<String> orderedStepIds, {
+    required DateTime updatedAt,
+  });
+
   /// Soft delete: sets deleted_at (and bumps updated_at) rather than
   /// removing the row — see docs/SPEC.md §5.
   Future<void> deleteRoutine(String id);
@@ -39,7 +45,10 @@ abstract class StorageAdapter {
 
   /// Newest first. [since] is inclusive and compared against `startedAt`;
   /// pass it to avoid loading a routine's entire history for the 7-day dots.
-  Future<List<CompletionLog>> getCompletions(String routineId, {DateTime? since});
+  Future<List<CompletionLog>> getCompletions(
+    String routineId, {
+    DateTime? since,
+  });
 
   Future<ExportBundle> exportAll();
   Future<ExportBundle> exportRoutine(String id);

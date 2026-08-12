@@ -119,6 +119,54 @@ class LocalAdapter implements StorageAdapter {
   }
 
   @override
+  Future<void> reorderSteps(
+    String routineId,
+    List<String> orderedStepIds, {
+    required DateTime updatedAt,
+  }) {
+    return _db.transaction(() async {
+      final routine = await _rawRoutineRow(routineId);
+      if (routine == null || routine.deletedAt != null) {
+        throw ArgumentError.value(routineId, 'routineId', 'Routine not found');
+      }
+
+      final activeSteps =
+          await (_db.select(_db.routineSteps)..where(
+                (step) =>
+                    step.routineId.equals(routineId) & step.deletedAt.isNull(),
+              ))
+              .get();
+      final activeIds = activeSteps.map((step) => step.id).toSet();
+      final requestedIds = orderedStepIds.toSet();
+      final isValid =
+          orderedStepIds.length == activeSteps.length &&
+          requestedIds.length == orderedStepIds.length &&
+          requestedIds.length == activeIds.length &&
+          requestedIds.containsAll(activeIds);
+      if (!isValid) {
+        throw ArgumentError.value(
+          orderedStepIds,
+          'orderedStepIds',
+          'Must contain every active step exactly once',
+        );
+      }
+
+      for (final (order, stepId) in orderedStepIds.indexed) {
+        await (_db.update(
+          _db.routineSteps,
+        )..where((step) => step.id.equals(stepId))).write(
+          db.RoutineStepsCompanion(
+            order: Value(order),
+            updatedAt: Value(updatedAt),
+          ),
+        );
+      }
+      await (_db.update(_db.routines)..where((row) => row.id.equals(routineId)))
+          .write(db.RoutinesCompanion(updatedAt: Value(updatedAt)));
+    });
+  }
+
+  @override
   Future<void> appendCompletion(CompletionLog log) {
     // insert, not insertOnConflictUpdate: these records are append-only, so a
     // duplicate id means a bug worth surfacing rather than silently absorbing.

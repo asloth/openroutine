@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/step.dart';
 import '../../models/trigger.dart';
+import '../../services/storage/storage_adapter.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
@@ -15,13 +16,24 @@ import '../../theme/theme.dart';
 /// Timer Mode writes (M3); a routine that has never been run still falls back
 /// to the "no history yet" text rather than a row of empty dots, which would
 /// read as seven missed days.
-class RoutineDetailScreen extends ConsumerWidget {
+class RoutineDetailScreen extends ConsumerStatefulWidget {
   const RoutineDetailScreen({super.key, required this.routineId});
 
   final String routineId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RoutineDetailScreen> createState() =>
+      _RoutineDetailScreenState();
+}
+
+class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
+  List<RoutineStep>? _displaySteps;
+  bool _savingOrder = false;
+
+  String get routineId => widget.routineId;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final routineAsync = ref.watch(routineProvider(routineId));
     final stepsAsync = ref.watch(routineStepsProvider(routineId));
@@ -73,17 +85,17 @@ class RoutineDetailScreen extends ConsumerWidget {
           if (routine == null) {
             return Center(child: Text(l10n.commonItemUnavailable));
           }
-          if (stepsAsync.isLoading) {
+          if (stepsAsync.isLoading && _displaySteps == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (stepsAsync.hasError) {
+          if (stepsAsync.hasError && _displaySteps == null) {
             return Center(child: Text(l10n.commonLoadError));
           }
           final trigger = triggersAsync.value
               ?.where((t) => t.id == routine.triggerId)
               .cast<Trigger?>()
               .firstOrNull;
-          final steps = stepsAsync.requireValue;
+          final steps = _displaySteps ?? stepsAsync.requireValue;
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -101,33 +113,33 @@ class RoutineDetailScreen extends ConsumerWidget {
               NeumorphicCard(
                 padding: const EdgeInsets.all(AppSpacing.element),
                 child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.routineDetailEstimatedFinish,
-                            style: Theme.of(context).textTheme.labelMedium,
-                          ),
-                          Text(
-                            _estimatedDuration(l10n, steps),
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.routineDetailHistory,
-                            style: Theme.of(context).textTheme.labelMedium,
-                          ),
-                          _HistoryDots(routineId: routineId),
-                        ],
-                      ),
-                    ],
-                  ),
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.routineDetailEstimatedFinish,
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                        Text(
+                          _estimatedDuration(l10n, steps),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.routineDetailHistory,
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                        _HistoryDots(routineId: routineId),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.container),
               SizedBox(
@@ -170,50 +182,45 @@ class RoutineDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Text(l10n.routineDetailNoSteps),
                 )
+              else if (steps.length == 1)
+                _StepCard(
+                  key: ValueKey(steps.single.id),
+                  step: steps.single,
+                  routineId: routineId,
+                )
               else
-                for (final step in steps)
-                  NeumorphicCard(
-                    margin: const EdgeInsets.only(bottom: AppSpacing.element),
-                    onTap: () => context.push(
-                      '/routines/$routineId/steps/${step.id}/edit',
-                    ),
-                    child: Row(
-                      children: [
-                        Text(step.emoji, style: const TextStyle(fontSize: 28)),
-                        const SizedBox(width: AppSpacing.element),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                step.name,
-                                style: Theme.of(context).textTheme.titleMedium,
+                ReorderableListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  proxyDecorator: (child, index, animation) =>
+                      Material(type: MaterialType.transparency, child: child),
+                  onReorder: _savingOrder ? (_, _) {} : _reorder,
+                  children: [
+                    for (final (index, step) in steps.indexed)
+                      _StepCard(
+                        key: ValueKey(step.id),
+                        step: step,
+                        routineId: routineId,
+                        handle: ReorderableDragStartListener(
+                          index: index,
+                          enabled: !_savingOrder,
+                          child: Semantics(
+                            label: l10n.routineDetailReorderHandle,
+                            button: true,
+                            enabled: !_savingOrder,
+                            child: Tooltip(
+                              message: l10n.routineDetailReorderHandle,
+                              child: const SizedBox.square(
+                                dimension: 48,
+                                child: Icon(Icons.drag_handle),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                step.noExplicitTime
-                                    ? l10n.routineDetailNoExplicitTime
-                                    : l10n.stepDurationMinutes(
-                                        ((step.durationSeconds ?? 0) / 60)
-                                            .ceil(),
-                                      ),
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                  ],
+                ),
             ],
           );
         },
@@ -221,6 +228,57 @@ class RoutineDetailScreen extends ConsumerWidget {
         error: (error, stack) => Center(child: Text(l10n.routinesLoadError)),
       ),
     );
+  }
+
+  Future<void> _reorder(int oldIndex, int newIndex) async {
+    final reordered = List<RoutineStep>.of(
+      _displaySteps ?? ref.read(routineStepsProvider(routineId)).requireValue,
+    );
+    if (oldIndex < newIndex) newIndex -= 1;
+    reordered.insert(newIndex, reordered.removeAt(oldIndex));
+
+    setState(() {
+      _displaySteps = reordered;
+      _savingOrder = true;
+    });
+
+    try {
+      await ref
+          .read(storageAdapterProvider)
+          .reorderSteps(
+            routineId,
+            reordered.map((step) => step.id).toList(),
+            updatedAt: nowUtc(),
+          );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _displaySteps = null;
+        _savingOrder = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.routineDetailReorderError,
+          ),
+        ),
+      );
+      return;
+    }
+
+    ref.invalidate(routineStepsProvider(routineId));
+    try {
+      await ref.read(routineStepsProvider(routineId).future);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _savingOrder = false);
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _displaySteps = null;
+      _savingOrder = false;
+    });
   }
 
   Future<bool> _confirmDelete(
@@ -254,6 +312,82 @@ class RoutineDetailScreen extends ConsumerWidget {
     if (totalSeconds == 0) return l10n.routineDetailNoEstimate;
     final minutes = (totalSeconds / 60).ceil();
     return l10n.routineDetailEstimateMinutes(minutes);
+  }
+}
+
+class _StepCard extends StatelessWidget {
+  const _StepCard({
+    super.key,
+    required this.step,
+    required this.routineId,
+    this.handle,
+  });
+
+  final RoutineStep step;
+  final String routineId;
+  final Widget? handle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final content = Row(
+      children: [
+        Text(step.emoji, style: const TextStyle(fontSize: 28)),
+        const SizedBox(width: AppSpacing.element),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(step.name, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 2),
+              Text(
+                step.noExplicitTime
+                    ? l10n.routineDetailNoExplicitTime
+                    : l10n.stepDurationMinutes(
+                        ((step.durationSeconds ?? 0) / 60).ceil(),
+                      ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Icon(
+          Icons.chevron_right,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ],
+    );
+
+    return NeumorphicCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.element),
+      padding: handle == null
+          ? const EdgeInsets.all(AppSpacing.element)
+          : EdgeInsets.zero,
+      onTap: handle == null
+          ? () => context.push('/routines/$routineId/steps/${step.id}/edit')
+          : null,
+      child: handle == null
+          ? content
+          : Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    borderRadius: AppRadius.cardBorder,
+                    onTap: () => context.push(
+                      '/routines/$routineId/steps/${step.id}/edit',
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.element),
+                      child: content,
+                    ),
+                  ),
+                ),
+                handle!,
+              ],
+            ),
+    );
   }
 }
 

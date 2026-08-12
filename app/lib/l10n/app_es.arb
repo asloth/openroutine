@@ -119,6 +119,8 @@
   "routineDetailSteps": "Pasos",
   "routineDetailAddStep": "Añadir paso",
   "routineDetailNoSteps": "Aún no hay pasos. Toca \"Añadir paso\" para agregar uno.",
+  "routineDetailReorderHandle": "Arrastra para reordenar",
+  "routineDetailReorderError": "No se pudo guardar el orden de los pasos. Inténtalo de nuevo.",
   "routineDetailNoExplicitTime": "Sin hora definida",
   "routineDetailDeleteConfirmTitle": "¿Eliminar esta rutina?",
   "routineDetailDeleteConfirmBody": "Esto no se puede deshacer desde la app, aunque los datos no se borran de forma permanente de inmediato.",
