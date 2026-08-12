@@ -130,7 +130,7 @@ void main() {
           jsonDecode(api.contentOf(DriveLayout.metaFile)!)
               as Map<String, dynamic>;
       expect(meta['last_writer_client_id'], 'client-under-test');
-      expect(meta['schema_version'], '1.0.0');
+      expect(meta['schema_version'], '1.1.0');
     });
 
     test('clears the dirty flag so the next sync uploads nothing', () async {
