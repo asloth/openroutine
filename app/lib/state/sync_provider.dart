@@ -113,9 +113,13 @@ class SyncController extends _$SyncController {
       return;
     }
     state = state.copyWith(status: SyncStatus.idle);
-    // First connect must upload what is already on the device, even though no
-    // edit has happened since — otherwise a user with routines sees an empty
-    // folder and concludes sync is broken.
+    // This method is reached only from the explicit Drive-connect gesture.
+    // Preparing records the user's confirmation that every known old writer is
+    // upgraded, disconnected, or revoked before any folder/data mutation.
+    if (!await (await _syncer()).prepareCutover()) {
+      state = state.copyWith(status: SyncStatus.error);
+      return;
+    }
     await ref.read(syncQueueProvider).markRoutinesDirty();
     await syncNow();
   }
@@ -194,6 +198,8 @@ class SyncController extends _$SyncController {
       folderReadme: await rootBundle.loadString(
         'assets/drive_folder_readme.md',
       ),
+      readApproval: () async => prefs.driveCutoverApproval,
+      saveApproval: prefs.setDriveCutoverApproval,
     );
   }
 }

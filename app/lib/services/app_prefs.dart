@@ -8,6 +8,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// shared_preferences rather than the Drift-backed schemas/*.json entities.
 enum StorageMode { local, drive }
 
+class DriveCutoverApproval {
+  const DriveCutoverApproval({
+    required this.folderId,
+    required this.targetSchemaVersion,
+    required this.confirmedAt,
+  });
+
+  final String folderId;
+  final String targetSchemaVersion;
+  final DateTime confirmedAt;
+}
+
 class AppPrefs {
   AppPrefs(this._prefs);
 
@@ -17,6 +29,38 @@ class AppPrefs {
   static const _storageModeKey = 'storage_mode';
   static const _localeOverrideKey = 'locale_override';
   static const _installClientIdKey = 'install_client_id';
+  static const _driveCutoverFolderIdKey = 'drive_cutover_folder_id';
+  static const _driveCutoverVersionKey = 'drive_cutover_version';
+  static const _driveCutoverConfirmedAtKey = 'drive_cutover_confirmed_at';
+
+  DriveCutoverApproval? get driveCutoverApproval {
+    final folderId = _prefs.getString(_driveCutoverFolderIdKey);
+    final version = _prefs.getString(_driveCutoverVersionKey);
+    final confirmedAt = _prefs.getString(_driveCutoverConfirmedAtKey);
+    if (folderId == null || version == null || confirmedAt == null) return null;
+    final parsed = DateTime.tryParse(confirmedAt);
+    if (parsed == null) return null;
+    return DriveCutoverApproval(
+      folderId: folderId,
+      targetSchemaVersion: version,
+      confirmedAt: parsed,
+    );
+  }
+
+  Future<void> setDriveCutoverApproval(DriveCutoverApproval? value) async {
+    if (value == null) {
+      await _prefs.remove(_driveCutoverFolderIdKey);
+      await _prefs.remove(_driveCutoverVersionKey);
+      await _prefs.remove(_driveCutoverConfirmedAtKey);
+      return;
+    }
+    await _prefs.setString(_driveCutoverFolderIdKey, value.folderId);
+    await _prefs.setString(_driveCutoverVersionKey, value.targetSchemaVersion);
+    await _prefs.setString(
+      _driveCutoverConfirmedAtKey,
+      value.confirmedAt.toIso8601String(),
+    );
+  }
 
   /// Stable per-install UUID, minted on first read. Goes into
   /// `meta.json.last_writer_client_id` so that, looking at a Drive folder two

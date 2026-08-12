@@ -8,6 +8,7 @@ import 'package:openroutine/models/export_bundle.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/services/import_export/schema_validator.dart';
+import 'package:openroutine/services/app_prefs.dart';
 import 'package:openroutine/services/storage/drive/drive_api_client.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
@@ -74,12 +75,11 @@ void main() {
   late DriveSync sync;
   late SchemaValidator validator;
   late String folderReadme;
+  DriveCutoverApproval? approval;
 
   setUpAll(() async {
     validator = await SchemaValidator.load();
-    folderReadme = await rootBundle.loadString(
-      'assets/drive_folder_readme.md',
-    );
+    folderReadme = await rootBundle.loadString('assets/drive_folder_readme.md');
   });
 
   setUp(() {
@@ -87,6 +87,12 @@ void main() {
     local = LocalAdapter(db);
     queue = SyncQueue(db);
     api = FakeDriveApiClient();
+    api.seedFolder(DriveLayout.folderName);
+    approval = DriveCutoverApproval(
+      folderId: 'id-0',
+      targetSchemaVersion: '1.1.0',
+      confirmedAt: _t0,
+    );
     sync = DriveSync(
       api: api,
       local: local,
@@ -94,10 +100,74 @@ void main() {
       validator: validator,
       installClientId: 'client-under-test',
       folderReadme: folderReadme,
+      readApproval: () async => approval,
+      saveApproval: (value) async => approval = value,
     );
   });
 
   tearDown(() => db.close());
+
+  group('cutover policy', () {
+    test(
+      'first sync refuses without creating a folder or clearing dirty work',
+      () async {
+        api = FakeDriveApiClient();
+        approval = null;
+        sync = DriveSync(
+          api: api,
+          local: local,
+          queue: queue,
+          validator: validator,
+          installClientId: 'client-under-test',
+          folderReadme: folderReadme,
+          readApproval: () async => approval,
+          saveApproval: (value) async => approval = value,
+        );
+        await local.saveRoutine(_routine());
+        await queue.markRoutinesDirty();
+
+        expect(await sync.sync(), SyncOutcome.failed);
+        expect(api.mutations, isEmpty);
+        expect(await queue.routinesDirty, isTrue);
+        expect(await local.getRoutine(_routineId), isNotNull);
+      },
+    );
+
+    test('prepared approval permits a preflighted first upload', () async {
+      await local.saveRoutine(_routine());
+      await queue.markRoutinesDirty();
+
+      expect(await sync.prepareCutover(), isTrue);
+      expect(approval?.targetSchemaVersion, '1.1.0');
+      expect(await sync.sync(), SyncOutcome.synced);
+      expect(api.exists(DriveLayout.routinesFile), isTrue);
+      expect(await queue.routinesDirty, isFalse);
+    });
+
+    test(
+      'newer or inconsistent remote authority refuses before local merge',
+      () async {
+        api.seed(
+          path: DriveLayout.metaFile,
+          content: '{"schema_version":"1.2.0"}',
+        );
+        api.seed(path: DriveLayout.routinesFile, content: _remoteBundle([]));
+        final folderId = await api.discoverFolder(DriveLayout.folderName);
+        approval = DriveCutoverApproval(
+          folderId: folderId!,
+          targetSchemaVersion: '1.1.0',
+          confirmedAt: _t0,
+        );
+        await local.saveRoutine(_routine(name: 'local name'));
+        await queue.markRoutinesDirty();
+
+        expect(await sync.sync(), SyncOutcome.failed);
+        expect(api.uploads, isEmpty);
+        expect((await local.getRoutine(_routineId))!.name, 'local name');
+        expect(await queue.routinesDirty, isTrue);
+      },
+    );
+  });
 
   group('first connect', () {
     test('seeds the folder with routines, meta and a README', () async {
@@ -176,7 +246,10 @@ void main() {
 
     test('a stale remote edit does not clobber a newer local one', () async {
       await local.saveRoutine(
-        _routine(name: 'local name', updatedAt: _t0.add(const Duration(days: 1))),
+        _routine(
+          name: 'local name',
+          updatedAt: _t0.add(const Duration(days: 1)),
+        ),
       );
       api.seed(
         path: DriveLayout.routinesFile,
@@ -188,21 +261,23 @@ void main() {
       expect((await local.getRoutine(_routineId))!.name, 'local name');
     });
 
-    test('a stale remote copy cannot resurrect a locally deleted routine',
-        () async {
-      await local.saveRoutine(_routine());
-      await local.deleteRoutine(_routineId);
-      // Drive still holds the pre-delete version, which is exactly what a
-      // second device that has not synced yet would upload.
-      api.seed(
-        path: DriveLayout.routinesFile,
-        content: _remoteBundle([_routine()]),
-      );
+    test(
+      'a stale remote copy cannot resurrect a locally deleted routine',
+      () async {
+        await local.saveRoutine(_routine());
+        await local.deleteRoutine(_routineId);
+        // Drive still holds the pre-delete version, which is exactly what a
+        // second device that has not synced yet would upload.
+        api.seed(
+          path: DriveLayout.routinesFile,
+          content: _remoteBundle([_routine()]),
+        );
 
-      await sync.sync();
+        await sync.sync();
 
-      expect(await local.getRoutine(_routineId), isNull);
-    });
+        expect(await local.getRoutine(_routineId), isNull);
+      },
+    );
 
     test(
       'a tombstone reaches another client and suppresses its stale copy',
@@ -222,6 +297,8 @@ void main() {
           validator: validator,
           installClientId: 'other-client',
           folderReadme: folderReadme,
+          readApproval: () async => approval,
+          saveApproval: (value) async => approval = value,
         );
         await otherSync.sync();
         expect(await otherLocal.getRoutine(_routineId), isNotNull);
@@ -260,10 +337,7 @@ void main() {
 
     test('malformed remote JSON leaves local data alone', () async {
       await local.saveRoutine(_routine(name: 'local name'));
-      api.seed(
-        path: DriveLayout.routinesFile,
-        content: '{ this is not json',
-      );
+      api.seed(path: DriveLayout.routinesFile, content: '{ this is not json');
 
       expect(await sync.sync(), SyncOutcome.failed);
 
@@ -271,26 +345,28 @@ void main() {
       expect(await queue.lastError, contains('not usable'));
     });
 
-    test('remote JSON that violates the schema is refused, not imported',
-        () async {
-      await local.saveRoutine(_routine(name: 'local name'));
-      api.seed(
-        path: DriveLayout.routinesFile,
-        // Valid JSON, invalid bundle: id is not a UUID.
-        content: jsonEncode({
-          'schema_version': '1.0.0',
-          'exported_at': _t0.toIso8601String(),
-          'routines': [
-            {'id': 'nope', 'name': 'bad'},
-          ],
-          'steps': <dynamic>[],
-          'triggers': <dynamic>[],
-        }),
-      );
+    test(
+      'remote JSON that violates the schema is refused, not imported',
+      () async {
+        await local.saveRoutine(_routine(name: 'local name'));
+        api.seed(
+          path: DriveLayout.routinesFile,
+          // Valid JSON, invalid bundle: id is not a UUID.
+          content: jsonEncode({
+            'schema_version': '1.0.0',
+            'exported_at': _t0.toIso8601String(),
+            'routines': [
+              {'id': 'nope', 'name': 'bad'},
+            ],
+            'steps': <dynamic>[],
+            'triggers': <dynamic>[],
+          }),
+        );
 
-      expect(await sync.sync(), SyncOutcome.failed);
-      expect((await local.getRoutine(_routineId))!.name, 'local name');
-    });
+        expect(await sync.sync(), SyncOutcome.failed);
+        expect((await local.getRoutine(_routineId))!.name, 'local name');
+      },
+    );
   });
 
   group('failure handling', () {
@@ -317,19 +393,21 @@ void main() {
       expect(api.exists(DriveLayout.routinesFile), isTrue);
     });
 
-    test('an expired grant asks for reconnection and does not build backoff',
-        () async {
-      await local.saveRoutine(_routine());
-      await queue.markRoutinesDirty();
-      api.failNextWith = driveAuthExpired;
+    test(
+      'an expired grant asks for reconnection and does not build backoff',
+      () async {
+        await local.saveRoutine(_routine());
+        await queue.markRoutinesDirty();
+        api.failNextWith = driveAuthExpired;
 
-      expect(await sync.sync(), SyncOutcome.needsReauth);
-      // The distinction that matters: waiting fixes a network problem, but
-      // never fixes a revoked grant, so this path must not schedule retries.
-      expect(queue.consecutiveFailures, 0);
-      expect(queue.backoff, Duration.zero);
-      expect(await queue.routinesDirty, isTrue);
-    });
+        expect(await sync.sync(), SyncOutcome.needsReauth);
+        // The distinction that matters: waiting fixes a network problem, but
+        // never fixes a revoked grant, so this path must not schedule retries.
+        expect(queue.consecutiveFailures, 0);
+        expect(queue.backoff, Duration.zero);
+        expect(await queue.routinesDirty, isTrue);
+      },
+    );
 
     test('a server error is retryable and does accumulate backoff', () async {
       await local.saveRoutine(_routine());
@@ -350,38 +428,40 @@ void main() {
       expect(results, [SyncOutcome.synced, SyncOutcome.synced]);
       // One routines.json upload, not two: the second caller joined the first
       // run instead of starting its own with a bundle built mid-merge.
-      expect(
-        api.uploads.where((n) => n == DriveLayout.routinesFile).length,
-        1,
-      );
+      expect(api.uploads.where((n) => n == DriveLayout.routinesFile).length, 1);
     });
 
-    test('a routine write during upload remains queued for the next push',
-        () async {
-      await local.saveRoutine(_routine());
-      await queue.markRoutinesDirty();
-      api.gateNextUpload(DriveLayout.routinesFile);
+    test(
+      'a routine write during upload remains queued for the next push',
+      () async {
+        await local.saveRoutine(_routine());
+        await queue.markRoutinesDirty();
+        api.gateNextUpload(DriveLayout.routinesFile);
 
-      final firstSync = sync.sync();
-      await api.gatedUploadStarted;
-      await local.saveRoutine(
-        _routine(
-          name: 'written during upload',
-          updatedAt: _t0.add(const Duration(hours: 1)),
-        ),
-      );
-      await queue.markRoutinesDirty();
-      api.releaseGatedUpload();
-      await firstSync;
+        final firstSync = sync.sync();
+        await api.gatedUploadStarted;
+        await local.saveRoutine(
+          _routine(
+            name: 'written during upload',
+            updatedAt: _t0.add(const Duration(hours: 1)),
+          ),
+        );
+        await queue.markRoutinesDirty();
+        api.releaseGatedUpload();
+        await firstSync;
 
-      expect(await queue.routinesDirty, isTrue);
-      await sync.sync();
-      expect(await queue.routinesDirty, isFalse);
-      final remote =
-          jsonDecode(api.contentOf(DriveLayout.routinesFile)!)
-              as Map<String, dynamic>;
-      expect((remote['routines'] as List).single['name'], 'written during upload');
-    });
+        expect(await queue.routinesDirty, isTrue);
+        await sync.sync();
+        expect(await queue.routinesDirty, isFalse);
+        final remote =
+            jsonDecode(api.contentOf(DriveLayout.routinesFile)!)
+                as Map<String, dynamic>;
+        expect(
+          (remote['routines'] as List).single['name'],
+          'written during upload',
+        );
+      },
+    );
   });
 
   group('completions', () {
@@ -452,32 +532,37 @@ void main() {
       expect((await local.getCompletions(_routineId)).single.id, 'c-good');
     });
 
-    test('a completion for a routine we do not have yet is kept, not lost',
-        () async {
-      await queue.markCompletionMonthDirty('2026-08');
-      api.seed(
-        path: '${DriveLayout.completionsFolder}/2026-08.ndjson',
-        content: jsonEncode(
-          CompletionLog(
-            id: 'c-orphan',
-            routineId: _otherRoutineId,
-            startedAt: DateTime.utc(2026, 8, 3, 7),
-            endedAt: DateTime.utc(2026, 8, 3, 7, 5),
-            outcome: CompletionOutcome.completed,
-            steps: const [],
-          ).toJson(),
-        ),
-      );
+    test(
+      'a completion for a routine we do not have yet is kept, not lost',
+      () async {
+        await queue.markCompletionMonthDirty('2026-08');
+        api.seed(
+          path: '${DriveLayout.completionsFolder}/2026-08.ndjson',
+          content: jsonEncode(
+            CompletionLog(
+              id: 'c-orphan',
+              routineId: _otherRoutineId,
+              startedAt: DateTime.utc(2026, 8, 3, 7),
+              endedAt: DateTime.utc(2026, 8, 3, 7, 5),
+              outcome: CompletionOutcome.completed,
+              steps: const [],
+            ).toJson(),
+          ),
+        );
 
-      expect(await sync.sync(), SyncOutcome.synced);
+        expect(await sync.sync(), SyncOutcome.synced);
 
-      // Kept rather than dropped: a pull has no ordering guarantee against a
-      // folder an agent is also writing, so a run whose routine has not
-      // arrived yet must survive until it does. It stays invisible in the
-      // meantime, because every read is scoped by routine.
-      expect((await local.getCompletions(_otherRoutineId)).single.id, 'c-orphan');
-      expect(await local.getCompletions(_routineId), isEmpty);
-    });
+        // Kept rather than dropped: a pull has no ordering guarantee against a
+        // folder an agent is also writing, so a run whose routine has not
+        // arrived yet must survive until it does. It stays invisible in the
+        // meantime, because every read is scoped by routine.
+        expect(
+          (await local.getCompletions(_otherRoutineId)).single.id,
+          'c-orphan',
+        );
+        expect(await local.getCompletions(_routineId), isEmpty);
+      },
+    );
 
     test('only the dirty month is touched', () async {
       await local.appendCompletion(

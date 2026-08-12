@@ -5,6 +5,8 @@ import '../../../models/completion_log.dart';
 import '../../../models/export_bundle.dart';
 import '../../auth/drive_auth.dart';
 import '../../import_export/schema_validator.dart';
+import '../../schema_version.dart';
+import '../../app_prefs.dart';
 import '../local_adapter.dart';
 import '../storage_adapter.dart' show nowUtc;
 import 'drive_api_client.dart';
@@ -32,12 +34,16 @@ class DriveSync {
     required SchemaValidator validator,
     required String installClientId,
     required String folderReadme,
+    Future<DriveCutoverApproval?> Function()? readApproval,
+    Future<void> Function(DriveCutoverApproval?)? saveApproval,
   }) : _api = api,
        _local = local,
        _queue = queue,
        _validator = validator,
        _installClientId = installClientId,
-       _folderReadme = folderReadme;
+       _folderReadme = folderReadme,
+       _readApproval = readApproval,
+       _saveApproval = saveApproval;
 
   final DriveApiClient _api;
   final LocalAdapter _local;
@@ -45,6 +51,8 @@ class DriveSync {
   final SchemaValidator _validator;
   final String _installClientId;
   final String _folderReadme;
+  final Future<DriveCutoverApproval?> Function()? _readApproval;
+  final Future<void> Function(DriveCutoverApproval?)? _saveApproval;
 
   /// Serialises overlapping triggers. A foreground event and a debounced write
   /// can land together; without this they would both pull, both merge, and the
@@ -53,6 +61,25 @@ class DriveSync {
 
   String? _folderId;
   String? _completionsFolderId;
+  DriveAuthoritySnapshot? _meta;
+  DriveAuthoritySnapshot? _routines;
+
+  /// The caller invokes this only after the human has confirmed that every
+  /// known writer is upgraded, disconnected, or revoked.
+  Future<bool> prepareCutover() async {
+    if (_readApproval == null || _saveApproval == null) return false;
+    final folderId =
+        await _api.discoverFolder(DriveLayout.folderName) ??
+        await _api.ensureFolder(DriveLayout.folderName);
+    await _saveApproval(
+      DriveCutoverApproval(
+        folderId: folderId,
+        targetSchemaVersion: SchemaVersion.currentValue,
+        confirmedAt: nowUtc(),
+      ),
+    );
+    return true;
+  }
 
   Future<SyncOutcome> sync() {
     return _inFlight ??= _run().whenComplete(() => _inFlight = null);
@@ -60,6 +87,7 @@ class DriveSync {
 
   Future<SyncOutcome> _run() async {
     try {
+      await _preflight();
       await _ensureFolders();
       await _pullRoutines();
       await _pushRoutines();
@@ -85,27 +113,61 @@ class DriveSync {
     }
   }
 
-  Future<void> _ensureFolders() async {
-    final folderId = _folderId ??= await _api.ensureFolder(
-      DriveLayout.folderName,
+  Future<void> _preflight() async {
+    final folderId = await _api.discoverFolder(DriveLayout.folderName);
+    final approval = await _readApproval?.call();
+    if (folderId == null ||
+        approval == null ||
+        approval.folderId != folderId ||
+        approval.targetSchemaVersion != SchemaVersion.currentValue) {
+      if (approval != null && folderId != approval.folderId) {
+        await _saveApproval?.call(null);
+      }
+      throw const FormatException('Drive cutover requires explicit approval');
+    }
+    _folderId = folderId;
+    _meta = await _api.readTextFile(
+      parentId: folderId,
+      name: DriveLayout.metaFile,
     );
+    _routines = await _api.readTextFile(
+      parentId: folderId,
+      name: DriveLayout.routinesFile,
+    );
+    if (_meta != null && _meta!.schemaAuthority == null) {
+      throw const FormatException('Malformed Drive schema authority');
+    }
+    final authorities = [_meta, _routines]
+        .whereType<DriveAuthoritySnapshot>()
+        .map((snapshot) => snapshot.schemaAuthority)
+        .whereType<String>()
+        .toList();
+    final versions = authorities.map(SchemaVersion.parseSupported).toSet();
+    if (versions.length > 1) {
+      throw const FormatException('Conflicting Drive schema authorities');
+    }
+  }
 
-    // Written once, when the folder is new. It explains the format to whoever
-    // opens the folder without the app — the reason the folder is visible at
-    // all (docs/SPEC.md §1).
-    final readmeId = await _api.findFile(
+  Future<void> _ensureFolders() async {
+    final folderId = _folderId!;
+
+    final readme = await _api.readTextFile(
       parentId: folderId,
       name: DriveLayout.readmeFile,
     );
-    if (readmeId == null) {
+    if (readme == null) {
       await _api.uploadText(
         parentId: folderId,
         name: DriveLayout.readmeFile,
         content: _folderReadme,
         mimeType: 'text/markdown',
+        expectAbsent: true,
       );
     }
 
+    // Written once, when the folder is new. It explains the format to whoever
+    // opens the folder without the app — the reason the folder is visible at
+    // all (docs/SPEC.md §1).
     _completionsFolderId ??= await _api.ensureFolder(
       DriveLayout.completionsFolder,
       parentId: folderId,
@@ -118,13 +180,7 @@ class DriveSync {
   /// pass that the Import screen runs. Drive is just another source of a
   /// bundle, so it must not get its own merge rules to drift out of sync with.
   Future<void> _pullRoutines() async {
-    final fileId = await _api.findFile(
-      parentId: _folderId!,
-      name: DriveLayout.routinesFile,
-    );
-    if (fileId == null) return; // Nothing remote yet; the push below seeds it.
-
-    final raw = await _api.downloadText(fileId);
+    final raw = _routines?.content;
     if (raw == null || raw.trim().isEmpty) return;
 
     final Map<String, dynamic> json;
@@ -148,15 +204,13 @@ class DriveSync {
 
     final generation = _queue.routinesGeneration;
     final bundle = await _local.exportForSync();
-    final existing = await _api.findFile(
-      parentId: _folderId!,
-      name: DriveLayout.routinesFile,
-    );
     await _api.uploadText(
       parentId: _folderId!,
       name: DriveLayout.routinesFile,
       content: const JsonEncoder.withIndent('  ').convert(bundle.toJson()),
-      fileId: existing,
+      fileId: _routines?.file.id,
+      expectedRevision: _routines?.file,
+      expectAbsent: _routines == null,
     );
 
     await _writeMeta(bundle.schemaVersion);
@@ -164,10 +218,6 @@ class DriveSync {
   }
 
   Future<void> _writeMeta(String schemaVersion) async {
-    final existing = await _api.findFile(
-      parentId: _folderId!,
-      name: DriveLayout.metaFile,
-    );
     await _api.uploadText(
       parentId: _folderId!,
       name: DriveLayout.metaFile,
@@ -176,7 +226,9 @@ class DriveSync {
         'last_writer_client_id': _installClientId,
         'last_sync_at': nowUtc().toIso8601String(),
       }),
-      fileId: existing,
+      fileId: _meta?.file.id,
+      expectedRevision: _meta?.file,
+      expectAbsent: _meta == null,
     );
   }
 
