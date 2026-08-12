@@ -45,6 +45,20 @@ void main() {
       },
     );
 
+    test('keeps a zero-second eligible suggestion at one minute', () {
+      final suggestion = StepCalibration.suggest(
+        const CompletionStep(
+          stepId: 's1',
+          state: CompletionStepState.completed,
+          actualDurationSeconds: 0,
+          estimatedDurationSeconds: 60,
+        ),
+        _step(durationSeconds: 60),
+      );
+
+      expect(suggestion?.suggestedDurationSeconds, 60);
+    });
+
     test('rejects skipped, untimed, legacy, and immaterial completions', () {
       final current = _step();
       expect(

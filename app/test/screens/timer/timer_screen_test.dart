@@ -311,6 +311,117 @@ void main() {
     await _disposeCleanly(tester);
   });
 
+  testWidgets('offers an explicit estimate adjustment after an eligible run', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [_step('s1', order: 0, durationSeconds: 60)],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 121));
+
+    await tester.tap(find.text('Finish'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Adjust estimate?'), findsOneWidget);
+    expect(
+      find.text('You took 00:00; the estimate was 01:00.'),
+      findsOneWidget,
+    );
+    final approve = find.widgetWithText(FilledButton, 'Use 01:00');
+    expect(approve, findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Not now'), findsOneWidget);
+    expect(tester.getSize(approve).height, greaterThanOrEqualTo(48));
+
+    await tester.tap(approve);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Estimate updated.'), findsOneWidget);
+    expect((await adapter.getSteps('r1')).single.durationSeconds, 60);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('dismissal and stale approval do not write an estimate', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [_step('s1', order: 0, durationSeconds: 60)],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 121));
+    await tester.tap(find.text('Finish'));
+    await tester.pumpAndSettle();
+
+    await adapter.saveStep(
+      (await adapter.getSteps('r1')).single.copyWith(
+        name: 'Edited after the run',
+        updatedAt: DateTime.utc(2026, 8, 3),
+      ),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Use 01:00'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('This suggestion is no longer current.'),
+      findsOneWidget,
+    );
+    expect((await adapter.getSteps('r1')).single.durationSeconds, 60);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('Not now is localized and leaves the estimate unchanged', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [_step('s1', order: 0, durationSeconds: 60)],
+    );
+
+    await tester.pumpWidget(_wrap(adapter, locale: const Locale('es')));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 121));
+    await tester.tap(find.text('Terminar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Ajustar la estimación?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Ahora no'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Ajustar la estimación?'), findsNothing);
+    expect((await adapter.getSteps('r1')).single.durationSeconds, 60);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('an abandoned run does not offer calibration', (tester) async {
+    final adapter = await _seed(
+      steps: [
+        _step('s1', order: 0, durationSeconds: 60),
+        _step('s2', order: 1, durationSeconds: 60),
+      ],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 121));
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Stop'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Routine stopped'), findsOneWidget);
+    expect(find.text('Adjust estimate?'), findsNothing);
+
+    await _disposeCleanly(tester);
+  });
+
   testWidgets('abandoning the first step writes an empty abandoned log', (
     tester,
   ) async {

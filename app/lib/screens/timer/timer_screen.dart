@@ -6,7 +6,9 @@ import '../../l10n/app_localizations.dart';
 import '../../models/completion_log.dart';
 import '../../models/step.dart';
 import '../../services/timer/timer_machine.dart';
+import '../../services/timer/step_calibration.dart';
 import '../../state/routines_provider.dart';
+import '../../state/storage_provider.dart';
 import '../../state/timer_provider.dart';
 import '../../theme/theme.dart';
 
@@ -364,15 +366,38 @@ class _Clock extends StatelessWidget {
   }
 }
 
-class _Summary extends ConsumerWidget {
+class _Summary extends ConsumerStatefulWidget {
   const _Summary({required this.state});
 
   final TimerState state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Summary> createState() => _SummaryState();
+}
+
+class _SummaryState extends ConsumerState<_Summary> {
+  late final List<StepCalibration> _suggestions;
+  CalibrationApproval? _approval;
+  bool _dismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final steps = {for (final step in widget.state.steps) step.id: step};
+    _suggestions = widget.state.outcomes
+        .map((outcome) {
+          final step = steps[outcome.stepId];
+          return step == null ? null : StepCalibration.suggest(outcome, step);
+        })
+        .whereType<StepCalibration>()
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final state = widget.state;
     final completed = state.outcomes
         .where((o) => o.state != CompletionStepState.skipped)
         .length;
@@ -385,8 +410,9 @@ class _Summary extends ConsumerWidget {
         ? state.endedAt!.difference(state.startedAt!)
         : Duration.zero;
 
+    final suggestion = abandoned ? null : _suggestions.firstOrNull;
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -425,6 +451,70 @@ class _Summary extends ConsumerWidget {
                 l10n.timerCompleteSkipped(skipped),
                 style: theme.textTheme.bodyMedium,
               ),
+            if (suggestion != null && _approval == null && !_dismissed) ...[
+              const SizedBox(height: 24),
+              Semantics(
+                container: true,
+                label: l10n.timerCalibrationTitle,
+                child: Column(
+                  children: [
+                    Text(
+                      l10n.timerCalibrationTitle,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.timerCalibrationSummary(
+                        _format(
+                          Duration(seconds: suggestion.actualDurationSeconds),
+                        ),
+                        _format(
+                          Duration(seconds: suggestion.sourceDurationSeconds),
+                        ),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: FilledButton(
+                        onPressed: () => _approve(suggestion),
+                        child: Text(
+                          l10n.timerCalibrationApprove(
+                            _format(
+                              Duration(
+                                seconds: suggestion.suggestedDurationSeconds,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () => setState(() => _dismissed = true),
+                        child: Text(l10n.timerCalibrationNotNow),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (_approval != null) ...[
+              const SizedBox(height: 24),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _approval == CalibrationApproval.applied
+                      ? l10n.timerCalibrationApplied
+                      : l10n.timerCalibrationStale,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -437,6 +527,14 @@ class _Summary extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _approve(StepCalibration suggestion) async {
+    final result = await suggestion.approve(
+      ref.read(storageAdapterProvider),
+      updatedAt: DateTime.now(),
+    );
+    if (mounted) setState(() => _approval = result);
   }
 }
 

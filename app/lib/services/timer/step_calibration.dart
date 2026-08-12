@@ -31,7 +31,8 @@ class StepCalibration {
         difference / estimate < .25) {
       return null;
     }
-    final rounded = (completion.actualDurationSeconds / 60).round() * 60;
+    final rounded =
+        (completion.actualDurationSeconds / 60).round().clamp(1, 1 << 31) * 60;
     return StepCalibration(
       stepId: completion.stepId,
       routineId: step.routineId,

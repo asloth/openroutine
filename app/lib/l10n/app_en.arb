@@ -277,6 +277,21 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "timerCloseSummary": "Close",
+  "timerCalibrationTitle": "Adjust estimate?",
+  "timerCalibrationSummary": "You took {actual}; the estimate was {estimate}.",
+  "@timerCalibrationSummary": {
+    "placeholders": {
+      "actual": { "type": "String" },
+      "estimate": { "type": "String" }
+    }
+  },
+  "timerCalibrationApprove": "Use {duration}",
+  "@timerCalibrationApprove": {
+    "placeholders": { "duration": { "type": "String" } }
+  },
+  "timerCalibrationNotNow": "Not now",
+  "timerCalibrationApplied": "Estimate updated.",
+  "timerCalibrationStale": "This suggestion is no longer current. A future run can offer a fresh estimate.",
 
   "timerNotificationBody": "A little longer is okay.",
   "@timerNotificationBody": {

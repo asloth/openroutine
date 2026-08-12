@@ -177,6 +177,21 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "timerCloseSummary": "Cerrar",
+  "timerCalibrationTitle": "¿Ajustar la estimación?",
+  "timerCalibrationSummary": "Te llevó {actual}; la estimación era {estimate}.",
+  "@timerCalibrationSummary": {
+    "placeholders": {
+      "actual": { "type": "String" },
+      "estimate": { "type": "String" }
+    }
+  },
+  "timerCalibrationApprove": "Usar {duration}",
+  "@timerCalibrationApprove": {
+    "placeholders": { "duration": { "type": "String" } }
+  },
+  "timerCalibrationNotNow": "Ahora no",
+  "timerCalibrationApplied": "Estimación actualizada.",
+  "timerCalibrationStale": "Esta sugerencia ya no está vigente. Una próxima rutina puede ofrecer una estimación actual.",
 
   "timerNotificationBody": "Un poquito más está bien.",
   "timerNotificationChannelName": "Tiempo con calma",
