@@ -505,6 +505,65 @@ void main() {
       expect(ids, hasLength(2));
     });
 
+    test(
+      'a concurrent shard writer is preserved after an upload conflict',
+      () async {
+        await local.appendCompletion(_completion('c-local'));
+        await queue.markCompletionMonthDirty('2026-08');
+        api.seed(
+          path: '${DriveLayout.completionsFolder}/2026-08.ndjson',
+          content: jsonEncode(_completion('c-existing').toJson()),
+        );
+        api.writeAfterNextRead(
+          name: '2026-08.ndjson',
+          content: [
+            jsonEncode(_completion('c-existing').toJson()),
+            jsonEncode(_completion('c-concurrent').toJson()),
+            jsonEncode(_completion('c-local').toJson()),
+          ].join('\n'),
+        );
+
+        expect(await sync.sync(), SyncOutcome.synced);
+
+        final ids = api
+            .contentOf('2026-08.ndjson')!
+            .trim()
+            .split('\n')
+            .map((line) => jsonDecode(line)['id'])
+            .toList();
+        expect(ids, containsAll(['c-existing', 'c-concurrent', 'c-local']));
+        expect(ids, hasLength(3));
+        expect(await queue.dirtyCompletionMonths, isEmpty);
+      },
+    );
+
+    test(
+      'repeated shard conflicts fail without clearing queued work',
+      () async {
+        await local.appendCompletion(_completion('c-local'));
+        await queue.markCompletionMonthDirty('2026-08');
+        api.seed(
+          path: '${DriveLayout.completionsFolder}/2026-08.ndjson',
+          content: jsonEncode(_completion('c-existing').toJson()),
+        );
+        api.writeAfterNextReads(
+          name: '2026-08.ndjson',
+          contents: [
+            jsonEncode(_completion('c-concurrent-1').toJson()),
+            jsonEncode(_completion('c-concurrent-2').toJson()),
+            jsonEncode(_completion('c-concurrent-3').toJson()),
+          ],
+        );
+
+        expect(await sync.sync(), SyncOutcome.failed);
+        expect(await queue.dirtyCompletionMonths, contains('2026-08'));
+        expect(
+          jsonDecode(api.contentOf('2026-08.ndjson')!)['id'],
+          'c-concurrent-3',
+        );
+      },
+    );
+
     test('a remote run becomes visible locally', () async {
       await queue.markCompletionMonthDirty('2026-08');
       api.seed(

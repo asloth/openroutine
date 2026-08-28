@@ -54,6 +54,8 @@ class DriveSync {
   final Future<DriveCutoverApproval?> Function()? _readApproval;
   final Future<void> Function(DriveCutoverApproval?)? _saveApproval;
 
+  static const _completionShardUploadAttempts = 3;
+
   /// Serialises overlapping triggers. A foreground event and a debounced write
   /// can land together; without this they would both pull, both merge, and the
   /// slower one would upload a bundle built before the other's merge.
@@ -102,6 +104,11 @@ class DriveSync {
       // app is built around, and it should not show up as an error the user
       // has to interpret.
       return SyncOutcome.offline;
+    } on DriveRevisionConflict catch (e) {
+      await _queue.recordRetryableFailure(
+        'Drive revision conflict: ${e.fileId}',
+      );
+      return SyncOutcome.failed;
     } on DriveApiException catch (e) {
       await _queue.recordRetryableFailure(e.toString());
       return SyncOutcome.failed;
@@ -246,32 +253,48 @@ class DriveSync {
       final to = DateTime.utc(from.year, from.month + 1);
       final name = '$month.ndjson';
 
-      final fileId = await _api.findFile(
+      var authority = await _api.readTextFile(
         parentId: _completionsFolderId!,
         name: name,
       );
-      final remoteRaw = fileId == null ? null : await _api.downloadText(fileId);
 
-      final byId = <String, CompletionLog>{};
-      for (final log in _parseNdjson(remoteRaw)) {
-        byId[log.id] = log;
+      for (
+        var attempt = 0;
+        attempt < _completionShardUploadAttempts;
+        attempt++
+      ) {
+        final byId = <String, CompletionLog>{};
+        for (final log in _parseNdjson(authority?.content)) {
+          byId[log.id] = log;
+        }
+        // Remote lines this device has never seen — another phone, or an agent.
+        await _local.importCompletions(byId.values);
+
+        for (final log in await _local.completionsInRange(from, to)) {
+          byId[log.id] = log;
+        }
+
+        final merged = byId.values.toList()
+          ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+        try {
+          await _api.uploadText(
+            parentId: _completionsFolderId!,
+            name: name,
+            content: merged.map((l) => jsonEncode(l.toJson())).join('\n'),
+            fileId: authority?.file.id,
+            expectedRevision: authority?.file,
+            expectAbsent: authority == null,
+            mimeType: 'application/x-ndjson',
+          );
+          break;
+        } on DriveRevisionConflict {
+          if (attempt == _completionShardUploadAttempts - 1) rethrow;
+          authority = await _api.readTextFile(
+            parentId: _completionsFolderId!,
+            name: name,
+          );
+        }
       }
-      // Remote lines this device has never seen — another phone, or an agent.
-      await _local.importCompletions(byId.values);
-
-      for (final log in await _local.completionsInRange(from, to)) {
-        byId[log.id] = log;
-      }
-
-      final merged = byId.values.toList()
-        ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
-      await _api.uploadText(
-        parentId: _completionsFolderId!,
-        name: name,
-        content: merged.map((l) => jsonEncode(l.toJson())).join('\n'),
-        fileId: fileId,
-        mimeType: 'application/x-ndjson',
-      );
 
       await _queue.clearCompletionMonthIfGeneration(month, generation);
     }

@@ -25,6 +25,8 @@ class FakeDriveApiClient implements DriveApiClient {
   String? _gatedUploadName;
   Completer<void>? _uploadStarted;
   Completer<void>? _releaseUpload;
+  String? _writeAfterReadName;
+  final List<String> _writesAfterRead = [];
 
   String _id() => 'id-${_nextId++}';
 
@@ -88,7 +90,9 @@ class FakeDriveApiClient implements DriveApiClient {
   @override
   Future<String?> downloadText(String fileId) async {
     _maybeFail();
-    return _nodes[fileId]?.content;
+    final content = _nodes[fileId]?.content;
+    _writeAfterRead(fileId);
+    return content;
   }
 
   @override
@@ -99,7 +103,7 @@ class FakeDriveApiClient implements DriveApiClient {
     final id = await findFile(parentId: parentId, name: name);
     final node = id == null ? null : _nodes[id];
     if (node == null || node.content == null) return null;
-    return DriveAuthoritySnapshot(
+    final snapshot = DriveAuthoritySnapshot(
       file: DriveFileRevision(
         id: id!,
         version: node.version,
@@ -108,6 +112,8 @@ class FakeDriveApiClient implements DriveApiClient {
       content: node.content!,
       schemaAuthority: _schemaAuthority(node.content!),
     );
+    _writeAfterRead(id);
+    return snapshot;
   }
 
   @override
@@ -173,6 +179,31 @@ class FakeDriveApiClient implements DriveApiClient {
   Future<void> get gatedUploadStarted => _uploadStarted!.future;
 
   void releaseGatedUpload() => _releaseUpload!.complete();
+
+  void writeAfterNextRead({required String name, required String content}) {
+    writeAfterNextReads(name: name, contents: [content]);
+  }
+
+  void writeAfterNextReads({
+    required String name,
+    required List<String> contents,
+  }) {
+    _writeAfterReadName = name;
+    _writesAfterRead
+      ..clear()
+      ..addAll(contents);
+  }
+
+  void _writeAfterRead(String fileId) {
+    final node = _nodes[fileId];
+    if (node == null ||
+        node.name != _writeAfterReadName ||
+        _writesAfterRead.isEmpty) {
+      return;
+    }
+    _nodes[fileId] = node.withContent(_writesAfterRead.removeAt(0));
+    if (_writesAfterRead.isEmpty) _writeAfterReadName = null;
+  }
 
   /// Content of a file by name, wherever it sits. Names are unique across the
   /// folders this app writes, so this is unambiguous.
