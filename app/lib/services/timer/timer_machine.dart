@@ -123,7 +123,10 @@ abstract class TimerState with _$TimerState {
     if (estimate <= Duration.zero) return EstimateZone.unbounded;
     final spent = elapsed(now);
     if (spent <= estimate) return EstimateZone.green;
-    if (spent <= estimate + const Duration(minutes: 2)) {
+    final yellowLimit = Duration(
+      microseconds: estimate.inMicroseconds * 3 ~/ 2,
+    );
+    if (spent <= yellowLimit) {
       return EstimateZone.yellow;
     }
     return EstimateZone.orange;

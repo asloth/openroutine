@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/export_bundle.dart';
 import '../../models/import_preview.dart';
 import '../../services/import_export/import_service.dart';
+import '../../services/schema_version.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../theme/theme.dart';
@@ -56,6 +57,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             ? l10n.importErrorInvalidJson
             : l10n.importErrorSchemaViolation;
       });
+    } on UnsupportedSchemaVersionException catch (e) {
+      if (!e.isNewer) rethrow;
+      _showNewerSchemaError();
     }
   }
 
@@ -63,13 +67,28 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     final bundle = _bundle;
     if (bundle == null) return;
     setState(() => _busy = true);
-    final importService = await ref.read(importServiceProvider.future);
-    await importService.confirm(bundle);
-    ref.invalidate(routinesProvider);
-    ref.invalidate(triggersProvider);
+    try {
+      final importService = await ref.read(importServiceProvider.future);
+      await importService.confirm(bundle);
+      ref.invalidate(routinesProvider);
+      ref.invalidate(triggersProvider);
+      setState(() {
+        _busy = false;
+        _done = true;
+      });
+    } on UnsupportedSchemaVersionException catch (e) {
+      if (!e.isNewer) rethrow;
+      _showNewerSchemaError();
+    }
+  }
+
+  void _showNewerSchemaError() {
+    if (!mounted) return;
     setState(() {
       _busy = false;
-      _done = true;
+      _bundle = null;
+      _preview = null;
+      _errorMessage = AppLocalizations.of(context)!.importErrorNewerSchema;
     });
   }
 
@@ -98,14 +117,23 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             if (_errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
-                child: Card(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
+                child: Semantics(
+                  container: true,
+                  liveRegion: true,
+                  label: _errorMessage,
+                  child: ExcludeSemantics(
+                    child: Card(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -122,38 +150,38 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             else if (_preview != null) ...[
               const SizedBox(height: AppSpacing.element),
               NeumorphicCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.importPreviewTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    if (_preview!.isEmpty)
+                      Text(l10n.importPreviewEmpty)
+                    else ...[
                       Text(
-                        l10n.importPreviewTitle,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        l10n.importPreviewRoutines(
+                          _preview!.newRoutines,
+                          _preview!.updatedRoutines,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      if (_preview!.isEmpty)
-                        Text(l10n.importPreviewEmpty)
-                      else ...[
-                        Text(
-                          l10n.importPreviewRoutines(
-                            _preview!.newRoutines,
-                            _preview!.updatedRoutines,
-                          ),
+                      Text(
+                        l10n.importPreviewSteps(
+                          _preview!.newSteps,
+                          _preview!.updatedSteps,
                         ),
-                        Text(
-                          l10n.importPreviewSteps(
-                            _preview!.newSteps,
-                            _preview!.updatedSteps,
-                          ),
+                      ),
+                      Text(
+                        l10n.importPreviewTriggers(
+                          _preview!.newTriggers,
+                          _preview!.updatedTriggers,
                         ),
-                        Text(
-                          l10n.importPreviewTriggers(
-                            _preview!.newTriggers,
-                            _preview!.updatedTriggers,
-                          ),
-                        ),
-                      ],
+                      ),
                     ],
-                  ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.element),
               FilledButton(

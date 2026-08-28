@@ -77,7 +77,7 @@ void main() {
     await _disposeCleanly(tester);
   });
 
-  testWidgets('offers Low Mode only for a routine with core steps', (
+  testWidgets('guides setup without selecting steps when no core steps exist', (
     tester,
   ) async {
     final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
@@ -137,6 +137,8 @@ void main() {
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
     expect(find.text(l10n.routinesStartLowMode), findsOneWidget);
+    expect(find.text(l10n.routinesLowModeSetupGuidance), findsOneWidget);
+    expect((await adapter.getSteps('r2')).single.isCore, isFalse);
 
     await _disposeCleanly(tester);
   });

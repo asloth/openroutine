@@ -69,6 +69,7 @@
 
   "routinesStepCount": "{count, plural, =0{Sin pasos} =1{1 paso} other{{count} pasos}}",
   "routinesStartLowMode": "Iniciar modo bajo",
+  "routinesLowModeSetupGuidance": "Elige al menos 1 paso esencial para habilitar el modo bajo; se recomiendan 2 o 3.",
   "@routinesStepCount": {
     "placeholders": {
       "count": { "type": "int" }
@@ -234,6 +235,7 @@
   "importChooseFile": "Elegir archivo",
   "importErrorInvalidJson": "Ese archivo no es JSON válido.",
   "importErrorSchemaViolation": "Ese archivo no coincide con el esquema de OpenRoutine. Consulta schemas/ en el repositorio para ver el formato esperado.",
+  "importErrorNewerSchema": "Este archivo se creó con una versión más reciente de OpenRoutine. No se importó nada. Actualiza OpenRoutine antes de usar este archivo.",
   "importSuccess": "Importación completa.",
   "importPreviewTitle": "Qué va a cambiar",
   "importPreviewEmpty": "Nada que importar: todo en este archivo ya está actualizado.",

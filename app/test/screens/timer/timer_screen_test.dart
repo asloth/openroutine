@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +15,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
+import 'package:openroutine/services/timer/timer_machine.dart';
 import 'package:openroutine/state/routines_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
@@ -55,6 +58,17 @@ class _NoopNotificationService implements NotificationService {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _ControlledRoutineTimer extends RoutineTimer {
+  _ControlledRoutineTimer(this.initialState);
+
+  final TimerState initialState;
+
+  @override
+  TimerState build(String routineId) => initialState;
+
+  void show(TimerState next) => state = next;
+}
+
 Widget _wrap(
   StorageAdapter adapter, {
   NotificationService? notifications,
@@ -71,6 +85,26 @@ Widget _wrap(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
+      home: const TimerScreen(routineId: 'r1'),
+    ),
+  );
+}
+
+Widget _wrapWithTimerState(
+  StorageAdapter adapter,
+  _ControlledRoutineTimer timer,
+) {
+  return ProviderScope(
+    overrides: [
+      storageAdapterProvider.overrideWithValue(adapter),
+      routineStepsProvider(
+        'r1',
+      ).overrideWith((ref) => Completer<List<RoutineStep>>().future),
+      routineTimerProvider.overrideWith2((_) => timer),
+    ],
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const TimerScreen(routineId: 'r1'),
     ),
   );
@@ -199,15 +233,54 @@ void main() {
   });
 
   testWidgets(
-    'shows a compassionate semantic estimate zone without color alone',
+    'shows semantic green, yellow, and orange guidance while the timer runs',
     (tester) async {
       final adapter = await _seed(
-        steps: [_step('s1', order: 0, durationSeconds: 1)],
+        steps: [_step('s1', order: 0, durationSeconds: 600)],
       );
 
-      await tester.pumpWidget(_wrap(adapter));
-      await tester.pumpAndSettle();
-      expect(find.text("You're in the zone"), findsOneWidget);
+      final step = (await adapter.getSteps('r1')).single;
+      final now = DateTime.now();
+      final scenarios = [
+        (const Duration(seconds: 300), "You're in the zone"),
+        (const Duration(seconds: 750), 'A little longer'),
+        (const Duration(seconds: 1200), 'Everything okay?'),
+      ];
+      TimerState stateAt(Duration elapsed) => TimerState(
+        phase: TimerPhase.running,
+        routineId: 'r1',
+        steps: [step],
+        currentIndex: 0,
+        pausedAccumulated: Duration.zero,
+        outcomes: const [],
+        startedAt: now.subtract(elapsed),
+        stepStartedAt: now.subtract(elapsed),
+      );
+
+      final timer = _ControlledRoutineTimer(stateAt(scenarios.first.$1));
+      await tester.pumpWidget(_wrapWithTimerState(adapter, timer));
+      await tester.pump();
+      final mountedTimer =
+          ProviderScope.containerOf(
+                tester.element(find.byType(TimerScreen)),
+              ).read(routineTimerProvider('r1').notifier)
+              as _ControlledRoutineTimer;
+
+      for (final (elapsed, label) in scenarios) {
+        mountedTimer.show(stateAt(elapsed));
+        await tester.pump();
+
+        expect(find.text(label), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (widget) => widget is Semantics && widget.properties.label == label,
+          ),
+          findsOneWidget,
+        );
+        expect(find.byIcon(Icons.pause), findsOneWidget);
+        expect(find.text('Finish'), findsOneWidget);
+        expect(find.text('Routine complete'), findsNothing);
+      }
 
       await _disposeCleanly(tester);
     },
@@ -249,6 +322,95 @@ void main() {
     expect(find.text('Core first'), findsOneWidget);
     expect(find.text('Not planned'), findsNothing);
     expect(find.text(l10n.timerStepCounter(1, 2)), findsOneWidget);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets(
+    'Low Mode skip and abandon persist only planned core-step outcomes',
+    (tester) async {
+      final adapter = await _seed(
+        steps: [
+          _step('core-1', order: 0, name: 'Core first', isCore: true),
+          _step('non-core', order: 1, name: 'Not planned'),
+          _step('core-2', order: 2, name: 'Core second', isCore: true),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageAdapterProvider.overrideWithValue(adapter),
+            notificationServiceProvider.overrideWithValue(
+              _NoopNotificationService(),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const TimerScreen(
+              routineId: 'r1',
+              mode: RunMode.low,
+              plannedStepIds: ['core-1', 'core-2'],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.skip_next));
+      await tester.pumpAndSettle();
+      expect(find.text('Core second'), findsOneWidget);
+      expect(find.text('Not planned'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Stop'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Routine stopped'), findsOneWidget);
+      final log = (await adapter.getCompletions('r1')).single;
+      expect(log.outcome, CompletionOutcome.abandoned);
+      expect(log.mode, RunMode.low);
+      expect(log.plannedStepIds, ['core-1', 'core-2']);
+      expect(log.steps.map((outcome) => outcome.stepId), ['core-1']);
+      expect(log.steps.single.state, CompletionStepState.skipped);
+
+      await _disposeCleanly(tester);
+    },
+  );
+
+  testWidgets('a timer run uses the persisted reordered step identity', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [
+        _step('s1', order: 0, name: 'First before reorder'),
+        _step('s2', order: 1, name: 'Second before reorder'),
+        _step('s3', order: 2, name: 'Third before reorder'),
+      ],
+    );
+    await adapter.reorderSteps('r1', [
+      's3',
+      's1',
+      's2',
+    ], updatedAt: DateTime.utc(2026, 8, 3));
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Third before reorder'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(find.text('First before reorder'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(find.text('Second before reorder'), findsOneWidget);
+    await tester.tap(find.text('Finish'));
+    await tester.pumpAndSettle();
+
+    final log = (await adapter.getCompletions('r1')).single;
+    expect(log.steps.map((outcome) => outcome.stepId), ['s3', 's1', 's2']);
 
     await _disposeCleanly(tester);
   });

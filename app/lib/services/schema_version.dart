@@ -1,3 +1,11 @@
+class UnsupportedSchemaVersionException extends FormatException {
+  UnsupportedSchemaVersionException(this.version, {required this.isNewer})
+    : super('Unsupported schema version: $version');
+
+  final String version;
+  final bool isNewer;
+}
+
 /// Versions this installation can safely read and write.
 enum SchemaVersion {
   v1_0('1.0.0'),
@@ -19,8 +27,14 @@ enum SchemaVersion {
 
     final major = int.parse(match.group(1)!);
     final minor = int.parse(match.group(2)!);
-    if (major != 1 || (minor == 1 && match.group(3) != '0') || minor > 1) {
-      throw FormatException('Unsupported schema version: $value');
+    final patch = int.parse(match.group(3)!);
+    if (major != 1 || (minor == 1 && patch != 0) || minor > 1) {
+      throw UnsupportedSchemaVersionException(
+        value,
+        isNewer:
+            major > 1 ||
+            (major == 1 && (minor > 1 || (minor == 1 && patch > 0))),
+      );
     }
     return minor == 0 ? v1_0 : v1_1;
   }

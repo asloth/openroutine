@@ -317,39 +317,24 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
               value: _noExplicitTime,
               onChanged: (value) => setState(() => _noExplicitTime = value),
             ),
-            Builder(
-              builder: (context) {
-                final existingSteps =
-                    ref.watch(routineStepsProvider(widget.routineId)).value ??
-                    const <RoutineStep>[];
-                final otherCoreCount = existingSteps
-                    .where((step) => step.id != widget.stepId && step.isCore)
-                    .length;
-                final canSelect = _isCore || otherCoreCount < 3;
-                return Semantics(
-                  label: l10n.stepFormCoreGuidance,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(l10n.stepFormCoreLabel),
-                        value: _isCore,
-                        onChanged: canSelect
-                            ? (value) =>
-                                  setState(() => _isCore = value ?? false)
-                            : null,
-                      ),
-                      Text(
-                        canSelect
-                            ? l10n.stepFormCoreGuidance
-                            : l10n.stepFormCoreLimit,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
+            Semantics(
+              label: l10n.stepFormCoreGuidance,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.stepFormCoreLabel),
+                    value: _isCore,
+                    onChanged: (value) =>
+                        setState(() => _isCore = value ?? false),
                   ),
-                );
-              },
+                  Text(
+                    l10n.stepFormCoreGuidance,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
             if (!_noExplicitTime) ...[
               const SizedBox(height: 8),

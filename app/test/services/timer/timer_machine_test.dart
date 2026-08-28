@@ -82,15 +82,15 @@ void main() {
       expect(state.remaining(_at(120)), isNull);
     });
 
-    test('derives calm estimate zones at the exact thresholds', () {
+    test('derives percentage-based estimate zones at exact thresholds', () {
       final state = _machine(
-        steps: [_step('a', durationSeconds: 60)],
+        steps: [_step('a', durationSeconds: 600)],
       ).start(_t0);
 
-      expect(state.estimateZone(_at(60)), EstimateZone.green);
-      expect(state.estimateZone(_at(61)), EstimateZone.yellow);
-      expect(state.estimateZone(_at(150)), EstimateZone.yellow);
-      expect(state.estimateZone(_at(181)), EstimateZone.orange);
+      expect(state.estimateZone(_at(600)), EstimateZone.green);
+      expect(state.estimateZone(_at(601)), EstimateZone.yellow);
+      expect(state.estimateZone(_at(900)), EstimateZone.yellow);
+      expect(state.estimateZone(_at(901)), EstimateZone.orange);
     });
 
     test('has no estimate zone when a step has no explicit time', () {

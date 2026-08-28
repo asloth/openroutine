@@ -9,19 +9,31 @@ void main() {
       expect(SchemaVersion.parseSupported('1.1.0'), SchemaVersion.current);
     });
 
-    test('refuses malformed, newer, and different-major versions', () {
+    for (final version in ['1.1.1', '1.2.0', '2.0.0']) {
+      test('classifies unsupported newer version $version for import UI', () {
+        expect(
+          () => SchemaVersion.parseSupported(version),
+          throwsA(
+            isA<UnsupportedSchemaVersionException>()
+                .having((error) => error.version, 'version', version)
+                .having((error) => error.isNewer, 'isNewer', isTrue),
+          ),
+        );
+      });
+    }
+
+    test('classifies an unsupported older major as non-newer', () {
       expect(
-        () => SchemaVersion.parseSupported('1.2.0'),
-        throwsFormatException,
+        () => SchemaVersion.parseSupported('0.9.0'),
+        throwsA(
+          isA<UnsupportedSchemaVersionException>()
+              .having((error) => error.version, 'version', '0.9.0')
+              .having((error) => error.isNewer, 'isNewer', isFalse),
+        ),
       );
-      expect(
-        () => SchemaVersion.parseSupported('1.1.1'),
-        throwsFormatException,
-      );
-      expect(
-        () => SchemaVersion.parseSupported('2.0.0'),
-        throwsFormatException,
-      );
+    });
+
+    test('refuses malformed versions as format errors', () {
       expect(
         () => SchemaVersion.parseSupported('one.one'),
         throwsFormatException,

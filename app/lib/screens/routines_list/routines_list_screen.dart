@@ -193,6 +193,15 @@ class _RoutineCard extends ConsumerWidget {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+                if (steps != null && !hasCoreSteps) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.routinesLowModeSetupGuidance,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
