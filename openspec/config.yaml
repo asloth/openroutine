@@ -1,0 +1,105 @@
+schema: spec-driven
+
+project: openroutine
+persistence:
+  mode: openspec
+  root: openspec
+
+preflight:
+  execution_mode: interactive
+  delivery_strategy: auto-chain
+  review_budget_lines: 400
+
+context: |
+  Product: OpenRoutine is a local-first Flutter routine app for iOS and Android with no backend.
+  Stack: Flutter 3.41.4 stable, Dart SDK ^3.11.1, Riverpod, Drift/SQLite, go_router, Google Drive REST, notifications, i18n.
+  Architecture: app/ contains screens, widgets, state providers, models, storage adapters, Drive sync, import/export, notifications, and timer services.
+  Data contract: schemas/ and bundled app/assets/schemas define public JSON formats for agent integrations.
+  CI: GitHub Actions runs dependency install, l10n generation, code generation, fatal-info analysis, and Flutter tests from app/.
+  Conventions: keep storage adapters pure, validate JSON gracefully, route user-facing strings through i18n, and treat schema changes as public API changes.
+
+strict_tdd: true
+strict_tdd_source: test-runner-detected-fallback
+
+testing:
+  strict_tdd: true
+  detected: 2026-09-06
+  working_directory: app
+  runner:
+    framework: flutter_test
+    command: flutter test
+  layers:
+    unit:
+      available: true
+      tool: flutter_test
+      evidence: app/test/services and app/test/state test suites
+    widget:
+      available: true
+      tool: flutter_test
+      evidence: app/test/screens and app/test/widget_test.dart
+    integration:
+      available: false
+      tool: null
+      evidence: no integration_test package or integration_test/ directory detected
+    e2e:
+      available: false
+      tool: null
+      evidence: no Playwright, Cypress, Selenium, Maestro, Patrol, or Flutter driver E2E setup detected
+  coverage:
+    available: true
+    command: flutter test --coverage
+    ci_enforced: false
+  quality:
+    dependency_install:
+      available: true
+      command: flutter pub get
+    localization_generation:
+      available: true
+      command: flutter gen-l10n
+    code_generation:
+      available: true
+      command: dart run build_runner build
+    linter:
+      available: true
+      command: flutter analyze --fatal-infos
+    type_checker:
+      available: true
+      command: flutter analyze --fatal-infos
+    formatter:
+      available: true
+      command: dart format .
+    build:
+      available: partial
+      command: flutter build apk --debug --dart-define-from-file=dart_define.json
+      note: Build requires local OAuth defines; CI currently stops at analyze and test.
+
+rules:
+  proposal:
+    - State the user value, storage/schema impact, and rollback plan for risky changes.
+    - Keep proposed review slices within the configured 400-line review budget or use chained delivery.
+  specs:
+    - Use RFC 2119 keywords for requirements.
+    - Use Given/When/Then scenarios.
+    - Call out schema-version changes explicitly because schemas/ is a public agent contract.
+  design:
+    - Preserve the no-backend, local-first model unless a proposal explicitly changes it.
+    - Keep Drive-specific types out of models, screens, and widgets; use storage adapters for provider boundaries.
+    - Include sequence diagrams or data-flow notes for sync, import/export, migration, and timer behavior.
+  tasks:
+    - Group work by reviewable phase and keep each task completable in one session.
+    - Pair source, tests, schema, and i18n updates in the same work unit when they belong together.
+  apply:
+    - "Use strict TDD for behavioral changes: start with a failing Flutter test, then implement and refactor."
+    - Run `flutter test` from app/ unless a task explicitly targets repository-level files.
+    - Run code generation after changing annotated models, providers, Drift tables, or localization inputs.
+    - Add user-facing strings to app/lib/l10n/app_en.arb and app_es.arb together.
+  verify:
+    - Run `flutter pub get` from app/ before verification when dependencies may be stale.
+    - Run `flutter gen-l10n` from app/ before analysis and tests.
+    - Run `dart run build_runner build` from app/ after annotated model, provider, Drift, or localization changes.
+    - Run `flutter analyze --fatal-infos` from app/.
+    - Run `flutter test` from app/.
+    - Use `flutter test --coverage` from app/ when coverage evidence is required; no minimum threshold is configured.
+  archive:
+    - Merge accepted delta specs into openspec/specs before archiving the change folder.
+    - Warn before merging destructive or schema-breaking deltas.
