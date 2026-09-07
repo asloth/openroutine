@@ -73,6 +73,12 @@ dependencies:
   # header, so the `googleapis` package would only add a generated client for the
   # whole Drive surface to save no work — see docs/SPEC.md §5.
   http: ^1.6.0
+  # Bridges the Android home screen widget: writes the routine snapshot into the
+  # widget's SharedPreferences, asks Android to redraw, and — the part that is
+  # genuinely fiddly to hand-roll — delivers the launch URI of a widget tap on
+  # both cold start and warm start. Its only transitive dependency is
+  # path_provider, so it stays clear of the `meta`/`analyzer` pin above.
+  home_widget: ^0.9.4
 
 dev_dependencies:
   flutter_test:
