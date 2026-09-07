@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'colors.dart';
+import 'motion.dart';
 import 'spacing.dart';
 
 /// The soft-UI surface treatment from the Stitch design pass.
@@ -53,7 +54,9 @@ class NeumorphicTheme extends ThemeExtension<NeumorphicTheme> {
   }) {
     return BoxDecoration(
       color: color ?? surfaceColor,
-      borderRadius: shape == BoxShape.circle ? null : borderRadius ?? AppRadius.cardBorder,
+      borderRadius: shape == BoxShape.circle
+          ? null
+          : borderRadius ?? AppRadius.cardBorder,
       shape: shape,
       boxShadow: [
         BoxShadow(
@@ -83,7 +86,9 @@ class NeumorphicTheme extends ThemeExtension<NeumorphicTheme> {
   }) {
     final base = color ?? surfaceColor;
     return BoxDecoration(
-      borderRadius: shape == BoxShape.circle ? null : borderRadius ?? AppRadius.cardBorder,
+      borderRadius: shape == BoxShape.circle
+          ? null
+          : borderRadius ?? AppRadius.cardBorder,
       shape: shape,
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -213,24 +218,30 @@ class _NeumorphicCircleButtonState extends State<NeumorphicCircleButton> {
         onTapUp: enabled ? (_) => setState(() => _held = false) : null,
         onTapCancel: enabled ? () => setState(() => _held = false) : null,
         onTap: widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          width: widget.size,
-          height: widget.size,
-          decoration: _held
-              ? neumorphic.pressed(
-                  shape: BoxShape.circle,
-                  color: widget.filled ? theme.colorScheme.primary : null,
-                )
-              : neumorphic.raised(
-                  shape: BoxShape.circle,
-                  scale: widget.size >= 88 ? 1.6 : 1,
-                  color: widget.filled ? theme.colorScheme.primary : null,
-                ),
-          child: Icon(
-            widget.icon,
-            size: widget.size * 0.45,
-            color: foreground,
+        child: AnimatedScale(
+          scale: _held ? AppMotion.pressScale : 1.0,
+          duration: context.motion(AppMotion.feedback),
+          curve: AppMotion.transition,
+          child: AnimatedContainer(
+            duration: context.motion(AppMotion.feedback),
+            curve: AppMotion.transition,
+            width: widget.size,
+            height: widget.size,
+            decoration: _held
+                ? neumorphic.pressed(
+                    shape: BoxShape.circle,
+                    color: widget.filled ? theme.colorScheme.primary : null,
+                  )
+                : neumorphic.raised(
+                    shape: BoxShape.circle,
+                    scale: widget.size >= 88 ? 1.6 : 1,
+                    color: widget.filled ? theme.colorScheme.primary : null,
+                  ),
+            child: Icon(
+              widget.icon,
+              size: widget.size * 0.45,
+              color: foreground,
+            ),
           ),
         ),
       ),
@@ -274,28 +285,34 @@ class _NeumorphicPillButtonState extends State<NeumorphicPillButton> {
       onTapUp: enabled ? (_) => setState(() => _held = false) : null,
       onTapCancel: enabled ? () => setState(() => _held = false) : null,
       onTap: widget.onPressed,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        constraints: const BoxConstraints(
-          minHeight: AppSpacing.touchTargetMin,
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.section,
-          vertical: AppSpacing.element,
-        ),
-        decoration: _held
-            ? context.neumorphic.pressed(borderRadius: AppRadius.pillBorder)
-            : context.neumorphic.raised(borderRadius: AppRadius.pillBorder),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(widget.icon, size: 20, color: foreground),
-            const SizedBox(width: AppSpacing.base),
-            Text(
-              widget.label,
-              style: theme.textTheme.labelLarge?.copyWith(color: foreground),
-            ),
-          ],
+      child: AnimatedScale(
+        scale: _held ? AppMotion.pressScale : 1.0,
+        duration: context.motion(AppMotion.feedback),
+        curve: AppMotion.transition,
+        child: AnimatedContainer(
+          duration: context.motion(AppMotion.feedback),
+          curve: AppMotion.transition,
+          constraints: const BoxConstraints(
+            minHeight: AppSpacing.touchTargetMin,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.section,
+            vertical: AppSpacing.element,
+          ),
+          decoration: _held
+              ? context.neumorphic.pressed(borderRadius: AppRadius.pillBorder)
+              : context.neumorphic.raised(borderRadius: AppRadius.pillBorder),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(widget.icon, size: 20, color: foreground),
+              const SizedBox(width: AppSpacing.base),
+              Text(
+                widget.label,
+                style: theme.textTheme.labelLarge?.copyWith(color: foreground),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,10 +1,10 @@
 # Proposal: Continue Timer into Overtime
 
-## Intent
+## Why
 
 Display one continuous elapsed count-up from task start until Done. At the estimate, the timer becomes persistently yellow without changing its time basis; later completion uses the existing `overrun` state.
 
-## Scope
+## What Changes
 
 ### In Scope
 - Display elapsed time continuously (for example, `0:00` through `1:59`, `2:00`, `2:01`, and onward).

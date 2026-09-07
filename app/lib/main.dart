@@ -19,6 +19,7 @@ import 'models/completion_log.dart';
 import 'state/app_prefs_provider.dart';
 import 'state/timer_provider.dart';
 import 'state/sync_provider.dart';
+import 'routing/app_page.dart';
 import 'theme/theme.dart';
 
 Future<void> main() async {
@@ -49,55 +50,90 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: const OnboardingScreen(),
+        ),
       ),
       GoRoute(
         path: '/routines',
-        builder: (context, state) => const RoutinesListScreen(),
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: const RoutinesListScreen(),
+        ),
       ),
       GoRoute(
         path: '/routines/new',
-        builder: (context, state) => const RoutineFormScreen(),
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: const RoutineFormScreen(),
+        ),
       ),
       GoRoute(
         path: '/routines/:routineId',
-        builder: (context, state) =>
-            RoutineDetailScreen(routineId: state.pathParameters['routineId']!),
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: RoutineDetailScreen(
+            routineId: state.pathParameters['routineId']!,
+          ),
+        ),
       ),
       GoRoute(
         path: '/routines/:routineId/edit',
-        builder: (context, state) =>
-            RoutineFormScreen(routineId: state.pathParameters['routineId']),
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: RoutineFormScreen(
+            routineId: state.pathParameters['routineId'],
+          ),
+        ),
       ),
       GoRoute(
         path: '/routines/:routineId/timer',
-        builder: (context, state) => TimerScreen(
-          routineId: state.pathParameters['routineId']!,
-          mode: state.uri.queryParameters['mode'] == 'low'
-              ? RunMode.low
-              : RunMode.full,
-          plannedStepIds: state.uri.queryParameters['steps']?.split(','),
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: TimerScreen(
+            routineId: state.pathParameters['routineId']!,
+            mode: state.uri.queryParameters['mode'] == 'low'
+                ? RunMode.low
+                : RunMode.full,
+            plannedStepIds: state.uri.queryParameters['steps']?.split(','),
+          ),
         ),
       ),
       GoRoute(
         path: '/routines/:routineId/steps/new',
-        builder: (context, state) =>
-            StepFormScreen(routineId: state.pathParameters['routineId']!),
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: StepFormScreen(routineId: state.pathParameters['routineId']!),
+        ),
       ),
       GoRoute(
         path: '/routines/:routineId/steps/:stepId/edit',
-        builder: (context, state) => StepFormScreen(
-          routineId: state.pathParameters['routineId']!,
-          stepId: state.pathParameters['stepId'],
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: StepFormScreen(
+            routineId: state.pathParameters['routineId']!,
+            stepId: state.pathParameters['stepId'],
+          ),
         ),
       ),
       GoRoute(
         path: '/import',
-        builder: (context, state) => const ImportScreen(),
+        pageBuilder: (context, state) =>
+            appPage(context, key: state.pageKey, child: const ImportScreen()),
       ),
       GoRoute(
         path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
+        pageBuilder: (context, state) =>
+            appPage(context, key: state.pageKey, child: const SettingsScreen()),
       ),
     ],
   );

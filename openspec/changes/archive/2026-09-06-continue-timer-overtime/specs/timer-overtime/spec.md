@@ -4,7 +4,7 @@
 
 Define continuous elapsed timing, estimate-boundary presentation, and completion classification for timed steps without changing untimed behavior or persisted schemas.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Continuous elapsed timer
 

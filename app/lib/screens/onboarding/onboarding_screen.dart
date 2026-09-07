@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/app_prefs.dart';
 import '../../state/app_prefs_provider.dart';
+import '../../theme/motion.dart';
 import '../../state/sync_provider.dart';
 
 /// 3 intro slides + a storage-choice page, per docs/SPEC.md §7 screen 1.
@@ -37,8 +38,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return;
     }
     _pageController.nextPage(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
+      duration: context.motion(AppMotion.standard),
+      curve: AppMotion.entrance,
     );
   }
 

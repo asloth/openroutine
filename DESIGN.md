@@ -207,6 +207,8 @@ An interactive control deforms while held, by no more than five percent in eithe
 
 When several elements enter as a group, keep the delay between them under 50ms. Beyond that the group stops arriving together and starts loading one item at a time.
 
+Navigation uses one shared transition for every route, not a choice per destination — the arriving screen fades in and rises a short distance, and the departing one fades out. A full-width slide was rejected deliberately: it is a large directional gesture that asserts hierarchy between screens, which is the wrong register here. A pure cross-fade was too weak, because every screen shares the same warm ground and a fade alone can read as a repaint rather than a navigation. Route pages must carry a distinct key; two pages of the same type sharing a key are treated as one route being updated, and nothing animates at all.
+
 Every animated duration passes through the reduced-motion resolver rather than reaching a widget directly. Flutter does not apply the platform's reduced-motion setting to a duration handed to an implicit animation or to a controller driven by hand, so a widget that skips the resolver keeps animating for someone who asked the system to stop. Suppressed motion resolves to the end state rather than not running, so nothing is left holding its previous state.
 
 ## Shapes
