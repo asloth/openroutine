@@ -43,6 +43,14 @@ jobs:
       - name: Test
         run: flutter test
 
-      # Intentionally stops at analyze + test. §15.12 also wants APK/IPA
-      # builds on every PR, but those need signing config we don't have yet —
-      # deferred until M4/M6.
+      # The home screen widget's receiver, service and layouts are Kotlin and
+      # XML, which analyze and test never look at — a broken manifest or a
+      # Kotlin error would otherwise sail through a green CI run and only fail
+      # on someone's machine. The debug build needs no signing secrets (the
+      # release config still signs with the debug key), and it runs without
+      # dart_define.json, which just leaves Drive visibly unavailable.
+      - name: Build Android (debug)
+        run: flutter build apk --debug
+
+      # Still no release APK/IPA. §15.12 wants those on every PR, but they
+      # need signing config we don't have yet — deferred until M6.

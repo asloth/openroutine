@@ -238,6 +238,21 @@ Local notifications: fire a local push when the app is backgrounded and a step t
 
 This **replaces the foreground service** this section originally called for. Handing the alarm to the OS is strictly more robust — it fires whether or not our process survived, which a foreground service cannot promise — and it avoids declaring an Android 14+ `foregroundServiceType` of `specialUse`, which would need justifying at store review. Since the timer's state no longer depends on a live process either, there is nothing left for the service to keep alive. Exact alarms need `USE_EXACT_ALARM`, which Play permits for apps whose core function is a timer; see §15.14.
 
+### 8.1 Android home screen widget (added after M5)
+
+A resizable Android app widget lists the user's routines — start time, name, step count, ordered as the in-app list orders them — and a tap on a row opens the app at `/routines/:routineId/timer`, which starts the run. That is the widget's whole job: the point of the app is lowering the cost of starting, and the launch path was the last expensive part of it.
+
+**The widget never reads the database.** `HomeWidgetPublisher` (`app/lib/services/home_widget/`) denormalizes the routine list into a versioned JSON snapshot and pushes it through the `home_widget` plugin into the widget's `SharedPreferences`; the native `RoutineWidgetProvider` and `RoutineListService` only render what they are given. Reimplementing drift's schema — soft deletes, flattened schedule columns, JSON-encoded step lists — in Kotlin would fork the storage contract into a second language and open a second SQLite connection against a live one.
+
+The payload is **internal** and is deliberately absent from `schemas/`, which is the public agent contract (§9). It carries `{v, routines: [{id, name, startTime?, steps}], strings}`:
+
+- `startTime` is the schema's raw local `"HH:MM"`; the widget formats it natively so it follows the phone's 12/24-hour setting, which can change long after publishing.
+- `steps` is the already-pluralised, already-localised subtitle, and `strings` carries the header and empty state — copy stays in `app_en.arb`/`app_es.arb` rather than forking into a native `values-es/strings.xml`.
+
+Publishing hangs off `routinesProvider`, so create, rename, delete, reorder and a Drive sync pulling another device's change all reach the widget without any call site remembering to. `updatePeriodMillis` is `0`: there is nothing for a poll to discover.
+
+**Android only.** The iOS project has no App Group and no WidgetKit extension, and neither can be compiled or exercised from the Linux development machine; an iOS widget is a follow-up, not a half-shipped Swift file. Two other follow-ups are open: the widget uses the default warm-paper palette rather than a custom one chosen in Settings, and it starts full runs only — Low Mode stays in the app.
+
 ---
 
 ## 9. Agent integration model
