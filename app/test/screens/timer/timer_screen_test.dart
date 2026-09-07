@@ -1,4 +1,3 @@
-
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,10 +21,18 @@ import 'package:openroutine/theme/theme.dart';
 /// The real service would reach for platform channels that don't exist under
 /// flutter_test. Scheduling is covered by the machine's own tests; here we only
 /// need it to stay out of the way.
+///
+/// Note the explicit overrides: `implements` plus `noSuchMethod` means a
+/// method left unimplemented compiles fine and then throws at runtime, so
+/// anything the screen actually calls has to be spelled out here.
 class _NoopNotificationService implements NotificationService {
   String? lastBody;
   String? lastChannelName;
   String? lastChannelDescription;
+  String? lastHalfwayBody;
+  String? lastNearEndBody;
+  DateTime? lastHalfwayAt;
+  DateTime? lastNearEndAt;
   int scheduledCount = 0;
   int cancelledCount = 0;
 
@@ -36,16 +43,26 @@ class _NoopNotificationService implements NotificationService {
   Future<bool> requestPermission() async => true;
 
   @override
-  Future<void> scheduleStepEnd({
+  Future<void> scheduleStepAlarms({
     required DateTime endsAt,
     required String title,
     required String body,
     required String channelName,
     required String channelDescription,
+    DateTime? halfwayAt,
+    DateTime? nearEndAt,
+    String? halfwayBody,
+    String? nearEndBody,
+    String? nudgeChannelName,
+    String? nudgeChannelDescription,
   }) async {
     lastBody = body;
     lastChannelName = channelName;
     lastChannelDescription = channelDescription;
+    lastHalfwayAt = halfwayAt;
+    lastNearEndAt = nearEndAt;
+    lastHalfwayBody = halfwayBody;
+    lastNearEndBody = nearEndBody;
     scheduledCount++;
   }
 
@@ -127,6 +144,7 @@ RoutineStep _step(
   int? durationSeconds = 60,
   bool noExplicitTime = false,
   bool isCore = false,
+  bool remindDuring = false,
 }) {
   final now = DateTime.utc(2026, 8, 2);
   return RoutineStep(
@@ -138,6 +156,7 @@ RoutineStep _step(
     order: order,
     noExplicitTime: noExplicitTime,
     isCore: isCore,
+    remindDuring: remindDuring,
     createdAt: now,
     updatedAt: now,
   );
@@ -421,6 +440,56 @@ void main() {
     // No target means no ring to fill.
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(notifications.scheduledCount, 0);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('an opted-in step schedules both mid-step nudges', (
+    tester,
+  ) async {
+    final notifications = _NoopNotificationService();
+    final adapter = await _seed(
+      steps: [_step('s1', order: 0, durationSeconds: 600, remindDuring: true)],
+    );
+
+    await tester.pumpWidget(_wrap(adapter, notifications: notifications));
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    expect(
+      notifications.lastHalfwayBody,
+      '🪥 ${l10n.timerNotificationNudgeHalfwayBody}',
+    );
+    expect(
+      notifications.lastNearEndBody,
+      '🪥 ${l10n.timerNotificationNudgeNearEndBody}',
+    );
+    // Five and eight minutes into a ten-minute step, give or take the frames
+    // the test pumped between starting and reading this.
+    final untilHalfway = notifications.lastHalfwayAt!.difference(
+      DateTime.now(),
+    );
+    final untilNearEnd = notifications.lastNearEndAt!.difference(
+      DateTime.now(),
+    );
+    expect(untilHalfway.inSeconds, closeTo(300, 2));
+    expect(untilNearEnd.inSeconds, closeTo(480, 2));
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('a step that did not opt in schedules no nudges', (tester) async {
+    final notifications = _NoopNotificationService();
+    final adapter = await _seed(
+      steps: [_step('s1', order: 0, durationSeconds: 600)],
+    );
+
+    await tester.pumpWidget(_wrap(adapter, notifications: notifications));
+    await tester.pumpAndSettle();
+
+    expect(notifications.scheduledCount, greaterThan(0));
+    expect(notifications.lastHalfwayAt, isNull);
+    expect(notifications.lastNearEndAt, isNull);
 
     await _disposeCleanly(tester);
   });

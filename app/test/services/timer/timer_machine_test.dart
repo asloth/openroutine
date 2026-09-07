@@ -15,6 +15,7 @@ RoutineStep _step(
   int? durationSeconds = 60,
   bool noExplicitTime = false,
   bool isCore = false,
+  bool remindDuring = false,
 }) => RoutineStep(
   id: id,
   routineId: 'r1',
@@ -24,8 +25,24 @@ RoutineStep _step(
   order: 0,
   noExplicitTime: noExplicitTime,
   isCore: isCore,
+  remindDuring: remindDuring,
   createdAt: _t0,
   updatedAt: _t0,
+);
+
+/// A single opted-in step long enough to clear the two-minute floor.
+TimerState _nudging({
+  int? durationSeconds = 600,
+  bool noExplicitTime = false,
+}) => _machine(
+  steps: [
+    _step(
+      'a',
+      durationSeconds: durationSeconds,
+      noExplicitTime: noExplicitTime,
+      remindDuring: true,
+    ),
+  ],
 );
 
 TimerState _machine({List<RoutineStep>? steps}) => TimerState.idle(
@@ -157,6 +174,108 @@ void main() {
     test('resume on a running machine is a no-op', () {
       final running = _machine().start(_t0);
       expect(running.resume(_at(5)), running);
+    });
+  });
+
+  group('mid-step reminder marks', () {
+    test('measures the marks from now, not from when the step started', () {
+      final state = _nudging().start(_t0);
+
+      expect(
+        state.remainingUntilFraction(0.5, _t0),
+        const Duration(seconds: 300),
+      );
+      expect(
+        state.remainingUntilFraction(0.8, _t0),
+        const Duration(seconds: 480),
+      );
+
+      // Two minutes in, both marks are two minutes closer.
+      expect(
+        state.remainingUntilFraction(0.5, _at(120)),
+        const Duration(seconds: 180),
+      );
+      expect(
+        state.remainingUntilFraction(0.8, _at(120)),
+        const Duration(seconds: 360),
+      );
+    });
+
+    test('pausing pushes the marks out by the time spent paused', () {
+      final state = _nudging().start(_t0).pause(_at(60)).resume(_at(300));
+
+      // 60s of the step actually ran; the 50% mark is 240s of running away,
+      // which is 240s from now rather than 300s after the original start.
+      expect(
+        state.remainingUntilFraction(0.5, _at(300)),
+        const Duration(seconds: 240),
+      );
+      expect(
+        state.remainingUntilFraction(0.8, _at(300)),
+        const Duration(seconds: 420),
+      );
+    });
+
+    test('drops a mark the step is already past when it resumes', () {
+      final state = _nudging().start(_t0).pause(_at(400)).resume(_at(900));
+
+      // 400s elapsed is past the 300s mark but short of the 480s one.
+      expect(state.remainingUntilFraction(0.5, _at(900)), isNull);
+      expect(
+        state.remainingUntilFraction(0.8, _at(900)),
+        const Duration(seconds: 80),
+      );
+    });
+
+    test('has no marks while the run is paused', () {
+      final state = _nudging().start(_t0).pause(_at(60));
+
+      expect(state.remainingUntilFraction(0.5, _at(60)), isNull);
+      expect(state.remainingUntilFraction(0.8, _at(60)), isNull);
+    });
+
+    test('has no marks for a step that did not opt in', () {
+      final state = _machine(
+        steps: [_step('a', durationSeconds: 600)],
+      ).start(_t0);
+
+      expect(state.remainingUntilFraction(0.5, _t0), isNull);
+      expect(state.remainingUntilFraction(0.8, _t0), isNull);
+    });
+
+    test('has no marks for a step with no explicit time', () {
+      final state = _nudging(noExplicitTime: true).start(_t0);
+
+      expect(state.remainingUntilFraction(0.5, _t0), isNull);
+      expect(state.remainingUntilFraction(0.8, _t0), isNull);
+    });
+
+    test('has no marks for a step estimated under two minutes', () {
+      final state = _nudging(durationSeconds: 119).start(_t0);
+
+      // 119s would buzz at 0:59 and 1:35 and then end at 1:59 — three alerts
+      // inside two minutes, which is a nuisance rather than a reminder.
+      expect(state.remainingUntilFraction(0.5, _t0), isNull);
+      expect(state.remainingUntilFraction(0.8, _t0), isNull);
+    });
+
+    test('nudges a step estimated at exactly two minutes', () {
+      final state = _nudging(durationSeconds: 120).start(_t0);
+
+      expect(
+        state.remainingUntilFraction(0.5, _t0),
+        const Duration(seconds: 60),
+      );
+      expect(
+        state.remainingUntilFraction(0.8, _t0),
+        const Duration(seconds: 96),
+      );
+    });
+
+    test('has no marks once the run is over', () {
+      final state = _nudging().start(_t0).completeStep(_at(60));
+
+      expect(state.remainingUntilFraction(0.5, _at(60)), isNull);
     });
   });
 

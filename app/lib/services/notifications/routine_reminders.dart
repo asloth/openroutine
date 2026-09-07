@@ -31,8 +31,8 @@ class ReminderRequest {
 /// alarm.** `flutter_local_notifications` can repeat daily via
 /// `matchDateTimeComponents`, but that anchors to a fixed instant in whatever
 /// zone the plugin's database is set to. This app deliberately leaves
-/// `tz.local` at UTC (see `NotificationService.scheduleStepEnd`) because every
-/// other schedule it has is an offset from now, so a repeating match would
+/// `tz.local` at UTC (see `NotificationService.scheduleStepAlarms`) because
+/// every other schedule it has is an offset from now, so a repeating match would
 /// fire an hour off for half the year in any zone that observes DST. Pinning
 /// that would mean adding `flutter_timezone` to a dependency graph that is
 /// already awkward to resolve on this Flutter version.
@@ -49,12 +49,14 @@ abstract final class ReminderSchedule {
 
   /// iOS keeps at most 64 pending local notifications and silently drops the
   /// rest, so the total is capped well under that with room left for the
-  /// timer's own step-end notification.
+  /// timer's own three step notifications — the estimate boundary and the two
+  /// mid-step nudges.
   static const maxReminders = 56;
 
-  /// First id reserved for reminders. Kept clear of
-  /// `NotificationService.stepEndNotificationId` so re-arming reminders can
-  /// never cancel a running timer's pending notification.
+  /// First id reserved for reminders. Kept clear of the timer's step ids
+  /// (`NotificationService.stepEndNotificationId` and its two nudge
+  /// siblings) so re-arming reminders can never cancel a running timer's
+  /// pending notifications.
   static const idBase = 1000;
 
   /// The next reminder instants for [routine], already moved back by [lead].

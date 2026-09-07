@@ -130,6 +130,42 @@ abstract class TimerState with _$TimerState {
     return now.add(left);
   }
 
+  /// Shortest estimate worth interrupting partway through.
+  ///
+  /// Below two minutes the 50% and 80% marks are seconds apart from each other
+  /// and from the end — a ninety-second step would buzz at 0:45, 1:12 and
+  /// 1:30. That is not a reminder, it is a nuisance, so such a step gets none.
+  static const nudgeFloor = Duration(minutes: 2);
+
+  /// How long from [now] until the current step reaches [fraction] of its
+  /// estimate, or null when there is no such moment to schedule.
+  ///
+  /// Null when the step did not opt in, has no explicit time, is estimated
+  /// under [nudgeFloor], the run is not running, or the mark has already gone
+  /// past — which is what makes resuming mid-step drop the marks behind it
+  /// instead of firing them late.
+  ///
+  /// **Measured from [now], never from `stepStartedAt + fraction × estimate`,**
+  /// for the same reason [currentStepEndsAt] is: the marks move every time the
+  /// run is paused, and an absolute time computed at start would be stale by
+  /// exactly the time spent paused. Kept pure and clock-injected so the
+  /// arithmetic is testable without a plugin, the way `ReminderSchedule` keeps
+  /// date logic out of the notification plugin.
+  Duration? remainingUntilFraction(double fraction, DateTime now) {
+    final step = currentStep;
+    if (step == null || !step.remindDuring || phase != TimerPhase.running) {
+      return null;
+    }
+    final left = remaining(now);
+    if (left == null) return null;
+
+    final target = Duration(seconds: step.durationSeconds ?? 0);
+    if (target < nudgeFloor) return null;
+
+    final untilMark = left - target * (1 - fraction);
+    return untilMark > Duration.zero ? untilMark : null;
+  }
+
   TimerState start(DateTime now) {
     if (phase != TimerPhase.idle) return this;
     if (steps.isEmpty) {

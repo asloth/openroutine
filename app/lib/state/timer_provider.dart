@@ -29,6 +29,16 @@ class RoutineTimer extends _$RoutineTimer {
   String? _notificationBody;
   String? _notificationChannelName;
   String? _notificationChannelDescription;
+  String? _nudgeHalfwayBody;
+  String? _nudgeNearEndBody;
+  String? _nudgeChannelName;
+  String? _nudgeChannelDescription;
+
+  /// The two points in a step's estimate worth interrupting at. Fixed rather
+  /// than configurable: a settings screen for two numbers costs more than it
+  /// returns.
+  static const _halfway = 0.5;
+  static const _nearEnd = 0.8;
 
   /// Purely to force a repaint. It deliberately does not advance any counter:
   /// elapsed time is recomputed from wall-clock timestamps on every read, so a
@@ -71,11 +81,19 @@ class RoutineTimer extends _$RoutineTimer {
     required String notificationBody,
     required String notificationChannelName,
     required String notificationChannelDescription,
+    required String nudgeHalfwayBody,
+    required String nudgeNearEndBody,
+    required String nudgeChannelName,
+    required String nudgeChannelDescription,
   }) async {
     if (state.phase != TimerPhase.idle) return;
     _notificationBody = notificationBody;
     _notificationChannelName = notificationChannelName;
     _notificationChannelDescription = notificationChannelDescription;
+    _nudgeHalfwayBody = nudgeHalfwayBody;
+    _nudgeNearEndBody = nudgeNearEndBody;
+    _nudgeChannelName = nudgeChannelName;
+    _nudgeChannelDescription = nudgeChannelDescription;
     // Asked for here rather than at launch so the prompt has visible context.
     // A refusal doesn't block the run — it only costs background alerts.
     await ref.read(notificationServiceProvider).requestPermission();
@@ -121,7 +139,10 @@ class RoutineTimer extends _$RoutineTimer {
 
   Future<void> _syncNotification() async {
     final notifications = ref.read(notificationServiceProvider);
-    final endsAt = state.currentStepEndsAt(DateTime.now());
+    // One `now` for all three marks, so they cannot be computed against
+    // clocks a few microseconds apart.
+    final now = DateTime.now();
+    final endsAt = state.currentStepEndsAt(now);
     final step = state.currentStep;
     final body = _notificationBody;
     final channelName = _notificationChannelName;
@@ -134,12 +155,29 @@ class RoutineTimer extends _$RoutineTimer {
       await notifications.cancelPending();
       return;
     }
-    await notifications.scheduleStepEnd(
+
+    // Null on every step that does not nudge — not opted in, no explicit time,
+    // under the two-minute floor, or already past the mark. The machine owns
+    // that decision so it stays testable with a fake clock.
+    final untilHalfway = state.remainingUntilFraction(_halfway, now);
+    final untilNearEnd = state.remainingUntilFraction(_nearEnd, now);
+
+    await notifications.scheduleStepAlarms(
       endsAt: endsAt,
       title: step.name,
       body: '${step.emoji} $body',
       channelName: channelName,
       channelDescription: channelDescription,
+      halfwayAt: untilHalfway == null ? null : now.add(untilHalfway),
+      nearEndAt: untilNearEnd == null ? null : now.add(untilNearEnd),
+      halfwayBody: _nudgeHalfwayBody == null
+          ? null
+          : '${step.emoji} $_nudgeHalfwayBody',
+      nearEndBody: _nudgeNearEndBody == null
+          ? null
+          : '${step.emoji} $_nudgeNearEndBody',
+      nudgeChannelName: _nudgeChannelName,
+      nudgeChannelDescription: _nudgeChannelDescription,
     );
   }
 
