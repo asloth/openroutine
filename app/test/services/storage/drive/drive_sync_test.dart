@@ -42,10 +42,10 @@ Routine _routine({
   deletedAt: deletedAt,
 );
 
-String _remoteBundle(List<Routine> routines) {
+String _remoteBundle(List<Routine> routines, {String schemaVersion = '1.0.0'}) {
   return jsonEncode(
     ExportBundle(
-      schemaVersion: '1.0.0',
+      schemaVersion: schemaVersion,
       exportedAt: _t0,
       routines: routines,
       steps: const [],
@@ -145,18 +145,18 @@ void main() {
     });
 
     test(
-      'newer or inconsistent remote authority refuses before local merge',
+      'a folder caught mid-upgrade is refused before the local merge',
       () async {
+        // meta.json and routines.json disagree, which is what a folder looks
+        // like between two of a newer client's writes. Neither file can be
+        // trusted to say what the folder is.
         api.seed(
           path: DriveLayout.metaFile,
-          content: '{"schema_version":"1.2.0"}',
+          content: '{"schema_version":"1.1.0"}',
         );
-        api.seed(path: DriveLayout.routinesFile, content: _remoteBundle([]));
-        final folderId = await api.discoverFolder(DriveLayout.folderName);
-        approval = DriveCutoverApproval(
-          folderId: folderId!,
-          targetSchemaVersion: '1.1.0',
-          confirmedAt: _t0,
+        api.seed(
+          path: DriveLayout.routinesFile,
+          content: _remoteBundle([], schemaVersion: '1.0.0'),
         );
         await local.saveRoutine(_routine(name: 'local name'));
         await queue.markRoutinesDirty();
@@ -167,6 +167,69 @@ void main() {
         expect(await queue.routinesDirty, isTrue);
       },
     );
+  });
+
+  /// docs/SPEC.md §4: "Clients on older schemas must read newer files
+  /// gracefully (unknown fields ignored) and refuse to write."
+  ///
+  /// Refusing to write is the half with teeth. This build round-trips every
+  /// routine through `ExportBundle.fromJson` → `toJson`, and the export schema
+  /// allows unknown properties — so a field a newer client added survives
+  /// validation, does not survive the round trip, and would be erased from
+  /// Drive by the next push. The refusal has to be a rule of the push path,
+  /// and it has to reach the user, because it means their edits are not
+  /// leaving this device.
+  group('a Drive folder written by a newer client', () {
+    setUp(() {
+      api.seed(
+        path: DriveLayout.metaFile,
+        content: '{"schema_version":"1.2.0"}',
+      );
+      api.seed(
+        path: DriveLayout.routinesFile,
+        content: _remoteBundle([], schemaVersion: '1.2.0'),
+      );
+    });
+
+    test('refuses the push and keeps the local copy queued', () async {
+      await local.saveRoutine(_routine(name: 'local name'));
+      await queue.markRoutinesDirty();
+
+      expect(await sync.sync(), SyncOutcome.remoteSchemaNewer);
+
+      expect(api.uploads, isEmpty);
+      expect((await local.getRoutine(_routineId))!.name, 'local name');
+      // Still queued: the work is not lost, it is waiting for an app update.
+      expect(await queue.routinesDirty, isTrue);
+    });
+
+    test('writes nothing else into the folder either', () async {
+      await local.appendCompletion(_completion('c-local'));
+      await queue.markCompletionMonthDirty('2026-08');
+
+      expect(await sync.sync(), SyncOutcome.remoteSchemaNewer);
+
+      // Not one mutation: no README, no completions folder, no shard. A
+      // completion shard is rewritten from parsed lines, so it strips unknown
+      // fields exactly the way routines.json does.
+      expect(api.mutations, isEmpty);
+      expect(api.exists(DriveLayout.readmeFile), isFalse);
+      expect(await queue.dirtyCompletionMonths, contains('2026-08'));
+    });
+
+    test('reports the blocking version instead of a generic failure', () async {
+      await local.saveRoutine(_routine());
+      await queue.markRoutinesDirty();
+
+      await sync.sync();
+
+      expect(await queue.lastError, contains('1.2.0'));
+      // Like a revoked grant, and unlike a server error: no amount of waiting
+      // makes this build able to write the folder, so it must not spend
+      // battery retrying on a timer.
+      expect(queue.consecutiveFailures, 0);
+      expect(queue.backoff, Duration.zero);
+    });
   });
 
   group('first connect', () {

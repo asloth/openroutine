@@ -469,6 +469,10 @@
   "@syncStatusNeedsReauth": {
     "description": "Shown when the Drive grant lapsed. Routine, not an error: Google expires refresh tokens weekly while the Cloud project is in Testing."
   },
+  "syncStatusNewerSchema": "Your Drive folder needs a newer OpenRoutine. Changes here stay on this device until you update.",
+  "@syncStatusNewerSchema": {
+    "description": "Shown when the Drive folder was written by a newer version of the app. Per docs/SPEC.md §4 this build must keep reading that folder but must not write it, so it says plainly that local edits are not being uploaded and what fixes it."
+  },
   "syncStatusError": "Sync failed — will retry",
   "syncLastSynced": "Last synced {time}",
   "@syncLastSynced": {
