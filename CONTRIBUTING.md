@@ -14,6 +14,24 @@ Thanks for your interest in OpenRoutine. This is an early-stage, part-time open-
   ```
 - CI (`.github/workflows/flutter-ci.yml`) runs `analyze` and `test` on every pull request. Please make sure both pass locally before opening a PR.
 
+### Running the app
+
+Google Drive support is compiled in from OAuth client IDs that are **not** in
+this repo (see [`docs/SPEC.md`](docs/SPEC.md) §13). Copy
+`app/dart_define.example.json` to `app/dart_define.json`, fill in your own
+IDs, and pass the file on every run and build:
+
+```
+flutter run   --dart-define-from-file=dart_define.json
+flutter build apk --debug --dart-define-from-file=dart_define.json
+```
+
+Without the flag `DriveConfig.isConfigured` is false and the app runs
+Local-only, with every Drive control disabled and labelled "Coming soon".
+That is the correct behaviour for a fresh clone with no IDs — but it looks
+exactly like a broken Drive integration if you simply forgot the flag, so
+check it first.
+
 ## Project rules (non-negotiable)
 
 These come from [`docs/SPEC.md`](docs/SPEC.md) §13 and apply to every contribution:
