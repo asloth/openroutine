@@ -59,6 +59,10 @@ class DriveAdapter implements StorageAdapter {
   }) => _local.getCompletions(routineId, since: since);
 
   @override
+  Future<List<CompletionLog>> completionsInRange(DateTime from, DateTime to) =>
+      _local.completionsInRange(from, to);
+
+  @override
   Future<ExportBundle> exportAll() => _local.exportAll();
 
   @override

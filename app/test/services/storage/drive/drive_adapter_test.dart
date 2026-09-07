@@ -5,6 +5,7 @@ import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
+import 'package:openroutine/models/completion_log.dart';
 import 'package:openroutine/services/storage/drive/drive_adapter.dart';
 import 'package:openroutine/services/storage/drive/sync_queue.dart';
 import 'package:openroutine/services/storage/local_adapter.dart';
@@ -80,4 +81,37 @@ void main() {
     expect(tombstone.deletedAt?.toUtc(), DateTime.utc(2026, 8, 2));
     expect(tombstone.name, 'Step deleted');
   });
+  test('completionsInRange reads through to the local adapter', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final local = LocalAdapter(db);
+    final adapter = DriveAdapter(
+      local: local,
+      queue: SyncQueue(db),
+      onLocalChange: () {},
+    );
+    await local.saveRoutine(_routine());
+    await local.appendCompletion(
+      CompletionLog(
+        id: 'c1',
+        routineId: 'r1',
+        startedAt: DateTime.utc(2026, 9, 1, 7),
+        endedAt: DateTime.utc(2026, 9, 1, 7, 20),
+        outcome: CompletionOutcome.completed,
+        steps: const [],
+      ),
+    );
+
+    final from = DateTime.utc(2026, 8, 1);
+    final to = DateTime.utc(2026, 10, 1);
+
+    // The Drive adapter delegates reads to local; statistics must see the same
+    // records whichever adapter is configured.
+    expect(
+      (await adapter.completionsInRange(from, to)).map((c) => c.id),
+      (await local.completionsInRange(from, to)).map((c) => c.id),
+    );
+    expect((await adapter.completionsInRange(from, to)).single.id, 'c1');
+  });
+
 }

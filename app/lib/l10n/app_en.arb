@@ -146,6 +146,62 @@
     "description": "Tooltip/label for the FAB that creates a new routine."
   },
 
+  "statsTitle": "Statistics",
+  "@statsTitle": {
+    "description": "Title of the statistics screen and its overflow menu entry."
+  },
+  "statsEmptyTitle": "Nothing to show yet",
+  "@statsEmptyTitle": {
+    "description": "Heading when no routine has been run. Deliberately not a zeroed chart, which reads as a score of zero."
+  },
+  "statsEmptyBody": "Run a routine and this is where you'll see how long steps really take, which ones you skip, and when you tend to start.",
+  "@statsEmptyBody": {
+    "description": "Explains what the statistics screen will show once completion logs exist."
+  },
+  "statsEstimateTitle": "Estimated vs actual",
+  "@statsEstimateTitle": {"description": "Section heading for estimate accuracy."},
+  "statsEstimateNone": "No run has recorded an estimate yet, so there is nothing to compare.",
+  "@statsEstimateNone": {"description": "Shown when logs exist but none recorded a step estimate."},
+  "statsEstimateOver": "{duration} longer than estimated",
+  "@statsEstimateOver": {
+    "description": "Total overrun across steps.",
+    "placeholders": {"duration": {"type": "String"}}
+  },
+  "statsEstimateUnder": "{duration} under the estimate",
+  "@statsEstimateUnder": {
+    "description": "Total time saved against estimates.",
+    "placeholders": {"duration": {"type": "String"}}
+  },
+  "statsEstimateExact": "Right on the estimate",
+  "@statsEstimateExact": {"description": "Actual time matched the estimate exactly."},
+  "statsCompletionTitle": "Finishing",
+  "@statsCompletionTitle": {"description": "Section heading for completion rate and streak."},
+  "statsCompletionRate": "{finished} of {total} runs finished",
+  "@statsCompletionRate": {
+    "description": "Finished runs against total runs.",
+    "placeholders": {"finished": {"type": "int"}, "total": {"type": "int"}}
+  },
+  "statsStreak": "{days, plural, =0{No current streak} =1{1 day in a row} other{{days} days in a row}}",
+  "@statsStreak": {
+    "description": "Consecutive days with at least one finished run.",
+    "placeholders": {"days": {"type": "num", "format": "compact"}}
+  },
+  "statsSkippedTitle": "Most skipped",
+  "@statsSkippedTitle": {"description": "Section heading for the most-skipped steps."},
+  "statsSkippedNone": "You haven't skipped any steps.",
+  "@statsSkippedNone": {"description": "Shown when no step has been skipped."},
+  "statsSkippedCount": "{count, plural, =1{skipped once} other{skipped {count} times}}",
+  "@statsSkippedCount": {
+    "description": "How often a step was skipped.",
+    "placeholders": {"count": {"type": "num", "format": "compact"}}
+  },
+  "statsTimeTitle": "When you start",
+  "@statsTimeTitle": {"description": "Section heading for the time-of-day distribution."},
+  "statsTimeHour": "{hour}:00",
+  "@statsTimeHour": {
+    "description": "Label for an hour bucket.",
+    "placeholders": {"hour": {"type": "String"}}
+  },
   "routinesNoTrigger": "No moment",
   "@routinesNoTrigger": {
     "description": "Section header for routines with no trigger_id set. User-facing term is \"moment\"; the stored field is trigger_id and does not change."

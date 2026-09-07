@@ -50,6 +50,14 @@ abstract class StorageAdapter {
     DateTime? since,
   });
 
+  /// Every completion in `[from, to)`, across all routines, oldest first.
+  ///
+  /// The cross-routine counterpart to [getCompletions]. Statistics are
+  /// computed over every routine at once, and reading them one routine at a
+  /// time would mean the caller deciding which routines exist before it can
+  /// ask what happened.
+  Future<List<CompletionLog>> completionsInRange(DateTime from, DateTime to);
+
   Future<ExportBundle> exportAll();
   Future<ExportBundle> exportRoutine(String id);
 

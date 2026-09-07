@@ -39,6 +39,8 @@ class RoutinesListScreen extends ConsumerWidget {
                 switch (action) {
                   case _OverflowAction.import:
                     context.push('/import');
+                  case _OverflowAction.stats:
+                    context.push('/stats');
                   case _OverflowAction.settings:
                     context.push('/settings');
                 }
@@ -47,6 +49,10 @@ class RoutinesListScreen extends ConsumerWidget {
                 PopupMenuItem(
                   value: _OverflowAction.import,
                   child: Text(l10n.routinesMenuImport),
+                ),
+                PopupMenuItem(
+                  value: _OverflowAction.stats,
+                  child: Text(l10n.statsTitle),
                 ),
                 PopupMenuItem(
                   value: _OverflowAction.settings,
@@ -137,7 +143,7 @@ void _armReminders(
   });
 }
 
-enum _OverflowAction { import, settings }
+enum _OverflowAction { import, stats, settings }
 
 class _RoutineSectionList extends ConsumerWidget {
   const _RoutineSectionList({
@@ -185,8 +191,7 @@ class _RoutineSectionList extends ConsumerWidget {
     // A single untriggered group means every routine here is untriggered, and
     // a heading announcing that above the whole list is pure noise. Headings
     // earn their place only when they tell one group apart from another.
-    final showHeaders =
-        sectionKeys.length > 1 || sectionKeys.single != null;
+    final showHeaders = sectionKeys.length > 1 || sectionKeys.single != null;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(

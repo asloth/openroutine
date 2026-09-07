@@ -210,6 +210,7 @@ class LocalAdapter implements StorageAdapter {
   /// Drive sync does, because completions are sharded into monthly ndjson
   /// files (docs/SPEC.md §5) and a shard has to be rebuilt from exactly the
   /// records that belong in it.
+  @override
   Future<List<CompletionLog>> completionsInRange(
     DateTime from,
     DateTime to,
