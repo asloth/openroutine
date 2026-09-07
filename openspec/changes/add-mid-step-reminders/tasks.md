@@ -26,11 +26,11 @@ Chained delivery. Each numbered group is a review point; the suite must be green
 - [ ] 2.6 Add a failing test asserting pause cancels both and resume reschedules them against the recomputed remaining time, then implement and verify
 - [ ] 2.7 Add the channel name and description to `app_en.arb` and `app_es.arb` together
 
-## 3. Step form control — NOT IN THIS SLICE
+## 3. Step form control — review point — **DELIVERED**
 
-- [ ] 3.1 Add a failing widget test asserting a newly created step starts with the toggle on while an existing step reflects what is stored, then implement and verify — the model default stays false; this is form state only
-- [ ] 3.2 Add a failing widget test asserting the toggle is unavailable or inert for a step with no explicit time, then implement and verify
-- [ ] 3.3 Add the toggle label and its explanatory text to `app_en.arb` and `app_es.arb` together
+- [x] 3.1 Add a failing widget test asserting a newly created step starts with the toggle on while an existing step reflects what is stored, then implement and verify — the model default stays false; this is form state only
+- [x] 3.2 Add a failing widget test asserting the toggle is unavailable or inert for a step with no explicit time, then implement and verify
+- [x] 3.3 Add the toggle label and its explanatory text to `app_en.arb` and `app_es.arb` together
 
 ## 4. Verification — NOT IN THIS SLICE
 

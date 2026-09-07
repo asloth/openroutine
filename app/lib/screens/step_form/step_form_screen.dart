@@ -35,6 +35,12 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
   int _minutes = 5;
   bool _noExplicitTime = false;
   bool _isCore = false;
+
+  /// On by default, deliberately: the stored default is false so that steps
+  /// created before this existed stay silent, while a step someone is
+  /// creating right now is offered the reminder rather than hiding it behind
+  /// a switch nobody finds. `_loadFrom` overwrites this when editing.
+  bool _remindDuring = true;
   bool _loaded = false;
   bool _saving = false;
 
@@ -53,6 +59,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
     _emoji = step.emoji;
     _noExplicitTime = step.noExplicitTime;
     _isCore = step.isCore;
+    _remindDuring = step.remindDuring;
     if (step.durationSeconds != null) {
       _minutes = (step.durationSeconds! / 60).ceil().clamp(1, 999);
     }
@@ -124,6 +131,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
         durationSeconds: durationSeconds,
         noExplicitTime: _noExplicitTime,
         isCore: _isCore,
+        remindDuring: _remindDuring && !_noExplicitTime,
         updatedAt: now,
       );
       await storage.saveStep(updated);
@@ -141,6 +149,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
         order: existingSteps.length,
         noExplicitTime: _noExplicitTime,
         isCore: _isCore,
+        remindDuring: _remindDuring && !_noExplicitTime,
         createdAt: now,
         updatedAt: now,
       );
@@ -323,7 +332,29 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
                 ],
               ),
             ),
+            // Both the toggle and the duration chips live behind this
+            // condition: a reminder at half of no estimate is not a moment,
+            // so the control is unavailable rather than present and ignored.
             if (!_noExplicitTime) ...[
+              Semantics(
+                label: l10n.stepFormRemindDuringGuidance,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.stepFormRemindDuringLabel),
+                      value: _remindDuring,
+                      onChanged: (value) =>
+                          setState(() => _remindDuring = value),
+                    ),
+                    Text(
+                      l10n.stepFormRemindDuringGuidance,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 8),
               Text(
                 l10n.stepFormDurationLabel,
@@ -528,11 +559,18 @@ class _TemplateCard extends StatelessWidget {
             children: [
               Text(template.emoji, style: const TextStyle(fontSize: 26)),
               const Spacer(),
-              Text(
-                name,
-                style: theme.textTheme.bodySmall,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              // Flexible, not a bare Text: a two-line name plus the emoji and
+              // the duration just fits the card's fixed height at the default
+              // text scale, and anything that makes the line box taller — a
+              // wider font, a longer translation — overflows it by a few
+              // pixels. Letting the name give way keeps the card intact.
+              Flexible(
+                child: Text(
+                  name,
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               if (minutes != null)
                 Text(

@@ -225,6 +225,8 @@
   "stepFormCoreLabel": "Esencial para el modo bajo",
   "stepFormCoreGuidance": "Elige 2 o 3 esenciales para los días con menos energía. Puedes cambiarlo cuando quieras.",
   "stepFormCoreLimit": "Guárdalo para otro día o desmarca primero un paso esencial.",
+  "stepFormRemindDuringLabel": "Recuérdamelo durante este paso",
+  "stepFormRemindDuringGuidance": "Un aviso a la mitad y otro cerca del final, para que puedas volver antes de que se acabe el tiempo. Los pasos de menos de 2 minutos no avisan.",
 
   "stepTemplateCategoryMorning": "Mañana",
   "stepTemplateCategoryEvening": "Noche",

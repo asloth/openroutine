@@ -386,6 +386,8 @@
   "stepFormCoreLabel": "Essential for Low Mode",
   "stepFormCoreGuidance": "Choose 2 or 3 essentials for lower-capacity days. You can change this anytime.",
   "stepFormCoreLimit": "Keep this one for another day, or unmark an essential first.",
+  "stepFormRemindDuringLabel": "Remind me during this step",
+  "stepFormRemindDuringGuidance": "A nudge halfway through and another near the end, so you can come back before the time runs out. Steps under 2 minutes stay quiet.",
 
   "stepTemplateCategoryMorning": "Morning",
   "stepTemplateCategoryEvening": "Evening",
