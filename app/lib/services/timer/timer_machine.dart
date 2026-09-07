@@ -9,6 +9,8 @@ part 'timer_machine.freezed.dart';
 /// reaches `complete` it is terminal, whether it finished or was abandoned.
 enum TimerPhase { idle, running, paused, complete }
 
+enum EstimateZone { green, yellow, unbounded }
+
 /// Timer Mode's state machine (docs/SPEC.md §8), as a pure immutable value.
 ///
 /// Deliberately free of Flutter, Riverpod and drift imports: every transition
@@ -91,6 +93,14 @@ abstract class TimerState with _$TimerState {
     if (step == null || step.noExplicitTime) return null;
     final target = Duration(seconds: step.durationSeconds ?? 0);
     return target - elapsed(now);
+  }
+
+  EstimateZone estimateZone(DateTime now) {
+    final step = currentStep;
+    if (step == null || step.noExplicitTime) return EstimateZone.unbounded;
+    return elapsed(now).inSeconds >= (step.durationSeconds ?? 0)
+        ? EstimateZone.yellow
+        : EstimateZone.green;
   }
 
   /// When the current step's timer should fire, or null if it has no target.
@@ -266,8 +276,7 @@ abstract class TimerState with _$TimerState {
   /// A step with no target can never overrun — there is nothing to exceed.
   CompletionStepState _finishedState(RoutineStep step, Duration spent) {
     if (step.noExplicitTime) return CompletionStepState.completed;
-    final target = Duration(seconds: step.durationSeconds ?? 0);
-    return spent > target
+    return spent.inSeconds > (step.durationSeconds ?? 0)
         ? CompletionStepState.overrun
         : CompletionStepState.completed;
   }
