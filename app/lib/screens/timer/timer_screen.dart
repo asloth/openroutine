@@ -136,8 +136,7 @@ class _Running extends ConsumerWidget {
 
     final now = DateTime.now();
     final elapsed = state.elapsed(now);
-    final remaining = state.remaining(now);
-    final zone = state.estimateZone(now);
+    final estimateZone = state.estimateZone(now);
 
     return Column(
       children: [
@@ -180,11 +179,10 @@ class _Running extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _Clock(
+                  TimerClock(
                     step: step,
                     elapsed: elapsed,
-                    remaining: remaining,
-                    zone: zone,
+                    estimateZone: estimateZone,
                     paused: state.phase == TimerPhase.paused,
                   ),
                   const SizedBox(height: 16),
@@ -260,40 +258,38 @@ class _Running extends ConsumerWidget {
   }
 }
 
-/// Timed steps count elapsed time upward; steps without an explicit time get
-/// no ring because there is no fraction of "done" to show.
-class _Clock extends StatelessWidget {
-  const _Clock({
+/// The elapsed clock. Steps without an explicit time get no ring — there is no
+/// fraction of "done" to show.
+class TimerClock extends StatelessWidget {
+  const TimerClock({
+    super.key,
     required this.step,
     required this.elapsed,
-    required this.remaining,
-    required this.zone,
+    required this.estimateZone,
     required this.paused,
   });
 
   final RoutineStep step;
   final Duration elapsed;
-  final Duration? remaining;
-  final EstimateZone zone;
+  final EstimateZone estimateZone;
   final bool paused;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final boundaryColor = estimateZone == EstimateZone.yellow
+        ? theme.colorScheme.tertiary
+        : null;
     final label = Text(
-      remaining == null ? _format(elapsed) : _formatTimedElapsed(elapsed),
+      step.noExplicitTime ? _format(elapsed) : _formatTimedElapsed(elapsed),
       style: theme.textTheme.displayMedium?.copyWith(
         fontFeatures: const [FontFeature.tabularFigures()],
-        color: zone == EstimateZone.yellow
-            ? theme.colorScheme.tertiary
-            : paused
-            ? theme.disabledColor
-            : null,
+        color: boundaryColor ?? (paused ? theme.disabledColor : null),
       ),
     );
 
-    if (remaining == null) {
+    if (step.noExplicitTime) {
       return Column(
         children: [
           label,
@@ -316,10 +312,8 @@ class _Clock extends StatelessWidget {
           SizedBox.expand(
             child: CircularProgressIndicator(
               value: progress,
-              color: zone == EstimateZone.yellow
-                  ? theme.colorScheme.tertiary
-                  : null,
               strokeWidth: 10,
+              color: boundaryColor,
             ),
           ),
           label,

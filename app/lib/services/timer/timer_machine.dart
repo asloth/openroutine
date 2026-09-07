@@ -9,7 +9,6 @@ part 'timer_machine.freezed.dart';
 /// reaches `complete` it is terminal, whether it finished or was abandoned.
 enum TimerPhase { idle, running, paused, complete }
 
-/// Calm elapsed-time guidance for a timed step. This is never a failure state.
 enum EstimateZone { green, yellow, unbounded }
 
 /// Timer Mode's state machine (docs/SPEC.md §8), as a pure immutable value.
@@ -115,14 +114,12 @@ abstract class TimerState with _$TimerState {
     return target - elapsed(now);
   }
 
-  /// Derives calm estimate guidance without changing the timer's progression.
   EstimateZone estimateZone(DateTime now) {
     final step = currentStep;
     if (step == null || step.noExplicitTime) return EstimateZone.unbounded;
-    final estimate = Duration(seconds: step.durationSeconds ?? 0);
-    if (estimate <= Duration.zero) return EstimateZone.unbounded;
-    final spent = elapsed(now);
-    return spent < estimate ? EstimateZone.green : EstimateZone.yellow;
+    return elapsed(now).inSeconds >= (step.durationSeconds ?? 0)
+        ? EstimateZone.yellow
+        : EstimateZone.green;
   }
 
   /// When the current step's timer should fire, or null if it has no target.
@@ -302,13 +299,10 @@ abstract class TimerState with _$TimerState {
   }
 
   CompletionStepState _finishedState(RoutineStep step, Duration spent) {
-    final durationSeconds = step.durationSeconds;
-    if (step.noExplicitTime ||
-        durationSeconds == null ||
-        spent.inSeconds <= durationSeconds) {
-      return CompletionStepState.completed;
-    }
-    return CompletionStepState.overrun;
+    if (step.noExplicitTime) return CompletionStepState.completed;
+    return spent.inSeconds > (step.durationSeconds ?? 0)
+        ? CompletionStepState.overrun
+        : CompletionStepState.completed;
   }
 
   /// Point the clock at a fresh step. Navigating between steps preserves

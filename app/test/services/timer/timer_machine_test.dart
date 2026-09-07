@@ -104,6 +104,29 @@ void main() {
     });
   });
 
+  group('estimate zone', () {
+    test(
+      'is green before the estimate and yellow from the boundary onward',
+      () {
+        final state = _machine(
+          steps: [_step('a', durationSeconds: 120)],
+        ).start(_t0);
+
+        expect(state.estimateZone(_at(119)), EstimateZone.green);
+        expect(state.estimateZone(_at(120)), EstimateZone.yellow);
+        expect(state.estimateZone(_at(121)), EstimateZone.yellow);
+      },
+    );
+
+    test('is unbounded for a no-explicit-time step', () {
+      final state = _machine(
+        steps: [_step('a', noExplicitTime: true)],
+      ).start(_t0);
+
+      expect(state.estimateZone(_at(999)), EstimateZone.unbounded);
+    });
+  });
+
   group('pause and resume', () {
     test('paused time does not count toward elapsed', () {
       final state = _machine().start(_t0).pause(_at(10)).resume(_at(40));
@@ -155,11 +178,21 @@ void main() {
       expect(state.outcomes.single.actualDurationSeconds, 75);
     });
 
-    test('records a step finished at its target as completed', () {
-      final state = _machine().start(_t0).completeStep(_at(60));
+    test('uses the displayed whole second for the overrun boundary', () {
+      final started = _machine().start(_t0);
 
-      expect(state.outcomes.single.state, CompletionStepState.completed);
-      expect(state.outcomes.single.actualDurationSeconds, 60);
+      expect(
+        started
+            .completeStep(_at(60).add(const Duration(milliseconds: 999)))
+            .outcomes
+            .single
+            .state,
+        CompletionStepState.completed,
+      );
+      expect(
+        started.completeStep(_at(61)).outcomes.single.state,
+        CompletionStepState.overrun,
+      );
     });
 
     test('a no-explicit-time step is never overrun', () {
@@ -407,7 +440,7 @@ void main() {
     test('round-trips through JSON in the shape the schema expects', () {
       final log = _machine(
         steps: [_step('a')],
-      ).start(_t0).completeStep(_at(75)).toLog('c1')!;
+      ).start(_t0).skip(_at(15)).toLog('c1')!;
 
       // Encode and decode rather than inspecting toJson() directly: nested
       // freezed objects are only converted during encoding (explicit_to_json
@@ -421,8 +454,23 @@ void main() {
       expect(json['started_at'], '2026-08-02T09:00:00.000Z');
       expect((json['steps'] as List).single, {
         'step_id': 'a',
+        'state': 'skipped',
+        'actual_duration_seconds': 15,
+        'estimated_duration_seconds': 60,
+      });
+      expect(CompletionLog.fromJson(json), log);
+    });
+
+    test('round-trips the existing overrun state without schema changes', () {
+      final log = _machine(
+        steps: [_step('a')],
+      ).start(_t0).completeStep(_at(61)).toLog('c1')!;
+      final json = jsonDecode(jsonEncode(log.toJson())) as Map<String, dynamic>;
+
+      expect((json['steps'] as List).single, {
+        'step_id': 'a',
         'state': 'overrun',
-        'actual_duration_seconds': 75,
+        'actual_duration_seconds': 61,
         'estimated_duration_seconds': 60,
       });
       expect(CompletionLog.fromJson(json), log);
