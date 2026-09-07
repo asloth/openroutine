@@ -1,8 +1,8 @@
 Chained delivery. Each numbered group is a review point; the suite must be green at the end of every one, not only at the end.
 
-**This change is being delivered in slices. Only phase 1 — the storage foundation — is in scope for the current work unit.** Phases 2 to 4 describe the rest of the feature so the shape of it is on record, but they are not started, and no part of them may be implemented alongside phase 1. Nothing in phase 1 makes a reminder fire or puts a control on screen; it only makes the field exist and survive.
+**This change is being delivered in slices. Phase 1 — the storage foundation — and phase 2 — the notification channel and scheduling — are done.** Phase 3 puts the control on screen and is not started; nothing in phases 1 and 2 lets a user turn the flag on, so the feature is still reachable only by a step whose stored value is already true.
 
-## 1. Storage foundation — review point — **THIS SLICE**
+## 1. Storage foundation — review point — **DONE**
 
 - [x] 1.1 Add a failing `schema_version_test` case asserting `1.2.0` parses to the current version and that `1.1.1`, `1.2.1`, `1.3.0` and `2.0.0` still reject as newer, and verify it fails while 1.2.0 is rejected
 - [x] 1.2 Add a failing `local_adapter_test` case round-tripping `remindDuring` through `saveStep`/`getSteps`, plus one asserting a step JSON with no `remind_during` reads back false, and verify both fail to compile because the field does not exist
@@ -16,15 +16,16 @@ Chained delivery. Each numbered group is a review point; the suite must be green
 - [x] 1.10 Re-run code generation and commit the regenerated `.freezed.dart` and `.g.dart`, verifying the generated `fromJson` reads `json['remind_during'] as bool? ?? false`
 - [x] 1.11 Run `flutter analyze --fatal-infos` and the full suite from `app/` and verify both are clean
 
-## 2. Notification channel and scheduling — NOT IN THIS SLICE
+## 2. Notification channel and scheduling — review point — **THIS SLICE**
 
-- [ ] 2.1 Add a mid-step notification channel with sound and vibration enabled, on a new immutable channel id, leaving the silent boundary channel untouched
-- [ ] 2.2 Add failing tests for the 50% and 80% schedule times of an opted-in step, then implement and verify
-- [ ] 2.3 Add a failing test asserting a step estimated under 120 seconds schedules neither nudge, then implement and verify
-- [ ] 2.4 Add a failing test asserting a step with no explicit time schedules neither nudge, then implement and verify
-- [ ] 2.5 Add failing tests asserting both nudges are cancelled when a step ends, is skipped, is deferred, and when a run is abandoned, then implement and verify — a missed cancellation now fires during the *next* step rather than being overwritten
-- [ ] 2.6 Add a failing test asserting pause cancels both and resume reschedules them against the recomputed remaining time, then implement and verify
-- [ ] 2.7 Add the channel name and description to `app_en.arb` and `app_es.arb` together
+- [x] 2.1 Add a mid-step notification channel with sound and vibration enabled, on a new immutable channel id (`step_progress_nudge_v1`), leaving the silent boundary channel untouched — the two existing silence assertions are a deliberate regression guard and still pass
+- [x] 2.2 Add failing tests for the 50% and 80% schedule times of an opted-in step, then implement and verify — the marks are computed relative to `now` in the pure `TimerState.remainingUntilFraction`, never from `stepStartedAt + fraction × estimate`, so a pause cannot leave a stale absolute alarm
+- [x] 2.3 Add a failing test asserting a step estimated under 120 seconds schedules neither nudge, then implement and verify
+- [x] 2.4 Add a failing test asserting a step with no explicit time schedules neither nudge, then implement and verify
+- [x] 2.5 Add failing tests asserting both nudges are cancelled when a step ends, is skipped, is deferred, and when a run is abandoned, then implement and verify — covered by extending `cancelPending()` to all three ids, which every lifecycle path already routes through, including `ref.onDispose`
+- [x] 2.6 Add a failing test asserting pause cancels both and resume reschedules them against the recomputed remaining time, then implement and verify — including a step already past its 50% mark when it resumes, whose passed mark is dropped rather than fired late
+- [x] 2.7 Add the channel name and description to `app_en.arb` and `app_es.arb` together, plus the two nudge bodies
+- [x] 2.8 Fix the iOS sound permission: it was requested as `sound: false`, which would have played nothing on iOS whatever the channel said
 
 ## 3. Step form control — NOT IN THIS SLICE
 

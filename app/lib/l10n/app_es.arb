@@ -212,6 +212,10 @@
   "timerNotificationBody": "Un poquito más está bien.",
   "timerNotificationChannelName": "Tiempo con calma",
   "timerNotificationChannelDescription": "Un recordatorio suave cuando tu estimación termina.",
+  "timerNotificationNudgeChannelName": "Avisos a mitad de paso",
+  "timerNotificationNudgeChannelDescription": "Un aviso con sonido a mitad de los pasos en los que pediste que te recordáramos.",
+  "timerNotificationNudgeHalfwayBody": "Vas por la mitad. ¿Seguís en esto?",
+  "timerNotificationNudgeNearEndBody": "Tu estimación está por terminarse.",
 
   "stepFormAddTitle": "Añadir paso",
   "stepFormEditTitle": "Editar paso",

@@ -373,6 +373,22 @@
   "@timerNotificationChannelDescription": {
     "description": "Android notification channel description for timer alerts."
   },
+  "timerNotificationNudgeChannelName": "Mid-step nudges",
+  "@timerNotificationNudgeChannelName": {
+    "description": "Android notification channel name for the audible nudges sent partway through a step."
+  },
+  "timerNotificationNudgeChannelDescription": "A nudge with sound partway through steps you asked to be reminded during.",
+  "@timerNotificationNudgeChannelDescription": {
+    "description": "Android notification channel description for the audible mid-step nudges."
+  },
+  "timerNotificationNudgeHalfwayBody": "Halfway through. Still on this?",
+  "@timerNotificationNudgeHalfwayBody": {
+    "description": "Body of the notification sent at 50% of a step's estimate."
+  },
+  "timerNotificationNudgeNearEndBody": "Your estimate is about to run out.",
+  "@timerNotificationNudgeNearEndBody": {
+    "description": "Body of the notification sent at 80% of a step's estimate."
+  },
 
   "stepFormAddTitle": "Add step",
   "stepFormEditTitle": "Edit step",

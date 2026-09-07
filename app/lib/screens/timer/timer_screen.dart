@@ -64,6 +64,11 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
           notificationChannelName: l10n.timerNotificationChannelName,
           notificationChannelDescription:
               l10n.timerNotificationChannelDescription,
+          nudgeHalfwayBody: l10n.timerNotificationNudgeHalfwayBody,
+          nudgeNearEndBody: l10n.timerNotificationNudgeNearEndBody,
+          nudgeChannelName: l10n.timerNotificationNudgeChannelName,
+          nudgeChannelDescription:
+              l10n.timerNotificationNudgeChannelDescription,
         );
       });
     }
