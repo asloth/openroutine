@@ -307,5 +307,8 @@
   "reminderChannelDescription": "Un aviso poco antes de que empiece una rutina programada.",
   "reminderBodyNow": "Empieza ahora",
   "reminderBodyLead": "Empieza en {minutes} min",
-  "reminderBodyWithTrigger": "{trigger} \u00b7 {detail}"
+  "reminderBodyWithTrigger": "{trigger} \u00b7 {detail}",
+  "widgetTitle": "OpenRoutine",
+  "widgetEmpty": "Todav\u00eda no hay rutinas",
+  "widgetOpenApp": "Abrir OpenRoutine"
 }

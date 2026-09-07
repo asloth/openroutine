@@ -17,6 +17,7 @@ import 'screens/step_form/step_form_screen.dart';
 import 'screens/timer/timer_screen.dart';
 import 'models/completion_log.dart';
 import 'state/app_prefs_provider.dart';
+import 'state/home_widget_provider.dart';
 import 'state/timer_provider.dart';
 import 'state/sync_provider.dart';
 import 'routing/app_page.dart';
@@ -187,6 +188,10 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
     // cannot know about routing, so the wiring happens here, where both exist.
     ref.read(notificationServiceProvider).onOpenRoutine = (routineId) =>
         router.go('/routines/$routineId');
+    // Keeps the home screen widget in step with the routine list for the whole
+    // session. Watched here rather than from the routines list because a Drive
+    // sync can change the list while any screen is on top — or none.
+    ref.watch(homeWidgetSyncProvider);
     final localeOverride = ref.watch(localeOverrideSettingProvider);
     final palette = ref.watch(paletteSettingProvider);
 

@@ -481,5 +481,17 @@
         "type": "String"
       }
     }
+  },
+  "widgetTitle": "OpenRoutine",
+  "@widgetTitle": {
+    "description": "Header of the Android home screen widget."
+  },
+  "widgetEmpty": "No routines yet",
+  "@widgetEmpty": {
+    "description": "Shown in the home screen widget when there is nothing to launch, including before the app has ever been opened."
+  },
+  "widgetOpenApp": "Open OpenRoutine",
+  "@widgetOpenApp": {
+    "description": "Accessible label for tapping the empty home screen widget, which opens the app."
   }
 }
