@@ -11,6 +11,7 @@ import 'l10n/app_localizations.dart';
 import 'services/app_prefs.dart';
 import 'services/home_widget/widget_launch.dart';
 import 'screens/import/import_screen.dart';
+import 'screens/stats/stats_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/routine_detail/routine_detail_screen.dart';
 import 'screens/routine_form/routine_form_screen.dart';
@@ -133,6 +134,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/import',
         pageBuilder: (context, state) =>
             appPage(context, key: state.pageKey, child: const ImportScreen()),
+      ),
+      GoRoute(
+        path: '/stats',
+        pageBuilder: (context, state) =>
+            appPage(context, key: state.pageKey, child: const StatsScreen()),
       ),
       GoRoute(
         path: '/settings',

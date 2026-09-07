@@ -16,11 +16,14 @@ Future<(ProviderContainer, SharedPreferences)> _boot([
 }
 
 void main() {
-  test('defaults to warm paper when nothing has been chosen', () async {
+  test('defaults to the default palette when nothing has been chosen', () async {
     final (container, _) = await _boot();
     addTearDown(container.dispose);
 
-    expect(container.read(paletteSettingProvider).id, 'warm_paper');
+    expect(
+      container.read(paletteSettingProvider).id,
+      Palette.defaultPalette.id,
+    );
   });
 
   test('choosing a built-in persists its id', () async {
@@ -78,6 +81,9 @@ void main() {
     final (container, _) = await _boot({'theme_palette': 'aurora_borealis'});
     addTearDown(container.dispose);
 
-    expect(container.read(paletteSettingProvider).id, 'warm_paper');
+    expect(
+      container.read(paletteSettingProvider).id,
+      Palette.defaultPalette.id,
+    );
   });
 }

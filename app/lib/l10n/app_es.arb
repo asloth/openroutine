@@ -59,7 +59,23 @@
 
   "routinesNewRoutine": "Nueva rutina",
 
-  "routinesNoTrigger": "Sin disparador",
+  "statsTitle": "Estadísticas",
+  "statsEmptyTitle": "Todavía no hay nada que mostrar",
+  "statsEmptyBody": "Ejecuta una rutina y aquí verás cuánto duran realmente los pasos, cuáles te saltas y a qué hora sueles empezar.",
+  "statsEstimateTitle": "Estimado y real",
+  "statsEstimateNone": "Ninguna ejecución ha registrado una estimación todavía, así que no hay nada que comparar.",
+  "statsEstimateOver": "{duration} más de lo estimado",
+  "statsEstimateUnder": "{duration} menos de lo estimado",
+  "statsEstimateExact": "Justo en la estimación",
+  "statsCompletionTitle": "Finalización",
+  "statsCompletionRate": "{finished} de {total} ejecuciones terminadas",
+  "statsStreak": "{days, plural, =0{Sin racha actual} =1{1 día seguido} other{{days} días seguidos}}",
+  "statsSkippedTitle": "Más saltados",
+  "statsSkippedNone": "No te has saltado ningún paso.",
+  "statsSkippedCount": "{count, plural, =1{saltado una vez} other{saltado {count} veces}}",
+  "statsTimeTitle": "Cuándo empiezas",
+  "statsTimeHour": "{hour}:00",
+  "routinesNoTrigger": "Sin momento",
 
   "routinesEmptyScheduled": "Aún no hay rutinas programadas. Toca + para crear una.",
 
@@ -95,9 +111,10 @@
   "routineFormEditTitle": "Editar rutina",
   "routineFormNameLabel": "Nombre",
   "routineFormNameRequired": "El nombre es obligatorio",
-  "routineFormTriggerLabel": "Disparador",
-  "routineFormNewTriggerTitle": "Nuevo disparador",
-  "routineFormTriggerName": "Nombre del disparador",
+  "routineFormTriggerLabel": "Momento",
+  "routineFormNewTriggerTitle": "Nuevo momento",
+  "routineFormTriggerName": "Nombre del momento",
+  "routineFormMomentHelper": "Agrupa tus rutinas y aparece en sus recordatorios.",
   "routineFormStartTimeLabel": "Hora de inicio",
   "routineFormStartTimeUnset": "Sin definir",
 

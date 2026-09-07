@@ -62,8 +62,7 @@ class Palette {
 
   /// The id to persist. Generated palettes carry their hue so they survive a
   /// restart; built-ins are just their name.
-  String get storageId =>
-      isCustom ? '$customPrefix${seedHue.round()}' : id;
+  String get storageId => isCustom ? '$customPrefix${seedHue.round()}' : id;
 
   // -------------------------------------------------------------------
   // Built-ins
@@ -118,19 +117,29 @@ class Palette {
     moss,
   ];
 
+  /// The palette a fresh install is themed with, and the fallback for a
+  /// stored identifier this build does not recognise.
+  ///
+  /// Deliberately distinct from [warmPaper]. Warm paper is the *normative*
+  /// palette — the hand-tuned scheme whose HSL structure every generated
+  /// palette is built from — but it is no longer the one we ship by default.
+  /// Those were the same thing by accident, and naming the default separately
+  /// is what makes changing it a single edit rather than four.
+  static final Palette defaultPalette = seaGlass;
+
   /// Resolves a persisted [storageId] back to a palette, falling back to
-  /// [warmPaper] for anything unrecognised — a prefs value written by a newer
-  /// build must never leave the app unthemed.
+  /// [defaultPalette] for anything unrecognised — a prefs value written by a
+  /// newer build must never leave the app unthemed.
   static Palette fromStorageId(String? id) {
-    if (id == null) return warmPaper;
+    if (id == null) return defaultPalette;
     if (id.startsWith(customPrefix)) {
       final hue = double.tryParse(id.substring(customPrefix.length));
-      if (hue == null) return warmPaper;
+      if (hue == null) return defaultPalette;
       return Palette.fromSeed(id: customId, hue: hue);
     }
     return builtIns.firstWhere(
       (palette) => palette.id == id,
-      orElse: () => warmPaper,
+      orElse: () => defaultPalette,
     );
   }
 
@@ -159,13 +168,12 @@ class Palette {
     double accentChroma = 1,
   }) {
     final h = hue % 360;
-    Color a(double dh, double s, double l, double chroma) =>
-        HSLColor.fromAHSL(
-          1,
-          (h + dh) % 360,
-          (s * chroma / 100).clamp(0.0, 1.0),
-          (l / 100).clamp(0.0, 1.0),
-        ).toColor();
+    Color a(double dh, double s, double l, double chroma) => HSLColor.fromAHSL(
+      1,
+      (h + dh) % 360,
+      (s * chroma / 100).clamp(0.0, 1.0),
+      (l / 100).clamp(0.0, 1.0),
+    ).toColor();
 
     Color accent(double dh, double s, double l) => a(dh, s, l, accentChroma);
     Color neutral(double dh, double s, double l) => a(dh, s, l, neutralChroma);
@@ -182,7 +190,12 @@ class Palette {
       4.5,
       darken: true,
     );
-    final tertiary = _meet(accent(18.5, 70.4, 31.8), surface, 4.5, darken: true);
+    final tertiary = _meet(
+      accent(18.5, 70.4, 31.8),
+      surface,
+      4.5,
+      darken: true,
+    );
     final onSurfaceVariant = _meet(
       neutral(15.3, 12.3, 30.4),
       surface,

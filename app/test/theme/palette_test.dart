@@ -158,10 +158,14 @@ void main() {
       }
     });
 
-    test('unknown and malformed ids fall back to warm paper', () {
-      expect(Palette.fromStorageId(null).id, 'warm_paper');
-      expect(Palette.fromStorageId('nope').id, 'warm_paper');
-      expect(Palette.fromStorageId('custom:banana').id, 'warm_paper');
+    test('unknown and malformed ids fall back to the default palette', () {
+      // Asserted against defaultPalette rather than a literal id: what matters
+      // is that nothing leaves the app unthemed, not which palette we happen
+      // to ship as the default this month.
+      final fallback = Palette.defaultPalette.id;
+      expect(Palette.fromStorageId(null).id, fallback);
+      expect(Palette.fromStorageId('nope').id, fallback);
+      expect(Palette.fromStorageId('custom:banana').id, fallback);
     });
   });
 }
