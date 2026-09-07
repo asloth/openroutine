@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
 import '../../models/trigger.dart';
+import '../../theme/spacing.dart';
 import '../../services/id_generator.dart';
 import '../../services/storage/storage_adapter.dart';
 import '../../state/routines_provider.dart';
@@ -258,6 +259,21 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
                   tooltip: l10n.routineFormNewTriggerTitle,
                 ),
               ],
+            ),
+            // Every effect of choosing a moment shows up on another screen —
+            // the list groups by it, reminders lead with it — so without this
+            // the control reads as doing nothing at all.
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.base,
+                left: AppSpacing.base,
+              ),
+              child: Text(
+                l10n.routineFormMomentHelper,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             SegmentedButton<ScheduleMode>(

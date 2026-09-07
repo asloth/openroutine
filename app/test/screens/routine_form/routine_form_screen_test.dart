@@ -92,4 +92,23 @@ void main() {
       expect(rows.single.name, 'Evening Routine');
     },
   );
+  testWidgets('the moment control states what it does', (tester) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final adapter = LocalAdapter(db);
+    final router = _routerTo();
+    await tester.pumpWidget(_wrap(router, adapter));
+    router.push('/form');
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(Scaffold).first),
+    )!;
+
+    // Every effect of choosing a moment happens on another screen, so the
+    // form has to say so or the control reads as inert.
+    expect(find.text(l10n.routineFormMomentHelper), findsOneWidget);
+    expect(find.text(l10n.routineFormTriggerLabel), findsWidgets);
+  });
+
 }

@@ -59,7 +59,7 @@
 
   "routinesNewRoutine": "Nueva rutina",
 
-  "routinesNoTrigger": "Sin disparador",
+  "routinesNoTrigger": "Sin momento",
 
   "routinesEmptyScheduled": "Aún no hay rutinas programadas. Toca + para crear una.",
 
@@ -95,9 +95,10 @@
   "routineFormEditTitle": "Editar rutina",
   "routineFormNameLabel": "Nombre",
   "routineFormNameRequired": "El nombre es obligatorio",
-  "routineFormTriggerLabel": "Disparador",
-  "routineFormNewTriggerTitle": "Nuevo disparador",
-  "routineFormTriggerName": "Nombre del disparador",
+  "routineFormTriggerLabel": "Momento",
+  "routineFormNewTriggerTitle": "Nuevo momento",
+  "routineFormTriggerName": "Nombre del momento",
+  "routineFormMomentHelper": "Agrupa tus rutinas y aparece en sus recordatorios.",
   "routineFormStartTimeLabel": "Hora de inicio",
   "routineFormStartTimeUnset": "Sin definir",
 
