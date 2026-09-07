@@ -14,10 +14,10 @@ import 'drive_layout.dart';
 import 'sync_queue.dart';
 
 /// How a sync attempt ended. Everything the UI shows about sync derives from
-/// this, so `offline` and `needsReauth` are first-class results rather than
-/// flavours of failure — neither is something the user did wrong, and only one
-/// of them is worth retrying on a timer.
-enum SyncOutcome { synced, offline, needsReauth, failed }
+/// this, so `offline`, `needsReauth` and `remoteSchemaNewer` are first-class
+/// results rather than flavours of failure — none of them is something the
+/// user did wrong, and only one of them is worth retrying on a timer.
+enum SyncOutcome { synced, offline, needsReauth, remoteSchemaNewer, failed }
 
 /// Reconciles the local drift database with the `OpenRoutine` folder in the
 /// user's Drive (docs/SPEC.md §5).
@@ -66,6 +66,11 @@ class DriveSync {
   DriveAuthoritySnapshot? _meta;
   DriveAuthoritySnapshot? _routines;
 
+  /// The folder's declared schema when it is one this build cannot write, or
+  /// null when the folder is writable. Set by [_preflight], read by the write
+  /// gate in [_run] — see docs/SPEC.md §4.
+  String? _unwritableAuthority;
+
   /// The caller invokes this only after the human has confirmed that every
   /// known writer is upgraded, disconnected, or revoked.
   Future<bool> prepareCutover() async {
@@ -90,12 +95,28 @@ class DriveSync {
   Future<SyncOutcome> _run() async {
     try {
       await _preflight();
-      await _ensureFolders();
       await _pullRoutines();
+      // The write gate (docs/SPEC.md §4). Everything below this line mutates
+      // the folder — README, routines.json, meta.json, completion shards — and
+      // every one of those writes is a round trip through this build's models,
+      // which drop the fields a newer client added. Reading has already
+      // happened; writing must not.
+      final unwritable = _unwritableAuthority;
+      if (unwritable != null) return _refuseToWrite(unwritable);
+      await _ensureFolders();
       await _pushRoutines();
       await _syncCompletions();
       await _queue.recordSuccess(nowUtc());
       return SyncOutcome.synced;
+    } on UnsupportedSchemaVersionException catch (e) {
+      // The same rule reached from the read side: the merge refused a bundle
+      // this build cannot interpret. A version *older* than anything supported
+      // is a different problem and stays a plain failure.
+      if (!e.isNewer) {
+        await _queue.recordRetryableFailure('Invalid remote data: $e');
+        return SyncOutcome.failed;
+      }
+      return _refuseToWrite(e.version);
     } on DriveAuthExpired catch (e) {
       await _queue.recordAuthExpired(e.toString());
       return SyncOutcome.needsReauth;
@@ -120,7 +141,22 @@ class DriveSync {
     }
   }
 
+  /// Records why this run may not write, and reports it as its own outcome.
+  ///
+  /// Deliberately not a retryable failure: like a revoked grant, no amount of
+  /// waiting makes this build able to write the folder. Only an app update
+  /// does, so this must not accumulate backoff or schedule retries. The queued
+  /// work stays queued and uploads once the update lands.
+  Future<SyncOutcome> _refuseToWrite(String authority) async {
+    await _queue.recordUnwritableRemote(
+      'Drive folder is on schema $authority; this build writes '
+      '${SchemaVersion.currentValue}',
+    );
+    return SyncOutcome.remoteSchemaNewer;
+  }
+
   Future<void> _preflight() async {
+    _unwritableAuthority = null;
     final folderId = await _api.discoverFolder(DriveLayout.folderName);
     final approval = await _readApproval?.call();
     if (folderId == null ||
@@ -149,9 +185,30 @@ class DriveSync {
         .map((snapshot) => snapshot.schemaAuthority)
         .whereType<String>()
         .toList();
-    final versions = authorities.map(SchemaVersion.parseSupported).toSet();
-    if (versions.length > 1) {
+    final identities = authorities.map(_authorityIdentity).toSet();
+    if (identities.length > 1) {
       throw const FormatException('Conflicting Drive schema authorities');
+    }
+  }
+
+  /// The identity of the schema a file is written in, for the consistency
+  /// check above.
+  ///
+  /// A supported version collapses to the [SchemaVersion] it parses to, so two
+  /// 1.0 patch releases read as one authority. A version this build cannot
+  /// write has no enum to collapse to and keys on its exact string instead —
+  /// which also keeps a folder holding two different future versions readable
+  /// as inconsistent rather than merely unwritable.
+  ///
+  /// Noting the version rather than throwing is the whole change: a folder
+  /// ahead of this build is a folder to read, not a folder to fail on.
+  Object _authorityIdentity(String value) {
+    try {
+      return SchemaVersion.parseSupported(value);
+    } on UnsupportedSchemaVersionException catch (e) {
+      if (!e.isNewer) rethrow;
+      _unwritableAuthority = value;
+      return value;
     }
   }
 

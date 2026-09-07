@@ -142,6 +142,15 @@ class SyncQueue {
     await _write(db.SyncStateCompanion(lastError: Value(message)));
   }
 
+  /// Records that the Drive folder is written in a schema this build must not
+  /// write (docs/SPEC.md §4). Like auth expiry, and for the same reason, this
+  /// must not accumulate backoff: retrying cannot teach this build a format it
+  /// does not have. The fix is an app update.
+  Future<void> recordUnwritableRemote(String message) async {
+    _consecutiveFailures = 0;
+    await _write(db.SyncStateCompanion(lastError: Value(message)));
+  }
+
   Future<void> recordAuthExpired(String message) async {
     _consecutiveFailures = 0;
     await _write(db.SyncStateCompanion(lastError: Value(message)));

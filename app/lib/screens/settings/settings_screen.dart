@@ -182,6 +182,7 @@ class SettingsScreen extends ConsumerWidget {
       SyncStatus.syncing => l10n.syncStatusSyncing,
       SyncStatus.offline => l10n.syncStatusOffline,
       SyncStatus.needsReauth => l10n.syncStatusNeedsReauth,
+      SyncStatus.remoteSchemaNewer => l10n.syncStatusNewerSchema,
       SyncStatus.error => l10n.syncStatusError,
       SyncStatus.idle when sync.pendingChanges => l10n.syncStatusPending,
       SyncStatus.idle when sync.lastSyncAt != null => l10n.syncLastSynced(

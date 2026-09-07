@@ -294,6 +294,7 @@
   "syncStatusOffline": "Sin conexión — se sincroniza después",
   "syncStatusPending": "Hay cambios sin sincronizar",
   "syncStatusNeedsReauth": "Toca para reconectar Google Drive",
+  "syncStatusNewerSchema": "Tu carpeta de Drive necesita una versión más reciente de OpenRoutine. Los cambios se quedan en este dispositivo hasta que actualices.",
   "syncStatusError": "Falló la sincronización — se reintenta",
   "syncLastSynced": "Última sincronización: {time}",
   "@syncLastSynced": {

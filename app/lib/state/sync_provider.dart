@@ -22,7 +22,20 @@ part 'sync_provider.g.dart';
 /// should retry; a lapsed grant never resolves on its own and must stop
 /// retrying and ask the user. While the Cloud project sits in Testing, Google
 /// expires refresh tokens weekly, so `needsReauth` is a routine occurrence.
-enum SyncStatus { idle, syncing, offline, needsReauth, error, disconnected }
+/// `remoteSchemaNewer` joins them for the same reason: the folder was written
+/// by a newer build, this one must not write it back (docs/SPEC.md §4), and
+/// the user's edits are sitting on the device until they update. That is not
+/// an error, it is a fact about their install, and retrying will not change
+/// it.
+enum SyncStatus {
+  idle,
+  syncing,
+  offline,
+  needsReauth,
+  remoteSchemaNewer,
+  error,
+  disconnected,
+}
 
 class SyncSnapshot {
   const SyncSnapshot({
@@ -167,6 +180,11 @@ class SyncController extends _$SyncController {
       case SyncOutcome.offline:
         state = state.copyWith(status: SyncStatus.offline);
         _scheduleRetry(queue.backoff);
+      case SyncOutcome.remoteSchemaNewer:
+        // No retry, for the same reason as needsReauth: this resolves when the
+        // app is updated, never on a timer. pendingChanges is left as it is —
+        // the edits really are still waiting, and saying so is the point.
+        state = state.copyWith(status: SyncStatus.remoteSchemaNewer);
       case SyncOutcome.needsReauth:
         // No retry on purpose: the grant will not come back on its own, and a
         // timer would only spend battery rediscovering that.
