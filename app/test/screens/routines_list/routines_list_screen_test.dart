@@ -11,11 +11,23 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
+import 'package:openroutine/state/app_prefs_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// The screen arms routine reminders whenever the list resolves, which reads
+/// the reminder lead time out of prefs. Nothing here asserts on notifications
+/// — `NotificationService.init` fails harmlessly with no platform channel, so
+/// no reminder is ever actually scheduled — but the prefs it reads on the way
+/// there still have to exist.
+late SharedPreferences _prefs;
 
 Widget _wrap(StorageAdapter adapter) {
   return ProviderScope(
-    overrides: [storageAdapterProvider.overrideWithValue(adapter)],
+    overrides: [
+      storageAdapterProvider.overrideWithValue(adapter),
+      sharedPreferencesProvider.overrideWithValue(_prefs),
+    ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -37,6 +49,11 @@ Future<void> _disposeCleanly(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
   testWidgets(
     'empty state shows the empty-scheduled message with no routines',
     (tester) async {

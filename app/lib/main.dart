@@ -17,6 +17,7 @@ import 'screens/step_form/step_form_screen.dart';
 import 'screens/timer/timer_screen.dart';
 import 'models/completion_log.dart';
 import 'state/app_prefs_provider.dart';
+import 'state/timer_provider.dart';
 import 'state/sync_provider.dart';
 import 'theme/theme.dart';
 
@@ -146,15 +147,20 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(goRouterProvider);
+    // Tapping a routine reminder should land on that routine. The service
+    // cannot know about routing, so the wiring happens here, where both exist.
+    ref.read(notificationServiceProvider).onOpenRoutine = (routineId) =>
+        router.go('/routines/$routineId');
     final localeOverride = ref.watch(localeOverrideSettingProvider);
+    final palette = ref.watch(paletteSettingProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: localeOverride != null ? Locale(localeOverride) : null,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: AppTheme.light(palette),
+      darkTheme: AppTheme.dark(palette),
       routerConfig: router,
     );
   }

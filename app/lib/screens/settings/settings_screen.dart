@@ -8,7 +8,9 @@ import '../../services/app_prefs.dart';
 import '../../state/app_prefs_provider.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/package_info_provider.dart';
+import '../../state/reminder_provider.dart';
 import '../../state/sync_provider.dart';
+import '../../widgets/palette_picker.dart';
 
 const _repoUrl = 'https://github.com/asloth/openroutine';
 const _agentDocsUrl =
@@ -30,6 +32,7 @@ class SettingsScreen extends ConsumerWidget {
     final localeOverride = ref.watch(localeOverrideSettingProvider);
     final packageInfoAsync = ref.watch(packageInfoProvider);
     final driveAvailable = ref.watch(driveAvailableProvider);
+    final reminderLead = ref.watch(reminderLeadSettingProvider);
     final sync = ref.watch(syncControllerProvider);
 
     return Scaffold(
@@ -104,6 +107,26 @@ class SettingsScreen extends ConsumerWidget {
                 }
               },
             ),
+          const Divider(),
+          _SectionHeader(l10n.settingsRemindersSection),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: Text(l10n.settingsReminderLead),
+            subtitle: Text(_leadLabel(l10n, reminderLead)),
+            onTap: () => _pickReminderLead(context, ref, l10n, reminderLead),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Text(
+              l10n.settingsReminderExplainer,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const Divider(),
+          _SectionHeader(l10n.settingsAppearanceSection),
+          const PalettePicker(),
           const Divider(),
           _SectionHeader(l10n.settingsLanguageSection),
           ListTile(
@@ -264,5 +287,40 @@ class _ComingSoonBadge extends StatelessWidget {
       ),
       child: Text(text, style: Theme.of(context).textTheme.labelSmall),
     );
+  }
+}
+
+String _leadLabel(AppLocalizations l10n, Duration lead) => lead == Duration.zero
+    ? l10n.reminderLeadAtStart
+    : l10n.reminderLeadMinutesBefore(lead.inMinutes);
+
+Future<void> _pickReminderLead(
+  BuildContext context,
+  WidgetRef ref,
+  AppLocalizations l10n,
+  Duration current,
+) async {
+  final picked = await showModalBottomSheet<Duration>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: RadioGroup<Duration>(
+        groupValue: current,
+        onChanged: (value) => Navigator.of(context).pop(value),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final minutes in ReminderLeadSetting.options)
+              RadioListTile<Duration>(
+                value: Duration(minutes: minutes),
+                title: Text(_leadLabel(l10n, Duration(minutes: minutes))),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (picked != null) {
+    await ref.read(reminderLeadSettingProvider.notifier).setLead(picked);
   }
 }

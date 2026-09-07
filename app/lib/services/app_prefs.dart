@@ -28,6 +28,8 @@ class AppPrefs {
   static const _onboardingCompleteKey = 'onboarding_complete';
   static const _storageModeKey = 'storage_mode';
   static const _localeOverrideKey = 'locale_override';
+  static const _paletteKey = 'theme_palette';
+  static const _reminderLeadKey = 'reminder_lead_minutes';
   static const _installClientIdKey = 'install_client_id';
   static const _driveCutoverFolderIdKey = 'drive_cutover_folder_id';
   static const _driveCutoverVersionKey = 'drive_cutover_version';
@@ -100,4 +102,25 @@ class AppPrefs {
     if (languageCode == null) return _prefs.remove(_localeOverrideKey);
     return _prefs.setString(_localeOverrideKey, languageCode);
   }
+
+  /// A `Palette.storageId` — either a built-in name (`warm_paper`) or a
+  /// generated one carrying its hue (`custom:268`). Null means "never chosen",
+  /// which resolves to the default palette. Deliberately stored as an opaque
+  /// string rather than an enum: the custom option has no fixed set of values,
+  /// and `Palette.fromStorageId` already falls back safely for anything it
+  /// does not recognise, including ids written by a newer build.
+  String? get paletteId => _prefs.getString(_paletteKey);
+
+  Future<void> setPaletteId(String? id) {
+    if (id == null) return _prefs.remove(_paletteKey);
+    return _prefs.setString(_paletteKey, id);
+  }
+
+  /// How far before a routine's start time its reminder fires. Five minutes by
+  /// default: firing exactly on the hour tells you you are already late, where
+  /// a short lead is enough to finish what you are doing and switch.
+  int get reminderLeadMinutes => _prefs.getInt(_reminderLeadKey) ?? 5;
+
+  Future<void> setReminderLeadMinutes(int minutes) =>
+      _prefs.setInt(_reminderLeadKey, minutes);
 }

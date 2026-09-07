@@ -404,5 +404,82 @@
   "syncLastSynced": "Last synced {time}",
   "@syncLastSynced": {
     "placeholders": { "time": { "type": "String" } }
+  },
+
+  "settingsAppearanceSection": "Appearance",
+  "@settingsAppearanceSection": {
+    "description": "Settings section holding the colour palette picker."
+  },
+
+  "settingsThemeCurrent": "{name} selected",
+  "@settingsThemeCurrent": {
+    "description": "Caption under the palette swatches naming the active one.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+
+  "themeWarmPaper": "Warm Paper",
+  "themeInkIris": "Ink & Iris",
+  "themeSeaGlass": "Sea Glass",
+  "themePlum": "Plum",
+  "themeSlate": "Slate",
+  "themeMoss": "Moss",
+
+  "themeCustom": "Custom",
+  "@themeCustom": {
+    "description": "The swatch that opens the free hue picker."
+  },
+
+  "themeCustomTitle": "Custom colour",
+  "themeCustomHue": "Hue",
+
+  "commonDone": "Done",
+  "@commonDone": {
+    "description": "Dismisses a sheet whose changes have already been applied."
+  },
+
+  "settingsRemindersSection": "Reminders",
+  "@settingsRemindersSection": {
+    "description": "Settings section for scheduled-routine reminders."
+  },
+
+  "settingsReminderLead": "Remind me",
+  "reminderLeadAtStart": "At the start time",
+  "reminderLeadMinutesBefore": "{minutes} min before",
+  "@reminderLeadMinutesBefore": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+
+  "settingsReminderExplainer": "Routines with set days and a start time remind you automatically.",
+
+  "reminderChannelName": "Routine reminders",
+  "reminderChannelDescription": "A nudge shortly before a scheduled routine starts.",
+  "reminderBodyNow": "Starting now",
+  "reminderBodyLead": "Starts in {minutes} min",
+  "@reminderBodyLead": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "reminderBodyWithTrigger": "{trigger} \u00b7 {detail}",
+  "@reminderBodyWithTrigger": {
+    "description": "Prefixes a reminder body with the routine's trigger name.",
+    "placeholders": {
+      "trigger": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
   }
 }

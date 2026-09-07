@@ -89,7 +89,7 @@ Widget _wrap(LocalAdapter adapter, {Locale locale = const Locale('en')}) {
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: AppTheme.light,
+      theme: AppTheme.light(),
       routerConfig: _router(),
     ),
   );

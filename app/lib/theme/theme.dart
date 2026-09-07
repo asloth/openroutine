@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'colors.dart';
-import 'neumorphic.dart';
+import 'palette.dart';
 import 'spacing.dart';
 import 'typography.dart';
 
 export 'colors.dart';
 export 'neumorphic.dart';
+export 'palette.dart';
 export 'spacing.dart';
 export 'typography.dart';
 
@@ -17,23 +17,17 @@ export 'typography.dart';
 /// `FilledButton` or `ListTile` already looks right. Any screen that has to
 /// override an appearance locally is a sign a component theme is missing.
 abstract final class AppTheme {
-  static ThemeData get light => _build(
-    AppColors.light,
-    NeumorphicTheme.light,
-    Brightness.light,
-  );
+  /// Both take the user's chosen [Palette] and default to the hand-tuned
+  /// original, so a call site that has no opinion still gets a themed app.
+  static ThemeData light([Palette palette = Palette.warmPaper]) =>
+      _build(palette, Brightness.light);
 
-  static ThemeData get dark => _build(
-    AppColors.dark,
-    NeumorphicTheme.dark,
-    Brightness.dark,
-  );
+  static ThemeData dark([Palette palette = Palette.warmPaper]) =>
+      _build(palette, Brightness.dark);
 
-  static ThemeData _build(
-    ColorScheme scheme,
-    NeumorphicTheme neumorphic,
-    Brightness brightness,
-  ) {
+  static ThemeData _build(Palette palette, Brightness brightness) {
+    final scheme = palette.scheme(brightness);
+    final neumorphic = palette.neumorphic(brightness);
     final textTheme = AppTypography.textTheme.apply(
       bodyColor: scheme.onSurface,
       displayColor: scheme.onSurface,
@@ -45,7 +39,9 @@ abstract final class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: scheme.surface,
       textTheme: textTheme,
-      extensions: [neumorphic],
+      // The mascot rides along on the theme so the pet follows the chosen
+      // palette without MascotSlot ever importing one.
+      extensions: [neumorphic, palette.mascot],
 
       // Flat and transparent: the neumorphic cards below supply the depth, and
       // a tinted elevated bar would fight them for attention.

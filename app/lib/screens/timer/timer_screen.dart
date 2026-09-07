@@ -11,6 +11,7 @@ import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../state/timer_provider.dart';
 import '../../theme/theme.dart';
+import '../../widgets/mascot_slot.dart';
 
 /// docs/SPEC.md §7 screen 7 — the full-screen playlist runner.
 ///
@@ -118,25 +119,18 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
   }
 }
 
-class _Running extends ConsumerStatefulWidget {
+class _Running extends ConsumerWidget {
   const _Running({required this.state, required this.routineId});
 
   final TimerState state;
   final String routineId;
 
   @override
-  ConsumerState<_Running> createState() => _RunningState();
-}
-
-class _RunningState extends ConsumerState<_Running> {
-  EstimateZone? _announcedZone;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final notifier = ref.read(routineTimerProvider(widget.routineId).notifier);
-    final state = widget.state;
+    final notifier = ref.read(routineTimerProvider(routineId).notifier);
+    final state = this.state;
     final step = state.currentStep;
     if (step == null) return const SizedBox.shrink();
 
@@ -144,13 +138,6 @@ class _RunningState extends ConsumerState<_Running> {
     final elapsed = state.elapsed(now);
     final remaining = state.remaining(now);
     final zone = state.estimateZone(now);
-    final announceZone =
-        zone != EstimateZone.unbounded && zone != _announcedZone;
-    if (announceZone) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _announcedZone = zone);
-      });
-    }
 
     return Column(
       children: [
@@ -197,16 +184,9 @@ class _RunningState extends ConsumerState<_Running> {
                     step: step,
                     elapsed: elapsed,
                     remaining: remaining,
+                    zone: zone,
                     paused: state.phase == TimerPhase.paused,
                   ),
-                  if (zone != EstimateZone.unbounded)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: _EstimateZoneLabel(
-                        zone: zone,
-                        announce: announceZone,
-                      ),
-                    ),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -280,44 +260,21 @@ class _RunningState extends ConsumerState<_Running> {
   }
 }
 
-String _zoneLabel(AppLocalizations l10n, EstimateZone zone) => switch (zone) {
-  EstimateZone.green => l10n.timerZoneGreen,
-  EstimateZone.yellow => l10n.timerZoneYellow,
-  EstimateZone.orange => l10n.timerZoneOrange,
-  EstimateZone.unbounded => '',
-};
-
-class _EstimateZoneLabel extends StatelessWidget {
-  const _EstimateZoneLabel({required this.zone, required this.announce});
-
-  final EstimateZone zone;
-  final bool announce;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = _zoneLabel(AppLocalizations.of(context)!, zone);
-    return Semantics(
-      container: true,
-      label: label,
-      liveRegion: announce,
-      child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
-    );
-  }
-}
-
-/// The countdown, or a count-up for steps with no target. Steps without an
-/// explicit time get no ring — there is no fraction of "done" to show.
+/// Timed steps count elapsed time upward; steps without an explicit time get
+/// no ring because there is no fraction of "done" to show.
 class _Clock extends StatelessWidget {
   const _Clock({
     required this.step,
     required this.elapsed,
     required this.remaining,
+    required this.zone,
     required this.paused,
   });
 
   final RoutineStep step;
   final Duration elapsed;
   final Duration? remaining;
+  final EstimateZone zone;
   final bool paused;
 
   @override
@@ -325,14 +282,14 @@ class _Clock extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final label = Text(
-      remaining == null
-          ? _format(elapsed)
-          : _formatRemaining(
-              remaining!.isNegative ? Duration.zero : remaining!,
-            ),
+      remaining == null ? _format(elapsed) : _formatTimedElapsed(elapsed),
       style: theme.textTheme.displayMedium?.copyWith(
         fontFeatures: const [FontFeature.tabularFigures()],
-        color: paused ? theme.disabledColor : null,
+        color: zone == EstimateZone.yellow
+            ? theme.colorScheme.tertiary
+            : paused
+            ? theme.disabledColor
+            : null,
       ),
     );
 
@@ -357,7 +314,13 @@ class _Clock extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           SizedBox.expand(
-            child: CircularProgressIndicator(value: progress, strokeWidth: 10),
+            child: CircularProgressIndicator(
+              value: progress,
+              color: zone == EstimateZone.yellow
+                  ? theme.colorScheme.tertiary
+                  : null,
+              strokeWidth: 10,
+            ),
           ),
           label,
         ],
@@ -417,12 +380,13 @@ class _SummaryState extends ConsumerState<_Summary> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              abandoned ? Icons.pause_circle_outline : Icons.check_circle,
-              size: 96,
-              color: abandoned
-                  ? theme.disabledColor
-                  : theme.colorScheme.primary,
+            // The pet, not a tick. A finished routine is the one moment
+            // this app gets to be warm about, and `abandoned` deliberately
+            // gets a resting pet rather than a sad one — stopping early is
+            // not a failure state here.
+            MascotSlot(
+              mood: abandoned ? MascotMood.resting : MascotMood.cheering,
+              size: 132,
             ),
             const SizedBox(height: 24),
             Text(
@@ -567,11 +531,12 @@ class _CircleAction extends StatelessWidget {
 /// first second.
 String _format(Duration d) => _clock(d.inSeconds);
 
-/// Time remaining, rounded **up**. A 60-second step is a few milliseconds in by
-/// the time it first paints, and truncating would show 00:59 before the user
-/// has blinked. Rounding up means it reads 01:00 until a full second is gone,
-/// and reaches 00:00 exactly when the step is up.
-String _formatRemaining(Duration d) => _clock((d.inMilliseconds / 1000).ceil());
+String _formatTimedElapsed(Duration d) {
+  final totalSeconds = d.inSeconds;
+  final minutes = totalSeconds ~/ 60;
+  final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}
 
 String _clock(int totalSeconds) {
   final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');

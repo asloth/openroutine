@@ -283,5 +283,29 @@
   "syncLastSynced": "Última sincronización: {time}",
   "@syncLastSynced": {
     "placeholders": { "time": { "type": "String" } }
-  }
+  },
+
+  "settingsAppearanceSection": "Apariencia",
+  "settingsThemeCurrent": "{name} seleccionado",
+  "themeWarmPaper": "Papel cálido",
+  "themeInkIris": "Tinta e iris",
+  "themeSeaGlass": "Vidrio de mar",
+  "themePlum": "Ciruela",
+  "themeSlate": "Pizarra",
+  "themeMoss": "Musgo",
+  "themeCustom": "Personalizado",
+  "themeCustomTitle": "Color personalizado",
+  "themeCustomHue": "Tono",
+  "commonDone": "Listo",
+
+  "settingsRemindersSection": "Recordatorios",
+  "settingsReminderLead": "Recordarme",
+  "reminderLeadAtStart": "A la hora de inicio",
+  "reminderLeadMinutesBefore": "{minutes} min antes",
+  "settingsReminderExplainer": "Las rutinas con días y hora de inicio te avisan automáticamente.",
+  "reminderChannelName": "Recordatorios de rutina",
+  "reminderChannelDescription": "Un aviso poco antes de que empiece una rutina programada.",
+  "reminderBodyNow": "Empieza ahora",
+  "reminderBodyLead": "Empieza en {minutes} min",
+  "reminderBodyWithTrigger": "{trigger} \u00b7 {detail}"
 }

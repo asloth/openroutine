@@ -11,6 +11,7 @@ import '../../services/storage/storage_adapter.dart';
 import '../../state/reference_data_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
+import '../../theme/theme.dart';
 
 /// docs/SPEC.md §7 screens 5 (Add step) and 6 (Edit step), combined into one
 /// screen: the same form serves both, with a template picker shown only
@@ -241,44 +242,6 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (templatesAsync != null) ...[
-              Text(
-                l10n.stepFormTemplatesLabel,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              templatesAsync.when(
-                data: (categories) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final category in categories) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 4),
-                        child: Text(
-                          stepTemplateCategoryLabel(l10n, category.id),
-                          style: Theme.of(context).textTheme.labelMedium,
-                        ),
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final template in category.steps)
-                            ActionChip(
-                              avatar: Text(template.emoji),
-                              label: Text(templateStepName(l10n, template.id)),
-                              onPressed: () => _applyTemplate(l10n, template),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-                loading: () => const LinearProgressIndicator(),
-                error: (_, _) => const SizedBox.shrink(),
-              ),
-              const Divider(height: 32),
-            ],
             Row(
               children: [
                 InkWell(
@@ -310,6 +273,30 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
                 ),
               ],
             ),
+            // Templates sit *under* the name field, not above it. As a
+            // full-height wrap of every category at the top of the form they
+            // filled a phone screen on their own, so the field you opened the
+            // screen to type into was below the fold. One horizontal row
+            // keeps them one tap away while leaving the form visible — and
+            // tapping one now fills a field you can actually see change.
+            if (templatesAsync != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                l10n.stepFormTemplatesLabel,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              templatesAsync.when(
+                data: (categories) => _TemplateCarousel(
+                  categories: categories,
+                  onSelected: (template) => _applyTemplate(l10n, template),
+                ),
+                loading: () => const LinearProgressIndicator(),
+                error: (_, _) => const SizedBox.shrink(),
+              ),
+            ],
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -450,4 +437,114 @@ String emojiCategoryLabel(AppLocalizations l10n, String id) {
     'home' => l10n.emojiCategoryHome,
     _ => id,
   };
+}
+
+/// The step templates, as one horizontally-scrolling row.
+///
+/// Categories stay visible as inline markers between their cards rather than
+/// becoming four stacked sections — the grouping is worth keeping, the
+/// vertical space it used to cost is not.
+class _TemplateCarousel extends StatelessWidget {
+  const _TemplateCarousel({required this.categories, required this.onSelected});
+
+  final List<StepTemplateCategory> categories;
+  final ValueChanged<StepTemplate> onSelected;
+
+  static const _height = 104.0;
+  static const _cardWidth = 116.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      height: _height,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        children: [
+          for (final category in categories) ...[
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Text(
+                  stepTemplateCategoryLabel(l10n, category.id),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+            for (final template in category.steps)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: SizedBox(
+                  width: _cardWidth,
+                  child: _TemplateCard(
+                    template: template,
+                    onTap: () => onSelected(template),
+                  ),
+                ),
+              ),
+            const SizedBox(width: 16),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TemplateCard extends StatelessWidget {
+  const _TemplateCard({required this.template, required this.onTap});
+
+  final StepTemplate template;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final name = templateStepName(l10n, template.id);
+    final minutes = template.durationSeconds == null
+        ? null
+        : (template.durationSeconds! / 60).ceil();
+
+    return Semantics(
+      button: true,
+      label: name,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.cardBorder,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: AppRadius.cardBorder,
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(template.emoji, style: const TextStyle(fontSize: 26)),
+              const Spacer(),
+              Text(
+                name,
+                style: theme.textTheme.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (minutes != null)
+                Text(
+                  l10n.stepDurationMinutes(minutes),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

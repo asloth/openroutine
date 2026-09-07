@@ -30,16 +30,14 @@ class NeumorphicTheme extends ThemeExtension<NeumorphicTheme> {
   /// which is why this is part of the token rather than left to call sites.
   final Color surfaceColor;
 
+  /// Only the fallback for [NeumorphicContext] when no extension is
+  /// registered. The real pairs travel on the chosen `Palette`, which carries
+  /// one for each brightness — there is no second static here because a theme
+  /// that isn't the user's choice has no business being reachable.
   static const light = NeumorphicTheme(
     shadowColor: AppColors.neumorphicShadow,
     highlightColor: AppColors.neumorphicHighlight,
     surfaceColor: AppColors.surface,
-  );
-
-  static final dark = NeumorphicTheme(
-    shadowColor: AppColors.neumorphicShadowDark,
-    highlightColor: AppColors.neumorphicHighlightDark,
-    surfaceColor: AppColors.dark.surface,
   );
 
   /// A raised surface — cards, unpressed controls.

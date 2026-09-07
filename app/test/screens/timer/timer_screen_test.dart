@@ -32,7 +32,7 @@ class _NoopNotificationService implements NotificationService {
   int cancelledCount = 0;
 
   @override
-  Future<void> init() async {}
+  Future<bool> init() async => true;
 
   @override
   Future<bool> requestPermission() async => true;
@@ -211,7 +211,7 @@ void main() {
     await _disposeCleanly(tester);
   });
 
-  testWidgets('starts on the first step and shows its countdown', (
+  testWidgets('starts on the first step and shows elapsed time', (
     tester,
   ) async {
     final adapter = await _seed(
@@ -227,37 +227,42 @@ void main() {
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
     expect(find.text('Brush my teeth'), findsOneWidget);
     expect(find.text(l10n.timerStepCounter(1, 2)), findsOneWidget);
-    expect(find.text('01:00'), findsOneWidget);
+    expect(find.text('0:00'), findsOneWidget);
 
     await _disposeCleanly(tester);
   });
 
   testWidgets(
-    'shows semantic green, yellow, and orange guidance while the timer runs',
+    'shows one continuous timed elapsed count-up through the estimate',
     (tester) async {
       final adapter = await _seed(
-        steps: [_step('s1', order: 0, durationSeconds: 600)],
+        steps: [_step('s1', order: 0, durationSeconds: 120)],
       );
-
       final step = (await adapter.getSteps('r1')).single;
-      final now = DateTime.now();
-      final scenarios = [
-        (const Duration(seconds: 300), "You're in the zone"),
-        (const Duration(seconds: 750), 'A little longer'),
-        (const Duration(seconds: 1200), 'Everything okay?'),
-      ];
-      TimerState stateAt(Duration elapsed) => TimerState(
-        phase: TimerPhase.running,
-        routineId: 'r1',
-        steps: [step],
-        currentIndex: 0,
-        pausedAccumulated: Duration.zero,
-        outcomes: const [],
-        startedAt: now.subtract(elapsed),
-        stepStartedAt: now.subtract(elapsed),
-      );
+      TimerState stateAt(Duration elapsed) {
+        final now = DateTime.now();
+        return TimerState(
+          phase: TimerPhase.running,
+          routineId: 'r1',
+          steps: [step],
+          currentIndex: 0,
+          pausedAccumulated: Duration.zero,
+          outcomes: const [],
+          startedAt: now.subtract(elapsed),
+          stepStartedAt: now.subtract(elapsed),
+        );
+      }
 
-      final timer = _ControlledRoutineTimer(stateAt(scenarios.first.$1));
+      final timer = _ControlledRoutineTimer(
+        const TimerState(
+          phase: TimerPhase.idle,
+          routineId: 'r1',
+          steps: [],
+          currentIndex: 0,
+          pausedAccumulated: Duration.zero,
+          outcomes: [],
+        ),
+      );
       await tester.pumpWidget(_wrapWithTimerState(adapter, timer));
       await tester.pump();
       final mountedTimer =
@@ -266,25 +271,83 @@ void main() {
               ).read(routineTimerProvider('r1').notifier)
               as _ControlledRoutineTimer;
 
-      for (final (elapsed, label) in scenarios) {
-        mountedTimer.show(stateAt(elapsed));
+      for (final seconds in [119, 120, 121]) {
+        mountedTimer.show(stateAt(Duration(seconds: seconds)));
         await tester.pump();
-
-        expect(find.text(label), findsOneWidget);
         expect(
-          find.byWidgetPredicate(
-            (widget) => widget is Semantics && widget.properties.label == label,
+          find.text(
+            '${(seconds ~/ 60).toString()}:${(seconds % 60).toString().padLeft(2, '0')}',
           ),
           findsOneWidget,
         );
-        expect(find.byIcon(Icons.pause), findsOneWidget);
-        expect(find.text('Finish'), findsOneWidget);
-        expect(find.text('Routine complete'), findsNothing);
       }
 
       await _disposeCleanly(tester);
     },
   );
+
+  testWidgets('uses tertiary at and after the estimate without overtime text', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [_step('s1', order: 0, durationSeconds: 120)],
+    );
+    final step = (await adapter.getSteps('r1')).single;
+    TimerState stateAt(int seconds) {
+      final now = DateTime.now();
+      return TimerState(
+        phase: TimerPhase.running,
+        routineId: 'r1',
+        steps: [step],
+        currentIndex: 0,
+        pausedAccumulated: Duration.zero,
+        outcomes: const [],
+        startedAt: now.subtract(Duration(seconds: seconds)),
+        stepStartedAt: now.subtract(Duration(seconds: seconds)),
+      );
+    }
+
+    final timer = _ControlledRoutineTimer(stateAt(120));
+    await tester.pumpWidget(_wrapWithTimerState(adapter, timer));
+    await tester.pump();
+
+    final theme = Theme.of(tester.element(find.byType(TimerScreen)));
+    void expectBoundaryTreatment(String clockValue) {
+      final clock = tester.widget<Text>(find.text(clockValue));
+      final ring = tester.widget<CircularProgressIndicator>(
+        find.byType(CircularProgressIndicator),
+      );
+      expect((clock.style as TextStyle).color, theme.colorScheme.tertiary);
+      expect(ring.color, theme.colorScheme.tertiary);
+      expect(ring.value, 1.0);
+    }
+
+    expectBoundaryTreatment('2:00');
+    expect(find.bySemanticsLabel('2:00'), findsOneWidget);
+    final mountedTimer =
+        ProviderScope.containerOf(
+              tester.element(find.byType(TimerScreen)),
+            ).read(routineTimerProvider('r1').notifier)
+            as _ControlledRoutineTimer;
+    mountedTimer.show(stateAt(121));
+    await tester.pump();
+    expectBoundaryTreatment('2:01');
+    expect(find.textContaining('Everything okay?'), findsNothing);
+    expect(find.textContaining('A little longer'), findsNothing);
+    expect(find.textContaining('+'), findsNothing);
+    expect(
+      find.bySemanticsLabel(RegExp(r'Everything okay\?|A little longer|\+')),
+      findsNothing,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.liveRegion == true,
+      ),
+      findsNothing,
+    );
+
+    await _disposeCleanly(tester);
+  });
 
   testWidgets('Low Mode runs only the supplied core-step snapshot', (
     tester,
@@ -434,7 +497,7 @@ void main() {
 
     expect(find.text('Shower'), findsOneWidget);
     expect(find.text(l10n.timerStepCounter(2, 2)), findsOneWidget);
-    expect(find.text('05:00'), findsOneWidget);
+    expect(find.text('0:00'), findsOneWidget);
 
     await _disposeCleanly(tester);
   });

@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/app_prefs.dart';
+import '../theme/palette.dart';
 
 part 'app_prefs_provider.g.dart';
 
@@ -57,4 +58,21 @@ class LocaleOverrideSetting extends _$LocaleOverrideSetting {
     await ref.read(appPrefsProvider).setLocaleOverride(languageCode);
     state = languageCode;
   }
+}
+
+@Riverpod(keepAlive: true)
+class PaletteSetting extends _$PaletteSetting {
+  @override
+  Palette build() =>
+      Palette.fromStorageId(ref.watch(appPrefsProvider).paletteId);
+
+  Future<void> setPalette(Palette palette) async {
+    await ref.read(appPrefsProvider).setPaletteId(palette.storageId);
+    state = palette;
+  }
+
+  /// Repaints the app without touching disk, for the live drag of the custom
+  /// hue slider. The commit happens once when the gesture ends — a write per
+  /// slider frame would be sixty writes for one decision.
+  void preview(Palette palette) => state = palette;
 }

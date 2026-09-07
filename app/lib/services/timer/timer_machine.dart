@@ -10,7 +10,7 @@ part 'timer_machine.freezed.dart';
 enum TimerPhase { idle, running, paused, complete }
 
 /// Calm elapsed-time guidance for a timed step. This is never a failure state.
-enum EstimateZone { green, yellow, orange, unbounded }
+enum EstimateZone { green, yellow, unbounded }
 
 /// Timer Mode's state machine (docs/SPEC.md §8), as a pure immutable value.
 ///
@@ -122,14 +122,7 @@ abstract class TimerState with _$TimerState {
     final estimate = Duration(seconds: step.durationSeconds ?? 0);
     if (estimate <= Duration.zero) return EstimateZone.unbounded;
     final spent = elapsed(now);
-    if (spent <= estimate) return EstimateZone.green;
-    final yellowLimit = Duration(
-      microseconds: estimate.inMicroseconds * 3 ~/ 2,
-    );
-    if (spent <= yellowLimit) {
-      return EstimateZone.yellow;
-    }
-    return EstimateZone.orange;
+    return spent < estimate ? EstimateZone.green : EstimateZone.yellow;
   }
 
   /// When the current step's timer should fire, or null if it has no target.
@@ -309,7 +302,13 @@ abstract class TimerState with _$TimerState {
   }
 
   CompletionStepState _finishedState(RoutineStep step, Duration spent) {
-    return CompletionStepState.completed;
+    final durationSeconds = step.durationSeconds;
+    if (step.noExplicitTime ||
+        durationSeconds == null ||
+        spent.inSeconds <= durationSeconds) {
+      return CompletionStepState.completed;
+    }
+    return CompletionStepState.overrun;
   }
 
   /// Point the clock at a fresh step. Navigating between steps preserves

@@ -117,6 +117,7 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
       startTime: _mode == ScheduleMode.scheduled ? _startTime : null,
     );
 
+    String? createdId;
     if (_isEditing) {
       final existing = await ref.read(
         routineProvider(widget.routineId!).future,
@@ -140,10 +141,24 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
         updatedAt: now,
       );
       await storage.saveRoutine(routine);
+      createdId = routine.id;
     }
     ref.invalidate(routinesProvider);
 
-    if (mounted) context.pop();
+    if (!mounted) return;
+
+    if (createdId == null) {
+      context.pop();
+      return;
+    }
+
+    // A brand-new routine has no steps, and a routine with no steps cannot be
+    // run — so "saved" is never the end of the job here. Replace this form
+    // with the routine (so Back doesn't return to a form you already
+    // submitted) and open the step form on top of it. Closing that leaves you
+    // on the routine, where Add step is waiting for the rest.
+    context.pushReplacement('/routines/$createdId');
+    context.push('/routines/$createdId/steps/new');
   }
 
   @override
