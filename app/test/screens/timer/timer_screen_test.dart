@@ -425,7 +425,7 @@ void main() {
     await _disposeCleanly(tester);
   });
 
-  testWidgets('Back is unavailable on the first step', (tester) async {
+  testWidgets('the transport row offers no step arrows', (tester) async {
     final adapter = await _seed(
       steps: [_step('s1', order: 0), _step('s2', order: 1)],
     );
@@ -433,20 +433,14 @@ void main() {
     await tester.pumpWidget(_wrap(adapter));
     await tester.pumpAndSettle();
 
-    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
-    NeumorphicCircleButton backButton() => tester.widget(
-      find.ancestor(
-        of: find.byIcon(Icons.skip_previous),
-        matching: find.byType(NeumorphicCircleButton),
-      ),
-    );
-
-    expect(backButton().onPressed, isNull);
-
-    // ...and becomes available once past it.
-    await tester.tap(find.text(l10n.timerDone));
-    await tester.pumpAndSettle();
-    expect(backButton().onPressed, isNotNull);
+    // Moving between steps belongs to Done and Do later; arrows next to the
+    // pause control only invited mis-taps. Stepping back and skipping still
+    // exist on the machine and stay covered by timer_machine_test.dart.
+    expect(find.byIcon(Icons.skip_previous), findsNothing);
+    expect(find.byIcon(Icons.skip_next), findsNothing);
+    expect(find.byIcon(Icons.pause), findsOneWidget);
+    expect(find.byIcon(Icons.restart_alt), findsOneWidget);
+    expect(find.byType(NeumorphicCircleButton), findsNWidgets(2));
 
     await _disposeCleanly(tester);
   });
@@ -520,9 +514,15 @@ void main() {
     await tester.pumpWidget(_wrap(adapter));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.skip_next));
+    // No skip button remains on the screen, so drive the notifier the way the
+    // notification action does and check the run is still logged correctly.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TimerScreen)),
+    );
+    final notifier = container.read(routineTimerProvider('r1').notifier);
+    notifier.skip();
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.skip_next));
+    notifier.skip();
     await tester.pumpAndSettle();
 
     final logs = await adapter.getCompletions('r1');

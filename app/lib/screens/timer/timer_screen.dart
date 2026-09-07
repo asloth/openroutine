@@ -197,11 +197,6 @@ class _Running extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _CircleAction(
-                icon: Icons.skip_previous,
-                label: l10n.timerBack,
-                onPressed: state.isFirstStep ? null : notifier.back,
-              ),
-              _CircleAction(
                 icon: state.phase == TimerPhase.paused
                     ? Icons.play_arrow
                     : Icons.pause,
@@ -216,11 +211,6 @@ class _Running extends ConsumerWidget {
                 icon: Icons.restart_alt,
                 label: l10n.timerRestartStep,
                 onPressed: notifier.resetStep,
-              ),
-              _CircleAction(
-                icon: Icons.skip_next,
-                label: l10n.timerSkip,
-                onPressed: notifier.skip,
               ),
             ],
           ),
