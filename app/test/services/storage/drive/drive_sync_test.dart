@@ -90,7 +90,7 @@ void main() {
     api.seedFolder(DriveLayout.folderName);
     approval = DriveCutoverApproval(
       folderId: 'id-0',
-      targetSchemaVersion: '1.1.0',
+      targetSchemaVersion: '1.2.0',
       confirmedAt: _t0,
     );
     sync = DriveSync(
@@ -138,7 +138,7 @@ void main() {
       await queue.markRoutinesDirty();
 
       expect(await sync.prepareCutover(), isTrue);
-      expect(approval?.targetSchemaVersion, '1.1.0');
+      expect(approval?.targetSchemaVersion, '1.2.0');
       expect(await sync.sync(), SyncOutcome.synced);
       expect(api.exists(DriveLayout.routinesFile), isTrue);
       expect(await queue.routinesDirty, isFalse);
@@ -183,11 +183,11 @@ void main() {
     setUp(() {
       api.seed(
         path: DriveLayout.metaFile,
-        content: '{"schema_version":"1.2.0"}',
+        content: '{"schema_version":"1.3.0"}',
       );
       api.seed(
         path: DriveLayout.routinesFile,
-        content: _remoteBundle([], schemaVersion: '1.2.0'),
+        content: _remoteBundle([], schemaVersion: '1.3.0'),
       );
     });
 
@@ -223,7 +223,7 @@ void main() {
 
       await sync.sync();
 
-      expect(await queue.lastError, contains('1.2.0'));
+      expect(await queue.lastError, contains('1.3.0'));
       // Like a revoked grant, and unlike a server error: no amount of waiting
       // makes this build able to write the folder, so it must not spend
       // battery retrying on a timer.
@@ -263,7 +263,7 @@ void main() {
           jsonDecode(api.contentOf(DriveLayout.metaFile)!)
               as Map<String, dynamic>;
       expect(meta['last_writer_client_id'], 'client-under-test');
-      expect(meta['schema_version'], '1.1.0');
+      expect(meta['schema_version'], '1.2.0');
     });
 
     test('clears the dirty flag so the next sync uploads nothing', () async {

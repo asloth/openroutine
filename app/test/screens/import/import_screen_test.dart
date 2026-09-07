@@ -33,7 +33,7 @@ class _NewerBundleImportService implements ImportService {
   final LocalAdapter adapter;
 
   ExportBundle get bundle => ExportBundle(
-    schemaVersion: '1.2.0',
+    schemaVersion: '1.3.0',
     exportedAt: _now,
     routines: [_routine('Imported routine')],
     steps: const [],

@@ -53,6 +53,7 @@ class RoutineSteps extends Table {
   IntColumn get order => integer()();
   BoolColumn get noExplicitTime => boolean()();
   BoolColumn get isCore => boolean().withDefault(const Constant(false))();
+  BoolColumn get remindDuring => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

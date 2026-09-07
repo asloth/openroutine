@@ -168,6 +168,7 @@ void main() {
     expect(steps.map((s) => s.durationSeconds), [180, 300]);
     expect(steps.every((s) => s.noExplicitTime == false), isTrue);
     expect(steps.every((s) => s.isCore == false), isTrue);
+    expect(steps.every((s) => s.remindDuring == false), isTrue);
     expect(steps.first.emoji, '🪥');
   });
 
@@ -273,7 +274,7 @@ void main() {
     });
   });
 
-  group('a v3 install upgrading to v5', () {
+  group('a v3 install upgrading to v6', () {
     late sqlite.Database rawV3;
     late AppDatabase dbV3;
     late LocalAdapter adapterV3;
@@ -299,12 +300,13 @@ void main() {
 
     tearDown(() => dbV3.close());
 
-    test('preserves steps and adds default low-mode evidence', () async {
+    test('preserves steps and defaults every additive column', () async {
       final steps = await adapterV3.getSteps('r1');
 
-      expect(rawV3.userVersion, 5);
+      expect(rawV3.userVersion, 6);
       expect(steps.map((step) => step.id), ['s1', 's2']);
       expect(steps.every((step) => step.isCore == false), isTrue);
+      expect(steps.every((step) => step.remindDuring == false), isTrue);
       final columns = rawV3
           .select('PRAGMA table_info(completion_logs)')
           .map((column) => column['name'])
