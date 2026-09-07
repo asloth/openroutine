@@ -97,7 +97,7 @@ class _MascotSlotState extends State<MascotSlot>
     // pet if the extension is somehow missing rather than rendering nothing.
     final colours =
         Theme.of(context).extension<MascotPalette>() ??
-        Palette.warmPaper.mascot;
+        Palette.defaultPalette.mascot;
 
     final pet = RepaintBoundary(
       child: SizedBox(

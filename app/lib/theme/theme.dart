@@ -17,13 +17,15 @@ export 'typography.dart';
 /// `FilledButton` or `ListTile` already looks right. Any screen that has to
 /// override an appearance locally is a sign a component theme is missing.
 abstract final class AppTheme {
-  /// Both take the user's chosen [Palette] and default to the hand-tuned
-  /// original, so a call site that has no opinion still gets a themed app.
-  static ThemeData light([Palette palette = Palette.warmPaper]) =>
-      _build(palette, Brightness.light);
+  /// Both take the user's chosen [Palette] and fall back to
+  /// [Palette.defaultPalette], so a call site with no opinion still gets a
+  /// themed app. The parameter is nullable rather than defaulted because the
+  /// default palette is not a compile-time constant.
+  static ThemeData light([Palette? palette]) =>
+      _build(palette ?? Palette.defaultPalette, Brightness.light);
 
-  static ThemeData dark([Palette palette = Palette.warmPaper]) =>
-      _build(palette, Brightness.dark);
+  static ThemeData dark([Palette? palette]) =>
+      _build(palette ?? Palette.defaultPalette, Brightness.dark);
 
   static ThemeData _build(Palette palette, Brightness brightness) {
     final scheme = palette.scheme(brightness);
@@ -62,9 +64,7 @@ abstract final class AppTheme {
         color: scheme.surfaceContainerLowest,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppRadius.cardBorder,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardBorder),
       ),
 
       filledButtonTheme: FilledButtonThemeData(
@@ -139,9 +139,7 @@ abstract final class AppTheme {
           horizontal: AppSpacing.element,
           vertical: AppSpacing.base / 2,
         ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppRadius.cardBorder,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardBorder),
         titleTextStyle: textTheme.titleMedium,
         subtitleTextStyle: textTheme.bodySmall?.copyWith(
           color: scheme.onSurfaceVariant,
@@ -149,6 +147,23 @@ abstract final class AppTheme {
         iconColor: scheme.onSurfaceVariant,
       ),
 
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? scheme.primaryContainer
+                : scheme.surface,
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: scheme.outlineVariant),
+          ),
+        ),
+      ),
       chipTheme: ChipThemeData(
         backgroundColor: scheme.surface,
         selectedColor: scheme.primaryContainer,
@@ -162,9 +177,7 @@ abstract final class AppTheme {
         ),
         checkmarkColor: scheme.onPrimaryContainer,
         side: BorderSide(color: scheme.outlineVariant),
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppRadius.pillBorder,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.pillBorder),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.element,
           vertical: AppSpacing.base,
@@ -219,9 +232,7 @@ abstract final class AppTheme {
         contentTextStyle: textTheme.bodyMedium?.copyWith(
           color: scheme.onInverseSurface,
         ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppRadius.cardBorder,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardBorder),
       ),
     );
   }
