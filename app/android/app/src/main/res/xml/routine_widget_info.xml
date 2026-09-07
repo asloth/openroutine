@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    updatePeriodMillis is 0 on purpose: the app pushes an update whenever the
+    routine list changes, so there is nothing for a poll to discover and no
+    reason to wake the device for one.
+
+    targetCellWidth/Height are honoured from API 31; minWidth/minHeight remain
+    the fallback for the API 26 floor this app supports.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/routine_widget"
+    android:minHeight="110dp"
+    android:minResizeHeight="70dp"
+    android:minResizeWidth="180dp"
+    android:minWidth="180dp"
+    android:previewLayout="@layout/routine_widget"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="2"
+    android:targetCellWidth="3"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

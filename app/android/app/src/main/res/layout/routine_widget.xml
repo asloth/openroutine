@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="6dp"
+        android:singleLine="true"
+        android:text="@string/widget_label"
+        android:textColor="@color/widget_accent"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <!-- The empty view is a sibling of the list, not a child: RemoteViews
+         swaps between the two itself once setEmptyView has paired them. -->
+    <ListView
+        android:id="@+id/routine_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@color/widget_divider"
+        android:dividerHeight="1dp" />
+
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="@string/widget_empty_fallback"
+        android:textColor="@color/widget_on_surface_variant"
+        android:textSize="14sp" />
+</LinearLayout>

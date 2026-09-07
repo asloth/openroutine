@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The dark scheme from app/lib/theme/colors.dart: warm ink rather than a
+     seeded blue-black, for the same reason the app uses it. -->
+<resources>
+    <color name="widget_background">#1C1815</color>
+    <color name="widget_on_surface">#EDE4D9</color>
+    <color name="widget_on_surface_variant">#CFC2B4</color>
+    <color name="widget_accent">#F0A484</color>
+    <color name="widget_divider">#4D453D</color>
+</resources>

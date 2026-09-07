@@ -16,11 +16,17 @@ class WidgetCopy {
     required this.title,
     required this.empty,
     required this.openApp,
+    required this.steps,
   });
 
   final String title;
   final String empty;
   final String openApp;
+
+  /// The pluralised step-count subtitle. A function rather than a string
+  /// because only Dart has the plural rules — the widget would otherwise need
+  /// its own native plurals, in every language, kept in step by hand.
+  final String Function(int count) steps;
 
   Map<String, String> toJson() => {
     'title': title,
@@ -86,7 +92,9 @@ class HomeWidgetPublisher {
 
     final payload = jsonEncode({
       'v': payloadVersion,
-      'routines': _ordered(routines).map(_encode).toList(),
+      'routines': _ordered(
+        routines,
+      ).map((routine) => _encode(routine, copy)).toList(),
       'strings': copy.toJson(),
     });
 
@@ -98,7 +106,7 @@ class HomeWidgetPublisher {
     }
   }
 
-  Map<String, Object> _encode(Routine routine) => {
+  Map<String, Object> _encode(Routine routine, WidgetCopy copy) => {
     'id': routine.id,
     'name': routine.name,
     // The raw "HH:MM" from the schema, not a formatted string: the widget
@@ -106,7 +114,7 @@ class HomeWidgetPublisher {
     // can change long after this was published.
     if (routine.schedule.startTime != null)
       'startTime': routine.schedule.startTime!,
-    'stepCount': routine.stepIds.length,
+    'steps': copy.steps(routine.stepIds.length),
   };
 
   /// The order the in-app list uses: scheduled routines by start time, then

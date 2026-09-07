@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    English fallbacks only, and deliberately so. Every string the widget shows
+    once the app has run is pushed from lib/l10n/*.arb with the routine data,
+    so translations stay in one place. These cover the one moment that data
+    cannot: a widget placed before the app has ever been opened.
+-->
+<resources>
+    <string name="widget_label">OpenRoutine</string>
+    <string name="widget_description">Start a routine from the home screen.</string>
+    <string name="widget_empty_fallback">No routines yet</string>
+</resources>

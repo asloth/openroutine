@@ -57,6 +57,28 @@
             </intent-filter>
         </receiver>
 
+        <!-- The home screen widget. Exported because the launcher has to be
+             able to reach it; it renders from app-private preferences and
+             takes nothing from the broadcast that wakes it. -->
+        <receiver
+            android:name=".RoutineWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/routine_widget_info" />
+        </receiver>
+
+        <!-- Feeds the widget's list. The BIND_REMOTEVIEWS permission is held
+             by the system alone, so nothing else can start it. -->
+        <service
+            android:name=".RoutineListService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

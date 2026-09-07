@@ -29,7 +29,10 @@ const _copy = WidgetCopy(
   title: 'OpenRoutine',
   empty: 'No routines yet',
   openApp: 'Open OpenRoutine',
+  steps: _steps,
 );
+
+String _steps(int count) => count == 1 ? '1 step' : '$count steps';
 
 Routine _routine({
   required String id,
@@ -86,7 +89,7 @@ void main() {
     );
 
     expect(_routines(sink), [
-      {'id': 'r1', 'name': 'Morning', 'startTime': '07:30', 'stepCount': 7},
+      {'id': 'r1', 'name': 'Morning', 'startTime': '07:30', 'steps': '7 steps'},
     ]);
   });
 

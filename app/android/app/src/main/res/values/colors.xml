@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The warm-paper palette, lifted from app/lib/theme/colors.dart. The widget
+    cannot read the app's theme, so these are a copy; they follow the default
+    palette, not a custom one chosen in Settings.
+-->
+<resources>
+    <color name="widget_background">#F6F1E9</color>
+    <color name="widget_on_surface">#2E2822</color>
+    <color name="widget_on_surface_variant">#574E44</color>
+    <color name="widget_accent">#A9502F</color>
+    <color name="widget_divider">#D5C9B9</color>
+</resources>

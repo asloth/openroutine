@@ -34,6 +34,7 @@ Future<void> homeWidgetSync(Ref ref) async {
           title: l10n.widgetTitle,
           empty: l10n.widgetEmpty,
           openApp: l10n.widgetOpenApp,
+          steps: l10n.routinesStepCount,
         ),
       );
 }

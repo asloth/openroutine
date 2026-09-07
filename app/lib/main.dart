@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'l10n/app_localizations.dart';
 import 'services/app_prefs.dart';
+import 'services/home_widget/widget_launch.dart';
 import 'screens/import/import_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/routine_detail/routine_detail_screen.dart';
@@ -155,6 +158,11 @@ class OpenRoutineApp extends ConsumerStatefulWidget {
 
 class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
   AppLifecycleListener? _lifecycle;
+  StreamSubscription<Uri?>? _widgetTaps;
+
+  /// The URI that launched the app from the home screen widget, held until the
+  /// click stream has had its chance to deliver the same tap a second time.
+  String? _launchUri;
 
   @override
   void initState() {
@@ -164,6 +172,16 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
     // platform-channel round trip, and startup should not wait on it to draw.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // Platform.isAndroid rather than defaultTargetPlatform: this reaches for
+      // a plugin, and widget tests run with an Android target platform on a
+      // host that has no plugins registered.
+      if (Platform.isAndroid) {
+        unawaited(_openInitialWidgetTap());
+        _widgetTaps = HomeWidget.widgetClicked.listen(
+          _openFromWidgetTap,
+          onError: (Object _) {},
+        );
+      }
       _lifecycle = AppLifecycleListener(
         onResume: () {
           if (ref.read(storageModeSettingProvider) != StorageMode.drive) return;
@@ -175,8 +193,40 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
     });
   }
 
+  /// A tap that started the app from cold: the URI is waiting rather than
+  /// arriving on the stream, because the stream did not exist yet.
+  Future<void> _openInitialWidgetTap() async {
+    try {
+      final uri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+      if (uri == null) return;
+      _launchUri = uri.toString();
+      _goToWidgetRoute(uri);
+    } catch (error) {
+      debugPrint('Home widget launch ignored: $error');
+    }
+  }
+
+  void _openFromWidgetTap(Uri? uri) {
+    if (uri == null) return;
+    // A cold-start tap can surface twice, once as the launch URI and once on
+    // the stream. Drop that echo — but only the first one, since tapping the
+    // same routine again later is a real request.
+    final echo = _launchUri == uri.toString();
+    _launchUri = null;
+    if (echo) return;
+    _goToWidgetRoute(uri);
+  }
+
+  void _goToWidgetRoute(Uri uri) {
+    if (!mounted) return;
+    final route = widgetLaunchRoute(uri);
+    if (route == null) return;
+    ref.read(goRouterProvider).go(route);
+  }
+
   @override
   void dispose() {
+    unawaited(_widgetTaps?.cancel());
     _lifecycle?.dispose();
     super.dispose();
   }
