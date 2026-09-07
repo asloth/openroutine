@@ -51,6 +51,7 @@ RoutineStep _step({
   String emoji = '🪥',
   int? durationSeconds = 180,
   bool noExplicitTime = false,
+  bool remindDuring = false,
   DateTime? updatedAt,
   DateTime? deletedAt,
 }) {
@@ -63,6 +64,7 @@ RoutineStep _step({
     durationSeconds: durationSeconds,
     order: order,
     noExplicitTime: noExplicitTime,
+    remindDuring: remindDuring,
     createdAt: now,
     updatedAt: updatedAt ?? now,
     deletedAt: deletedAt,
@@ -98,6 +100,32 @@ void main() {
       });
 
       expect(step.isCore, isFalse);
+    });
+
+    test('a step written before 1.2 defaults its mid-step reminder off', () {
+      final step = RoutineStep.fromJson({
+        'id': 's1',
+        'routine_id': 'r1',
+        'name': 'Brush teeth',
+        'emoji': '🪥',
+        'duration_seconds': 180,
+        'order': 0,
+        'no_explicit_time': false,
+        'created_at': '2026-01-01T00:00:00.000Z',
+        'updated_at': '2026-01-01T00:00:00.000Z',
+      });
+
+      expect(step.remindDuring, isFalse);
+    });
+
+    test('saveStep then getSteps round-trips the mid-step reminder', () async {
+      await adapter.saveRoutine(_routine());
+      await adapter.saveStep(_step(id: 's1', order: 0, remindDuring: true));
+      await adapter.saveStep(_step(id: 's2', order: 1));
+
+      final steps = await adapter.getSteps('r1');
+
+      expect(steps.map((step) => step.remindDuring), [true, false]);
     });
 
     test('saveRoutine then getRoutine returns the same routine', () async {
@@ -417,7 +445,7 @@ void main() {
       await adapter.saveRoutine(_routine(name: 'Local routine'));
       final newer = _bundleWithRoutine(
         _routine(name: 'Remote routine'),
-      ).copyWith(schemaVersion: '1.2.0');
+      ).copyWith(schemaVersion: '1.3.0');
 
       await expectLater(adapter.confirmImport(newer), throwsFormatException);
 

@@ -22,6 +22,7 @@ abstract class RoutineStep with _$RoutineStep {
     required int order,
     required bool noExplicitTime,
     @Default(false) bool isCore,
+    @Default(false) bool remindDuring,
     @UtcDateTimeConverter() required DateTime createdAt,
     @UtcDateTimeConverter() required DateTime updatedAt,
     @NullableUtcDateTimeConverter() DateTime? deletedAt,

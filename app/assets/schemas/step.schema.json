@@ -30,6 +30,11 @@
       "default": false,
       "description": "Whether this step is intentionally included in a Low Mode run."
     },
+    "remind_during": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this step nudges the user partway through its estimate. Absent means false, so files written before schema 1.2 stay silent."
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": {
       "type": "string",
