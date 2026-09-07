@@ -216,7 +216,7 @@ abstract final class AppTheme {
       ),
 
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: scheme.secondary,
+        color: scheme.primary,
         linearTrackColor: scheme.surfaceContainerHighest,
         circularTrackColor: scheme.surfaceContainerHighest,
       ),
