@@ -13,6 +13,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
+import 'package:openroutine/services/timer/timer_machine.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
 import 'package:openroutine/theme/theme.dart';
@@ -54,6 +55,21 @@ Widget _wrap(StorageAdapter adapter) {
     ),
   );
 }
+
+Widget _clock(RoutineStep step, Duration elapsed) => MaterialApp(
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: Scaffold(
+    body: TimerClock(
+      step: step,
+      elapsed: elapsed,
+      estimateZone: elapsed.inSeconds >= (step.durationSeconds ?? 0)
+          ? EstimateZone.yellow
+          : EstimateZone.green,
+      paused: false,
+    ),
+  ),
+);
 
 /// Mirrors the helper in the other screen tests: forces the widget tree — and
 /// the drift stream subscriptions under it — to dispose while we can still
@@ -105,7 +121,7 @@ RoutineStep _step(
 }
 
 void main() {
-  testWidgets('starts on the first step and shows its countdown', (
+  testWidgets('starts on the first step and shows elapsed time', (
     tester,
   ) async {
     final adapter = await _seed(
@@ -121,9 +137,56 @@ void main() {
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
     expect(find.text('Brush my teeth'), findsOneWidget);
     expect(find.text(l10n.timerStepCounter(1, 2)), findsOneWidget);
-    expect(find.text('01:00'), findsOneWidget);
+    expect(find.text('0:00'), findsOneWidget);
 
     await _disposeCleanly(tester);
+  });
+
+  testWidgets('shows one continuous timed count-up through the estimate', (
+    tester,
+  ) async {
+    final step = _step('s1', order: 0, durationSeconds: 120);
+
+    await tester.pumpWidget(_clock(step, const Duration(seconds: 119)));
+    expect(find.text('1:59'), findsOneWidget);
+    await tester.pumpWidget(_clock(step, const Duration(seconds: 120)));
+    expect(find.text('2:00'), findsOneWidget);
+    await tester.pumpWidget(_clock(step, const Duration(seconds: 121)));
+    expect(find.text('2:01'), findsOneWidget);
+  });
+
+  testWidgets('uses tertiary at and after the estimate without overtime text', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final step = _step('s1', order: 0, durationSeconds: 120);
+
+    await tester.pumpWidget(_clock(step, const Duration(seconds: 120)));
+    final tertiary = Theme.of(
+      tester.element(find.byType(Scaffold)),
+    ).colorScheme.tertiary;
+
+    expect(find.bySemanticsLabel('2:00'), findsOneWidget);
+    Text clock() => tester.widget(find.text('2:00'));
+    CircularProgressIndicator ring() =>
+        tester.widget(find.byType(CircularProgressIndicator));
+    expect(clock().style?.color, tertiary);
+    expect(ring().color, tertiary);
+    expect(ring().value, 1.0);
+
+    await tester.pumpWidget(_clock(step, const Duration(seconds: 121)));
+    expect(find.bySemanticsLabel('2:01'), findsOneWidget);
+    expect(tester.widget<Text>(find.text('2:01')).style?.color, tertiary);
+    expect(ring().color, tertiary);
+    expect(ring().value, 1.0);
+    expect(
+      find.bySemanticsLabel(RegExp(r'(\+|over(time)?)', caseSensitive: false)),
+      findsNothing,
+    );
+    expect(find.textContaining('+'), findsNothing);
+    expect(find.textContaining('over'), findsNothing);
+
+    semantics.dispose();
   });
 
   testWidgets('Done advances to the next step and restarts the clock', (
@@ -145,7 +208,7 @@ void main() {
 
     expect(find.text('Shower'), findsOneWidget);
     expect(find.text(l10n.timerStepCounter(2, 2)), findsOneWidget);
-    expect(find.text('05:00'), findsOneWidget);
+    expect(find.text('0:00'), findsOneWidget);
 
     await _disposeCleanly(tester);
   });
@@ -283,9 +346,7 @@ void main() {
     final logs = await adapter.getCompletions('r1');
     expect(logs.single.steps.map((s) => s.stepId), ['s2', 's1']);
     expect(
-      logs.single.steps.every(
-        (s) => s.state == CompletionStepState.completed,
-      ),
+      logs.single.steps.every((s) => s.state == CompletionStepState.completed),
       isTrue,
     );
 
@@ -306,10 +367,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final logs = await adapter.getCompletions('r1');
-    expect(logs.single.steps.map((s) => s.state.name), [
-      'skipped',
-      'skipped',
-    ]);
+    expect(logs.single.steps.map((s) => s.state.name), ['skipped', 'skipped']);
 
     await _disposeCleanly(tester);
   });

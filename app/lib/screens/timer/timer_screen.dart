@@ -112,8 +112,7 @@ class _Running extends ConsumerWidget {
 
     final now = DateTime.now();
     final elapsed = state.elapsed(now);
-    final remaining = state.remaining(now);
-    final overrun = remaining != null && remaining.isNegative;
+    final estimateZone = state.estimateZone(now);
 
     return Column(
       children: [
@@ -156,22 +155,12 @@ class _Running extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _Clock(
+                  TimerClock(
                     step: step,
                     elapsed: elapsed,
-                    remaining: remaining,
+                    estimateZone: estimateZone,
                     paused: state.phase == TimerPhase.paused,
                   ),
-                  if (overrun)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        l10n.timerOverrunBy(_format(-remaining)),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                    ),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -219,9 +208,7 @@ class _Running extends ConsumerWidget {
             child: FilledButton.icon(
               onPressed: notifier.completeStep,
               icon: const Icon(Icons.check),
-              label: Text(
-                state.isLastStep ? l10n.timerFinish : l10n.timerDone,
-              ),
+              label: Text(state.isLastStep ? l10n.timerFinish : l10n.timerDone),
             ),
           ),
         ),
@@ -247,38 +234,38 @@ class _Running extends ConsumerWidget {
   }
 }
 
-/// The countdown, or a count-up for steps with no target. Steps without an
-/// explicit time get no ring — there is no fraction of "done" to show.
-class _Clock extends StatelessWidget {
-  const _Clock({
+/// The elapsed clock. Steps without an explicit time get no ring — there is no
+/// fraction of "done" to show.
+class TimerClock extends StatelessWidget {
+  const TimerClock({
+    super.key,
     required this.step,
     required this.elapsed,
-    required this.remaining,
+    required this.estimateZone,
     required this.paused,
   });
 
   final RoutineStep step;
   final Duration elapsed;
-  final Duration? remaining;
+  final EstimateZone estimateZone;
   final bool paused;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final boundaryColor = estimateZone == EstimateZone.yellow
+        ? theme.colorScheme.tertiary
+        : null;
     final label = Text(
-      remaining == null
-          ? _format(elapsed)
-          : _formatRemaining(
-              remaining!.isNegative ? Duration.zero : remaining!,
-            ),
+      step.noExplicitTime ? _format(elapsed) : _formatTimedElapsed(elapsed),
       style: theme.textTheme.displayMedium?.copyWith(
         fontFeatures: const [FontFeature.tabularFigures()],
-        color: paused ? theme.disabledColor : null,
+        color: boundaryColor ?? (paused ? theme.disabledColor : null),
       ),
     );
 
-    if (remaining == null) {
+    if (step.noExplicitTime) {
       return Column(
         children: [
           label,
@@ -299,7 +286,11 @@ class _Clock extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           SizedBox.expand(
-            child: CircularProgressIndicator(value: progress, strokeWidth: 10),
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 10,
+              color: boundaryColor,
+            ),
           ),
           label,
         ],
@@ -403,11 +394,12 @@ class _CircleAction extends StatelessWidget {
 /// first second.
 String _format(Duration d) => _clock(d.inSeconds);
 
-/// Time remaining, rounded **up**. A 60-second step is a few milliseconds in by
-/// the time it first paints, and truncating would show 00:59 before the user
-/// has blinked. Rounding up means it reads 01:00 until a full second is gone,
-/// and reaches 00:00 exactly when the step is up.
-String _formatRemaining(Duration d) => _clock((d.inMilliseconds / 1000).ceil());
+String _formatTimedElapsed(Duration d) {
+  final totalSeconds = d.inSeconds;
+  final minutes = totalSeconds ~/ 60;
+  final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}
 
 String _clock(int totalSeconds) {
   final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
