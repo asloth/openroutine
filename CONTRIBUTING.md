@@ -16,7 +16,7 @@ Thanks for your interest in OpenRoutine. This is an early-stage, part-time open-
 
 ### Running the app
 
-Google Drive support relies on OAuth client IDs that are **not** in this repo
+Google Drive support compiles in OAuth client IDs that are **not** in this repo
 (see [`docs/SPEC.md`](docs/SPEC.md) §13). Copy
 `app/dart_define.example.json` to `app/dart_define.json`, fill in your own
 IDs, and pass the file on every run and build:
