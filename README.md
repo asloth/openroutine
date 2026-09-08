@@ -8,7 +8,7 @@ OpenRoutine is an open-source, local-first routine app for iOS and Android. Your
 
 ## Why
 
-1. **Local-first, user-owned storage.** The app is a client. Routines live in your Drive folder as plain JSON. We never hold your data.
+1. **Local-first, user-owned storage.** The app is a client, nothing more. Your routines live in your Drive folder as plain JSON, and we never hold your data.
 2. **Zero-cost to run.** No backend to host, scale, or pay for.
 3. **Agent-friendly via open schema.** The data format is documented and stable — see [`schemas/`](schemas/). Any agent that can read a JSON file can help manage your routines.
 4. **Open source.** MIT license. No feature gating, no "Pro" tier.
@@ -18,16 +18,17 @@ Full product and technical spec: [`docs/SPEC.md`](docs/SPEC.md).
 
 ## Status
 
-Milestone **M5 — Polish, i18n, and agent documentation** is in progress. The
-local-first app, routine timer, import/export, and optional Google Drive sync
-from M1-M4 are implemented. OpenRoutine is not yet published to an app store.
+OpenRoutine is at milestone **M5 — Polish, i18n, and agent documentation**. M1
+through M4 already shipped the local-first app, routine timer, import/export,
+and optional Google Drive sync. OpenRoutine isn't published to an app store
+yet.
 
 ## How agents fit in
 
-There's no custom server or API. The published JSON schema plus your own Google
-Drive access *is* the integration surface. If you connect Drive in OpenRoutine
-and connect the same Drive account to an AI agent, start with one of these
-prompts.
+There's no custom server or API — the published JSON schema plus your own
+Google Drive access *is* the integration surface. If you connect Drive in
+OpenRoutine and connect the same Drive account to an AI agent, start with one
+of these prompts.
 
 **Review adherence without editing:**
 
