@@ -263,7 +263,7 @@ Publishing hangs off `routinesProvider`, so a create, rename, delete, reorder, o
 
 **Path A — Continuous agent access (Drive users)**
 1. The user connects Drive in OpenRoutine, and OpenRoutine creates the `/OpenRoutine/` folder.
-2. The user connects their own Google Drive connector to Claude Desktop, Claude Code, claude.ai, or Codex — a connector Anthropic and OpenAI have already built, so there's nothing for us to set up.
+2. The user connects their own Google Drive connector to Claude Desktop, Claude Code, claude.ai, or Codex — a connector Anthropic and OpenAI have already built, and it takes one step to enable.
 3. The user points the agent at the folder or a specific file: "Read `OpenRoutine/routines.json` and analyze which steps I skip most."
 4. The agent reads, reasons, and — with the user's confirmation — writes edits back.
 
