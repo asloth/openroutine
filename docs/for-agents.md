@@ -1,7 +1,7 @@
 # Editing OpenRoutine data safely
 
 OpenRoutine stores user-owned routine data as JSON in Google Drive. Read the
-published schemas before writing, preserve fields you do not recognize, and ask
+published schemas before writing, preserve fields you don't recognize, and ask
 the user to confirm changes before applying them.
 
 ## Find the data
@@ -62,9 +62,9 @@ last-writer-wins (LWW):
 
 1. A new ID is added.
 2. For an existing ID, the record with the later `updated_at` wins.
-3. Equal or older timestamps do not overwrite the current record.
+3. Equal or older timestamps don't overwrite the current record.
 
-Therefore, bump `updated_at` on EVERY record you change. When a step list
+Therefore, bump `updated_at` on *every* record you change. When a step list
 changes, update both the affected steps and their parent routine, including the
 routine's `step_ids` and `updated_at`.
 
@@ -79,7 +79,7 @@ To delete a routine or step:
 2. Set `updated_at` to the same timestamp.
 3. Keep the full object in its array so the tombstone reaches other clients.
 
-Triggers do not have `deleted_at` in schema v1. Do not invent one or delete a
+Triggers don't have `deleted_at` in schema v1. Don't invent one or delete a
 trigger automatically; ask the user how references should be reassigned.
 
 ## Completion rules
@@ -91,7 +91,7 @@ complete object that validates against `completion.schema.json`.
 - Use a new UUIDv7 `id`; readers deduplicate repeated IDs.
 - Choose the shard from `started_at` in UTC: `2026-08-11T...Z` belongs in
   `completions/2026-08.ndjson`.
-- Do not fabricate completion history unless the user explicitly requests it.
+- Don't fabricate completion history unless the user explicitly requests it.
 
 Drive has no append operation, so OpenRoutine may rewrite a shard as the union
 of local and remote records by `id`. Append-only describes record semantics,
@@ -113,7 +113,7 @@ not the transport request.
 }
 ```
 
-The snippet shows changed fields only. Do not replace the full object with it.
+The snippet shows changed fields only. Don't replace the full object with it.
 
 ### Add a step
 

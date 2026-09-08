@@ -63,9 +63,9 @@ An open-source, local-first routine app. Your routines live in your Google Drive
                               └────────────────────────────┘
 ```
 
-**Key insight:** There is no custom server. The agent talks to the user's own Google Drive using the user's own Drive connector. OpenRoutine documents the file format publicly, and that IS the agent API.
+**The key idea:** there's no custom server. The agent talks to the user's own Google Drive through the user's own Drive connector. OpenRoutine publishes the file format, and that documentation *is* the agent API.
 
-For local-only users, import/export via the OS share sheet plays the same role.
+For local-only users, import and export through the OS share sheet play the same role.
 
 ---
 
@@ -136,7 +136,7 @@ Constraints: `name` ≤ 50 chars, `emoji` single grapheme, `duration_seconds` nu
 
 ### Schema versioning
 
-`meta.json` contains a `schema_version` string (semver). Bumps follow standard semver rules: additive changes = minor, breaking changes = major. Clients on older schemas must read newer files gracefully (unknown fields ignored) and refuse to write.
+`meta.json` contains a `schema_version` string (semver). Bumps follow standard semver rules: additive changes bump the minor version, and breaking changes bump the major version. A client on an older schema still needs to read newer files gracefully — ignoring fields it doesn't recognize — and refuse to write to them.
 
 ---
 
@@ -157,18 +157,18 @@ My Drive/
 Splitting completions by month keeps the main file small and lets clients (and agents) lazy-load history. The auto-generated `README.md` inside the folder tells any human or agent that opens it what these files are and links to the schema repo.
 
 ### Sync strategy (v1)
-- **Read:** on app open and on returning to the foreground.
-- **Write:** the local write commits to SQLite and returns immediately; a debounced (2s) background sync then does pull → merge → push. **This supersedes an earlier "read before every write" rule.** That rule put a network round trip in front of every step edit, which contradicts the offline-first principle in §1 — an app whose edits block on connectivity is not offline-first, and the offline path had to exist anyway, so the blocking path bought nothing.
-- **Merge:** last-writer-wins per record using `updated_at`, compared against the raw (soft-delete-inclusive) row. Deletions are soft (`deleted_at`) so an offline client can't resurrect deleted data. Agent edits (which change `updated_at`) win over stale local edits — this is a feature. This is the same code path as file Import (§10); Drive is just another source of a bundle and must not get merge rules of its own to drift apart from.
-- **Push:** upload the full `routines.json`. Because the unit of upload is the whole file, the offline queue is a single dirty flag rather than a list of pending edits — per-record queueing would carry more state and still collapse to the same upload.
-- **Completions:** append-only, filename is deterministic (`YYYY-MM.ndjson`), so multiple writers can safely append. Reader dedupes by `id`. Drive has no append operation, so a sync rebuilds the shard as the union of remote and local by `id`; only months with local changes are touched.
-- **Client ID:** each install writes a UUID to local storage; included in `meta.json.last_writer_client_id` for debugging.
-- **Auth expiry is a state, not an error.** A lapsed Drive grant parks sync in `needsReauth` and stops retrying, because no amount of waiting restores a revoked grant. While the Cloud project is in Testing, Google expires refresh tokens after seven days, so this happens routinely during development.
+- **Read:** on app open, and again whenever the app returns to the foreground.
+- **Write:** the local write commits to SQLite and returns immediately. A debounced (2s) background sync then pulls, merges, and pushes. **This replaces an earlier "read before every write" rule** — that rule put a network round trip in front of every step edit, which broke the offline-first principle in §1. An app whose edits block on connectivity isn't offline-first, and since the offline path had to exist anyway, the blocking path bought nothing.
+- **Merge:** last-writer-wins per record, using `updated_at` compared against the raw row (soft-delete-inclusive). Deletions are soft (`deleted_at`), so an offline client can't resurrect deleted data. Agent edits — which change `updated_at` — win over stale local edits, and that's by design. This is the same code path as file import (§10): Drive is another source of a bundle, so don't give it merge rules of its own that could drift apart.
+- **Push:** upload the full `routines.json`. Since the unit of upload is the whole file, the offline queue is a single dirty flag rather than a list of pending edits — queueing per record would carry more state and still collapse to the same upload.
+- **Completions:** append-only, with a deterministic filename (`YYYY-MM.ndjson`), so multiple writers can safely append. The reader dedupes by `id`. Drive has no append operation, so a sync rebuilds the shard as the union of remote and local records by `id`, touching only the months with local changes.
+- **Client ID:** each install writes a UUID to local storage, included in `meta.json.last_writer_client_id` for debugging.
+- **Auth expiry is a state, not an error.** A lapsed Drive grant parks sync in `needsReauth` and stops retrying — no amount of waiting restores a revoked grant. While the Cloud project is in Testing, Google expires refresh tokens after seven days, so you'll hit this routinely during development.
 
-Future (v1.5): CRDT-lite per-field merging if LWW proves painful.
+Future (v1.5): move to CRDT-lite, per-field merging, if LWW proves painful.
 
 ### Local cache
-- **Flutter:** SQLite via `drift` package. Source of truth for offline reads. Sync worker reconciles with Drive on foreground.
+- **Flutter:** SQLite via the `drift` package is the source of truth for offline reads. The sync worker reconciles with Drive when the app returns to the foreground.
 
 ---
 
@@ -177,8 +177,8 @@ Future (v1.5): CRDT-lite per-field merging if LWW proves painful.
 ### Flutter (mobile)
 - `google_sign_in` package (v7.1.0+ required — includes Privacy Manifest for App Store submission)
 - Scope: `https://www.googleapis.com/auth/drive.file` — grants access **only to files this app creates or opens**. User's other Drive files are never visible to the app.
-- Access token refreshed via package; refresh token stored in platform keystore (Keychain / Keystore)
-- **UI framing** (critical for App Store review — see §14): Drive connection is presented as **"Connect Google Drive"**, never "Sign in with Google". The app never has a "primary account" concept; it is fully usable in Local-only mode.
+- The package refreshes the access token; the refresh token lives in the platform keystore (Keychain / Keystore)
+- **UI framing** (critical for App Store review — see §14): Drive connection is presented as **"Connect Google Drive"**, never "Sign in with Google". The app never has a "primary account" concept, and it's fully usable in Local-only mode.
 
 Users grant OpenRoutine access to create the `/OpenRoutine/` folder and its contents. Nothing else in their Drive is touched.
 
@@ -200,11 +200,11 @@ Use **Riverpod** for state, **go_router** for navigation, **drift** for local pe
 | 8 | **Import** | File picker → validate JSON → preview → confirm merge or replace. |
 | 9 | **Settings** | Storage backend (Local / Google Drive), sync status, connect / disconnect Drive, language, "Export all", about, links to agent-integration docs. |
 
-Design tokens: defined once in `app/lib/theme/`. **The design pass has happened** — the tokens come from the "FocusFlow Routine Timer" Stitch project, whose export carries a full Material 3 role set, so `theme/colors.dart` is a literal `ColorScheme` rather than an approximation from a seed. Primary `#0051c0`, secondary `#006c47`, surface `#f7f9fc`; Lexend for structure and actions, Inter for prose, both bundled as static weights (never fetched at runtime — see §1); radii 4/8/12/full; spacing 8/16/24/32 with a 48px minimum touch target. Neumorphic surfaces (paired light/dark shadows) are a `ThemeExtension` so they adapt to brightness.
+Design tokens live once in `app/lib/theme/`. **The design pass is done** — the tokens come from the "FocusFlow Routine Timer" Stitch project, and its export carries a full Material 3 role set, so `theme/colors.dart` is a literal `ColorScheme` rather than an approximation from a seed. Primary is `#0051c0`, secondary is `#006c47`, and surface is `#f7f9fc`; Lexend handles structure and actions, Inter handles prose, and both ship as static weights (never fetched at runtime — see §1); radii are 4/8/12/full; spacing is 8/16/24/32 with a 48px minimum touch target. Neumorphic surfaces (paired light and dark shadows) are a `ThemeExtension`, so they adapt to brightness.
 
-The light scheme is the designed one. Dark is derived from the same primary and is approximate — the mockups are light-only, and neumorphism is a light-surface idiom.
+The light scheme is the designed one. Dark comes from the same primary color and stays approximate, since the mockups are light-only and neumorphism is a light-surface idiom.
 
-Screens are styled from these tokens and their component themes; a screen that needs a local appearance override means a component theme is missing. Note the Stitch project also contains a bottom-nav shell, a "Today" home screen and a Weekly Insights view — **none of these are adopted**; the app keeps the screen set in the table above, and Insights remains out of scope for v1 per §2.
+Screens draw their style from these tokens and component themes — if a screen needs a local appearance override, that means a component theme is missing. The Stitch project also contains a bottom-nav shell, a "Today" home screen, and a Weekly Insights view, but **the app doesn't adopt any of them**; it keeps the screen set in the table above, and Insights stays out of scope for v1 per §2.
 
 ---
 
@@ -226,66 +226,66 @@ IDLE ─────────► RUNNING ──────────► RU
 States: `idle`, `running`, `paused`, `complete`.
 Events: `start`, `tick` (1s), `pause`, `resume`, `skip`, `complete_step`, `back`, `reset_step`, `abandon`.
 
-Each event produces a new immutable state (a codegen Riverpod `Notifier` — `StateNotifier` is legacy as of Riverpod 3). On `complete_step` or `skip` we push a step outcome onto a pending `CompletionLog`. On `COMPLETE` or `abandon` we persist the log and append to `completions/YYYY-MM.ndjson`.
+Each event produces a new immutable state (a codegen Riverpod `Notifier`; `StateNotifier` is legacy as of Riverpod 3). A `complete_step` or `skip` event pushes a step outcome onto a pending `CompletionLog`. Reaching `COMPLETE`, or an `abandon` event, persists the log and appends it to `completions/YYYY-MM.ndjson`.
 
-A timed step does **not** auto-advance when it reaches zero; it keeps counting into overrun until the user acts. That is what makes `overrun` a reachable `CompletionLog` step state.
+A timed step does **not** auto-advance when it reaches zero; it keeps counting into overrun until the user acts. That's what makes `overrun` a reachable `CompletionLog` step state.
 
 ### Surviving the background (revised in M3)
 
-**Elapsed time is derived from wall-clock timestamps, never accumulated from ticks.** The state stores when the current step started and how long it has been paused; elapsed time is recomputed on every read. The 1-second `tick` exists only to trigger a repaint, so a tick that is delayed or never delivered — which is exactly what happens while the process is suspended — costs a frame of smoothness rather than correctness.
+**Elapsed time comes from wall-clock timestamps, never from accumulated ticks.** The state stores when the current step started and how long it's been paused, and recomputes elapsed time on every read. The 1-second `tick` exists only to trigger a repaint, so a tick that's delayed or never delivered — exactly what happens while the process is suspended — costs a frame of smoothness, not correctness.
 
-Local notifications: fire a local push when the app is backgrounded and a step timer expires (uses `flutter_local_notifications`). Each step's expiry is registered as an OS-scheduled exact alarm at the moment the step starts, and cancelled or rescheduled on pause/resume/skip.
+Local notifications: fire a local push when the app is backgrounded and a step timer expires (using `flutter_local_notifications`). Each step's expiry is registered as an OS-scheduled exact alarm the moment the step starts, and cancelled or rescheduled on pause, resume, or skip.
 
-This **replaces the foreground service** this section originally called for. Handing the alarm to the OS is strictly more robust — it fires whether or not our process survived, which a foreground service cannot promise — and it avoids declaring an Android 14+ `foregroundServiceType` of `specialUse`, which would need justifying at store review. Since the timer's state no longer depends on a live process either, there is nothing left for the service to keep alive. Exact alarms need `USE_EXACT_ALARM`, which Play permits for apps whose core function is a timer; see §15.14.
+This **replaces the foreground service** this section originally called for. Handing the alarm to the OS is more robust: it fires whether or not the app's process survived, a guarantee a foreground service can't make, and it avoids declaring an Android 14+ `foregroundServiceType` of `specialUse`, which would need justifying at store review. Since the timer's state no longer depends on a live process either, there's nothing left for the service to keep alive. Exact alarms need `USE_EXACT_ALARM`, which Play permits for apps whose core function is a timer — see §15.14.
 
 ### 8.1 Android home screen widget (added after M5)
 
-A resizable Android app widget lists the user's routines — start time, name, step count, ordered as the in-app list orders them — and a tap on a row opens the app at `/routines/:routineId/timer`, which starts the run. That is the widget's whole job: the point of the app is lowering the cost of starting, and the launch path was the last expensive part of it.
+A resizable Android app widget lists the user's routines — start time, name, and step count, ordered the same way the in-app list orders them. Tapping a row opens the app at `/routines/:routineId/timer` and starts the run. That's the widget's whole job: the app exists to lower the cost of starting a routine, and the launch path was the last expensive part of it.
 
-**The widget never reads the database.** `HomeWidgetPublisher` (`app/lib/services/home_widget/`) denormalizes the routine list into a versioned JSON snapshot and pushes it through the `home_widget` plugin into the widget's `SharedPreferences`; the native `RoutineWidgetProvider` and `RoutineListService` only render what they are given. Reimplementing drift's schema — soft deletes, flattened schedule columns, JSON-encoded step lists — in Kotlin would fork the storage contract into a second language and open a second SQLite connection against a live one.
+**The widget never reads the database.** `HomeWidgetPublisher` (`app/lib/services/home_widget/`) denormalizes the routine list into a versioned JSON snapshot and pushes it through the `home_widget` plugin into the widget's `SharedPreferences`. The native `RoutineWidgetProvider` and `RoutineListService` only render what they're given. Reimplementing drift's schema — soft deletes, flattened schedule columns, JSON-encoded step lists — in Kotlin would fork the storage contract into a second language and open a second SQLite connection against a live one.
 
-The payload is **internal** and is deliberately absent from `schemas/`, which is the public agent contract (§9). It carries `{v, routines: [{id, name, startTime?, steps}], strings}`:
+The payload is **internal**, and it's deliberately absent from `schemas/`, the public agent contract (§9). It carries `{v, routines: [{id, name, startTime?, steps}], strings}`:
 
-- `startTime` is the schema's raw local `"HH:MM"`; the widget formats it natively so it follows the phone's 12/24-hour setting, which can change long after publishing.
-- `steps` is the already-pluralised, already-localised subtitle, and `strings` carries the header and empty state — copy stays in `app_en.arb`/`app_es.arb` rather than forking into a native `values-es/strings.xml`.
+- `startTime` is the schema's raw local `"HH:MM"`. The widget formats it natively so it follows the phone's 12/24-hour setting, which can change long after publishing.
+- `steps` is the already-pluralised, already-localised subtitle, and `strings` carries the header and empty state — the copy stays in `app_en.arb`/`app_es.arb` rather than forking into a native `values-es/strings.xml`.
 
-Publishing hangs off `routinesProvider`, so create, rename, delete, reorder and a Drive sync pulling another device's change all reach the widget without any call site remembering to. `updatePeriodMillis` is `0`: there is nothing for a poll to discover.
+Publishing hangs off `routinesProvider`, so a create, rename, delete, reorder, or a Drive sync that pulls in another device's change all reach the widget without any call site needing to remember to push it. `updatePeriodMillis` is `0`, since there's nothing for a poll to discover.
 
-**Android only.** The iOS project has no App Group and no WidgetKit extension, and neither can be compiled or exercised from the Linux development machine; an iOS widget is a follow-up, not a half-shipped Swift file. Two other follow-ups are open: the widget uses the default warm-paper palette rather than a custom one chosen in Settings, and it starts full runs only — Low Mode stays in the app.
+**Android only.** The iOS project has no App Group and no WidgetKit extension, and neither one compiles or runs from the Linux development machine — an iOS widget is a follow-up, not a half-shipped Swift file. Two other follow-ups stay open: the widget uses the default warm-paper palette rather than a custom one chosen in Settings, and it starts full runs only, since Low Mode stays in the app.
 
 ---
 
 ## 9. Agent integration model
 
-**No custom server. The published schema + user's own Drive access = the agent API.**
+**No custom server: the published schema plus the user's own Drive access is the agent API.**
 
 ### Two paths for users
 
 **Path A — Continuous agent access (Drive users)**
-1. User connects Drive in OpenRoutine → `/OpenRoutine/` folder created.
-2. User connects their own Google Drive connector to Claude Desktop, Claude Code, claude.ai, or Codex (one-click, already built by Anthropic/OpenAI).
-3. User points the agent at the folder or a specific file: "Read `OpenRoutine/routines.json` and analyze which steps I skip most."
-4. Agent reads, reasons, and — with user confirmation — writes edits back.
+1. The user connects Drive in OpenRoutine, and OpenRoutine creates the `/OpenRoutine/` folder.
+2. The user connects their own Google Drive connector to Claude Desktop, Claude Code, claude.ai, or Codex — a connector Anthropic and OpenAI have already built, so there's nothing for us to set up.
+3. The user points the agent at the folder or a specific file: "Read `OpenRoutine/routines.json` and analyze which steps I skip most."
+4. The agent reads, reasons, and — with the user's confirmation — writes edits back.
 
-Because sync is Drive-side, changes made by the agent are picked up by the phone on next open.
+Because sync happens on the Drive side, the phone picks up the agent's changes the next time it opens.
 
-**Path B — One-off agent help (Local-only or ad-hoc)**
-1. User taps "Share" on a routine → OS share sheet → sends JSON to Claude iOS app / email / Files.
-2. Agent proposes edits as JSON.
-3. User taps "Import" in OpenRoutine → file picker → merge.
+**Path B — One-off agent help (local-only or ad-hoc)**
+1. The user selects "Share" on a routine, and the OS share sheet sends the JSON to the Claude iOS app, email, or Files.
+2. The agent proposes edits as JSON.
+3. The user selects "Import" in OpenRoutine, picks the file, and merges it in.
 
 ### What we ship to enable this
 
-- **`schemas/*.json`** in the repo — versioned JSON Schema for each entity. This is the public contract.
-- **`docs/for-agents.md`** — a concise guide written *for AI agents* that explains: folder location, file naming, schema link, valid values (like `days` enum), sync semantics (LWW), and safe-edit patterns ("bump `updated_at` on any write").
-- **In-folder `README.md`** — auto-generated on first sync, written into `/OpenRoutine/README.md`. When any human or agent opens the folder, they immediately see what these files are and how to safely edit them.
+- **`schemas/*.json`** in the repo — a versioned JSON Schema for each entity, and the public contract.
+- **`docs/for-agents.md`** — a concise guide written *for AI agents* that covers folder location, file naming, the schema link, valid values (like the `days` enum), sync semantics (LWW), and safe-edit patterns ("bump `updated_at` on any write").
+- **An in-folder `README.md`** — auto-generated on first sync and written into `/OpenRoutine/README.md`, so any human or agent who opens the folder immediately sees what these files are and how to edit them safely.
 - **Example prompts** in the repo README ("Copy this into Claude Desktop"):
   - *"Read `OpenRoutine/routines.json` in my Drive. Which steps have I skipped most in the last 30 days based on `completions/`? Propose a shorter evening routine and write the changes back."*
   - *"Design me a study routine for deep work + Spanish practice. Add it to `OpenRoutine/routines.json`."*
 
 ### What we deliberately don't build in v1
-- Custom MCP server. Deferred to v2 as an optional package for users who want built-in helper tools (`analyze_adherence`, `suggest_routine` prompts). 90%+ of users will never need it.
-- QR-code / local-network sync between phone and PC. Deferred to v1.5. Same effect achievable via Drive today.
+- A custom MCP server. Deferred to v2 as an optional package for users who want built-in helper tools (`analyze_adherence`, `suggest_routine` prompts) — 90%+ of users will never need it.
+- QR-code or local-network sync between phone and PC. Deferred to v1.5, since Drive already achieves the same effect.
 
 ---
 
@@ -301,7 +301,7 @@ Because sync is Drive-side, changes made by the agent are picked up by the phone
 - Invalid files (schema violation, bad JSON) → clear error message with a link to the schema doc.
 
 ### Format
-Both single and full exports use the same top-level shape (a subset for single-routine). One format everywhere = agents produce the same file that Import accepts.
+Both single and full exports use the same top-level shape (a subset for single-routine). The same format works everywhere, so agents produce the same file that Import accepts.
 
 ---
 
@@ -392,7 +392,7 @@ When implementing, Claude Code must:
 - Never introduce a required backend service. Every feature must work with the Drive adapter or LocalOnly adapter alone.
 - Keep the storage adapter interface pure (no Drive-specific types leaking into `models/` or `screens/`). Adding a new adapter (iCloud, Postgres) must not require touching the UI.
 - Validate all JSON reads against `schemas/*.json` and log (don't crash) on drift. Never write files that violate the schema.
-- Never frame Drive connection as "sign in" in UI copy — it is always "Connect" / "Connected". See §14.
+- Never frame Drive connection as "sign in" in UI copy — it's always "Connect" / "Connected". See §14.
 - Every screen must have i18n keys from day 1 (no hardcoded English strings).
 - Any change to entity shapes requires a schema bump AND a matching PR to `schemas/`. The schemas are the public API.
 - **Repo is public from commit 1.** LICENSE (MIT), README.md, and CONTRIBUTING.md must exist before the initial push. No API keys, OAuth client secrets, signing keys, `.env` files, or personal identifiers ever committed — use `.gitignore` and GitHub Actions secrets. Every commit message is public; keep them professional.
@@ -422,7 +422,7 @@ When implementing, Claude Code must:
 | GitHub org/repo | `github.com/asloth/openroutine` |
 | URL scheme (deep links) | `openroutine://` |
 
-Bundle ID and package name **cannot be changed after first store submission** — verify domain and trademark availability before M1 completes.
+Bundle ID and package name **can't be changed after your first store submission** — verify domain and trademark availability before M1 completes.
 
 ### 15.2 Developer accounts
 
@@ -435,16 +435,16 @@ App Store Rule 4.8 requires Sign in with Apple *only if* a third-party login set
 
 > *"Your app is a client for a specific third-party service and users are required to sign in to their mail, social media, or other third-party account directly to access their content."*
 
-To keep this exemption solid, we must:
-- **Never call it "Sign in with Google"** in UI. Always **"Connect Google Drive"**. The button is a storage adapter connection, not an identity system.
-- **Make Local-only mode fully functional** as the default. The app has no "primary account" — there is no login screen at launch.
+To keep this exemption solid:
+- **Never call it "Sign in with Google"** in the UI. Always **"Connect Google Drive"**. The button connects a storage adapter, not an identity system.
+- **Make Local-only mode fully functional** as the default. The app has no "primary account" — there's no login screen at launch.
 - **Never gate any feature behind the Google connection.** Every feature works locally.
-- **Explain the OAuth scope in the connection screen**: "OpenRoutine will create a folder called 'OpenRoutine' in your Google Drive and store your routines there. It cannot see any other files."
-- Include this reasoning in App Review Notes on first submission to preempt questions.
+- **Explain the OAuth scope on the connection screen**: "OpenRoutine will create a folder called 'OpenRoutine' in your Google Drive and store your routines there. It cannot see any other files."
+- Include this reasoning in the App Review Notes on first submission, to preempt questions.
 
-If Apple pushes back anyway (unlikely but possible), fallback is to add Sign in with Apple as a no-op identity token that unlocks a separate cloud sync — but that requires backend and we're not doing that.
+If Apple pushes back anyway (unlikely, but possible), the fallback is to add Sign in with Apple as a no-op identity token that unlocks a separate cloud sync — but that needs a backend, and we're not building one.
 
-### 15.4 Privacy Manifests (iOS)
+### 15.4 Privacy manifests (iOS)
 
 Required as of May 2024 for apps using SDKs on Apple's list — `GoogleSignIn-iOS` is on it. Requirements:
 
@@ -467,7 +467,7 @@ Because we collect **nothing** and share **nothing**, our privacy story is a mar
 - No data collected. No data shared.
 - Security practices: data encrypted in transit (HTTPS to Drive), users can request data deletion (they own the files and delete them themselves).
 
-### 15.6 Privacy Policy
+### 15.6 Privacy policy
 
 Required by both stores even if you collect nothing. One page, hosted on GitHub Pages at `openroutine.app/privacy` (or the .dev variant). Must state:
 - What data is collected: none by us; user-chosen storage backends receive user-generated data
@@ -501,7 +501,7 @@ Required by both stores even if you collect nothing. One page, hosted on GitHub 
 - Store listings must also be localized (screenshots, description, keywords).
 - Third locale (Portuguese) deferred to v1.5.
 
-### 15.11 App Store / Play Store assets (produce during M5-M6)
+### 15.11 App Store and Play Store assets (produce during M5-M6)
 
 - **App icon**: 1024×1024 master PNG (no alpha, no rounded corners). Auto-generate all iOS + Android sizes via `flutter_launcher_icons`.
 - **Splash screen**: solid brand color + wordmark. Use `flutter_native_splash`.
@@ -538,6 +538,6 @@ Required by both stores even if you collect nothing. One page, hosted on GitHub 
 
 Timer Mode schedules each step's expiry as an exact alarm so a 3-minute step is actually 3 minutes; an inexact alarm can drift by minutes, which is useless for a timer (§8). The Android manifest declares `USE_EXACT_ALARM`, plus `SCHEDULE_EXACT_ALARM` for API 31–32.
 
-Play policy restricts `USE_EXACT_ALARM` to apps whose **core function** is an alarm clock, timer, or calendar reminder. OpenRoutine qualifies on the timer clause — guided step-by-step routine timing is the app's headline feature, not an incidental one — but this is reviewed rather than assumed, so the Play Console declaration must state that plainly. If it is ever rejected, the fallback is `SCHEDULE_EXACT_ALARM` with a runtime permission prompt, degrading to inexact alarms when denied.
+Play policy restricts `USE_EXACT_ALARM` to apps whose **core function** is an alarm clock, timer, or calendar reminder. OpenRoutine qualifies on the timer clause — guided step-by-step routine timing is the app's headline feature, not an incidental one — but this is reviewed rather than assumed, so the Play Console declaration must state that plainly. If it's ever rejected, the fallback is `SCHEDULE_EXACT_ALARM` with a runtime permission prompt, degrading to inexact alarms when denied.
 
-Chosen deliberately over a foreground service, which would have needed a `specialUse` `foregroundServiceType` and its own justification while giving weaker guarantees. See §8.
+We chose this deliberately over a foreground service, which would have needed a `specialUse` `foregroundServiceType` and its own justification, while giving weaker guarantees. See §8.
