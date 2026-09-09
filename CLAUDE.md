@@ -80,9 +80,15 @@ There's a physical Pixel 9a on USB (`53061JEBF10200`) and no emulator. It's the 
 target.
 
 ```bash
-/home/sabera/fvm/bin/fvm flutter build apk --debug
+/home/sabera/fvm/bin/fvm flutter build apk --debug --dart-define-from-file=dart_define.json
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
+
+**Never build for the phone without `--dart-define-from-file=dart_define.json`.** The Google Drive
+OAuth client IDs come in through that file. Leave it off and the build still succeeds, still
+installs, and still runs — with `DriveConfig.isConfigured` false, so Drive shows up as unavailable
+and the app is Local-only. Nothing in the build output says so. This flag belongs on `flutter run`
+too.
 
 **Use `adb install -r`, not `flutter install`.** `flutter install` uninstalls the old app first,
 which wipes the local database and sends the app back to onboarding. It has already cost this
