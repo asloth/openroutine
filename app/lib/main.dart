@@ -45,6 +45,13 @@ Future<void> main() async {
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/routines',
+    // A widget tap reaches Android as an `openroutine://` intent, and Flutter
+    // passes that URI straight through as the platform's default route. None
+    // of the routes below can match it, so go_router would open the app on
+    // Page Not Found. Start on the routine list instead and let
+    // `_openInitialWidgetTap` replay the tap, which is the path that knows how
+    // to turn that URI into a route.
+    overridePlatformDefaultLocation: true,
     redirect: (context, state) {
       final onboardingComplete = ref.read(onboardingCompleteProvider);
       final goingToOnboarding = state.matchedLocation == '/onboarding';
