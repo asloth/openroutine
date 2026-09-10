@@ -7,6 +7,11 @@ import 'package:openroutine/theme/theme.dart';
 /// Read from the theme rather than from the widget: the widget's own `style`
 /// is null here, because the colouring comes from `segmentedButtonTheme` —
 /// which is exactly the entry that was missing.
+///
+/// Passes [palette] as both the background and the accent: this test is
+/// about whether the segmented button follows the same role the chip theme
+/// uses, not about the accent-color feature, so the accent is pinned to the
+/// palette under test rather than left at its own ink-iris default.
 Future<Color?> _selectedSegmentColour(
   WidgetTester tester,
   Palette palette,
@@ -14,7 +19,7 @@ Future<Color?> _selectedSegmentColour(
   late ThemeData theme;
   await tester.pumpWidget(
     MaterialApp(
-      theme: AppTheme.light(palette),
+      theme: AppTheme.light(palette, palette),
       home: Builder(
         builder: (context) {
           theme = Theme.of(context);

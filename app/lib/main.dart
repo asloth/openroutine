@@ -278,14 +278,15 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
     ref.watch(homeWidgetSyncProvider);
     final localeOverride = ref.watch(localeOverrideSettingProvider);
     final palette = ref.watch(paletteSettingProvider);
+    final accent = ref.watch(accentSettingProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: localeOverride != null ? Locale(localeOverride) : null,
-      theme: AppTheme.light(palette),
-      darkTheme: AppTheme.dark(palette),
+      theme: AppTheme.light(palette, accent),
+      darkTheme: AppTheme.dark(palette, accent),
       routerConfig: router,
     );
   }

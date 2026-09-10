@@ -187,4 +187,21 @@ abstract final class AppColors {
 
   /// Cheeks. Deeper than the body so it reads at low alpha.
   static const mascotBlush = Color(0xFFB4553A);
+
+  // ---------------------------------------------------------------------
+  // Fixed tokens — outside every palette and every accent
+  // ---------------------------------------------------------------------
+
+  /// "A routine is coming up soon." Fixed across every background palette and
+  /// every accent, in both themes: green already carries this one meaning
+  /// everywhere else in the app, so it can't also be something a palette or
+  /// accent choice recolors out from under it.
+  static const upcoming = Color(0xFFD3E8D6);
+  static const onUpcoming = Color(0xFF1B3623);
+  static const upcomingDark = Color(0xFF2C4A34);
+  static const onUpcomingDark = Color(0xFFD3E8D6);
+
+  /// The timer's resting ground in light mode. Dark mode reads the scheme's
+  /// own `surface` instead — there's no separate dark literal here.
+  static const timerGround = Color(0xFFEBEAE8);
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'colors.dart';
 import 'palette.dart';
 import 'spacing.dart';
 import 'typography.dart';
@@ -17,22 +18,49 @@ export 'typography.dart';
 /// `FilledButton` or `ListTile` already looks right. Any screen that has to
 /// override an appearance locally is a sign a component theme is missing.
 abstract final class AppTheme {
-  /// Both take the user's chosen [Palette] and fall back to
-  /// [Palette.defaultPalette], so a call site with no opinion still gets a
-  /// themed app. The parameter is nullable rather than defaulted because the
-  /// default palette is not a compile-time constant.
-  static ThemeData light([Palette? palette]) =>
-      _build(palette ?? Palette.defaultPalette, Brightness.light);
+  /// Both take the user's chosen background [Palette] and [accent], and fall
+  /// back to [Palette.defaultPalette] and [Palette.inkIris] respectively, so
+  /// a call site with no opinion still gets a themed app. Both parameters are
+  /// nullable rather than defaulted because neither default is a
+  /// compile-time constant.
+  static ThemeData light([Palette? palette, Palette? accent]) => _build(
+    palette ?? Palette.defaultPalette,
+    accent ?? Palette.inkIris,
+    Brightness.light,
+  );
 
-  static ThemeData dark([Palette? palette]) =>
-      _build(palette ?? Palette.defaultPalette, Brightness.dark);
+  static ThemeData dark([Palette? palette, Palette? accent]) => _build(
+    palette ?? Palette.defaultPalette,
+    accent ?? Palette.inkIris,
+    Brightness.dark,
+  );
 
-  static ThemeData _build(Palette palette, Brightness brightness) {
-    final scheme = palette.scheme(brightness);
+  static ThemeData _build(
+    Palette palette,
+    Palette accent,
+    Brightness brightness,
+  ) {
+    final scheme = Palette.withAccent(
+      palette.scheme(brightness),
+      accent.scheme(brightness),
+    );
     final neumorphic = palette.neumorphic(brightness);
     final textTheme = AppTypography.textTheme.apply(
       bodyColor: scheme.onSurface,
       displayColor: scheme.onSurface,
+    );
+    final routineCardColors = RoutineCardColors(
+      fill: scheme.primaryContainer,
+      onFill: scheme.onPrimaryContainer,
+      upcomingFill: brightness == Brightness.dark
+          ? AppColors.upcomingDark
+          : AppColors.upcoming,
+      onUpcomingFill: brightness == Brightness.dark
+          ? AppColors.onUpcomingDark
+          : AppColors.onUpcoming,
+      timerGround: brightness == Brightness.dark
+          ? scheme.surface
+          : AppColors.timerGround,
     );
 
     return ThemeData(
@@ -41,9 +69,10 @@ abstract final class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: scheme.surface,
       textTheme: textTheme,
-      // The mascot rides along on the theme so the pet follows the chosen
-      // palette without MascotSlot ever importing one.
-      extensions: [neumorphic, palette.mascot],
+      // The mascot and the routine card's own colors ride along on the theme,
+      // the same way the neumorphic pair does, so neither MascotSlot nor a
+      // routine card ever has to import a palette to find them.
+      extensions: [neumorphic, palette.mascot, routineCardColors],
 
       // Flat and transparent: the neumorphic cards below supply the depth, and
       // a tinted elevated bar would fight them for attention.
@@ -236,4 +265,83 @@ abstract final class AppTheme {
       ),
     );
   }
+}
+
+/// The colors a routine card (and anything that means the same thing) draws
+/// from: the accent's container pair, the fixed "coming up soon" pair, and
+/// the timer's resting ground.
+///
+/// Carried as a [ThemeExtension] rather than read straight off
+/// `colorScheme.primaryContainer` so a routine card names the one thing it
+/// actually depends on — the accent, specifically — instead of assuming a
+/// role that a future change to the merge step could quietly detach from it.
+@immutable
+class RoutineCardColors extends ThemeExtension<RoutineCardColors> {
+  const RoutineCardColors({
+    required this.fill,
+    required this.onFill,
+    required this.upcomingFill,
+    required this.onUpcomingFill,
+    required this.timerGround,
+  });
+
+  /// The accent's `primaryContainer` — a routine card's own fill.
+  final Color fill;
+
+  /// The accent's `onPrimaryContainer` — text and icons on [fill].
+  final Color onFill;
+
+  /// Fixed "a routine is coming up soon" green. Never derived from the
+  /// palette or the accent.
+  final Color upcomingFill;
+
+  /// Text and icons on [upcomingFill].
+  final Color onUpcomingFill;
+
+  /// The timer's resting ground.
+  final Color timerGround;
+
+  @override
+  RoutineCardColors copyWith({
+    Color? fill,
+    Color? onFill,
+    Color? upcomingFill,
+    Color? onUpcomingFill,
+    Color? timerGround,
+  }) {
+    return RoutineCardColors(
+      fill: fill ?? this.fill,
+      onFill: onFill ?? this.onFill,
+      upcomingFill: upcomingFill ?? this.upcomingFill,
+      onUpcomingFill: onUpcomingFill ?? this.onUpcomingFill,
+      timerGround: timerGround ?? this.timerGround,
+    );
+  }
+
+  @override
+  RoutineCardColors lerp(RoutineCardColors? other, double t) {
+    if (other == null) return this;
+    return RoutineCardColors(
+      fill: Color.lerp(fill, other.fill, t)!,
+      onFill: Color.lerp(onFill, other.onFill, t)!,
+      upcomingFill: Color.lerp(upcomingFill, other.upcomingFill, t)!,
+      onUpcomingFill: Color.lerp(onUpcomingFill, other.onUpcomingFill, t)!,
+      timerGround: Color.lerp(timerGround, other.timerGround, t)!,
+    );
+  }
+}
+
+/// Convenience accessor so screens read `context.routineCardColors.fill`
+/// rather than spelling out the extension lookup every time, matching
+/// [NeumorphicContext].
+extension RoutineCardColorsContext on BuildContext {
+  RoutineCardColors get routineCardColors =>
+      Theme.of(this).extension<RoutineCardColors>() ??
+      const RoutineCardColors(
+        fill: AppColors.primaryContainer,
+        onFill: AppColors.onPrimaryContainer,
+        upcomingFill: AppColors.upcoming,
+        onUpcomingFill: AppColors.onUpcoming,
+        timerGround: AppColors.timerGround,
+      );
 }

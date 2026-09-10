@@ -379,6 +379,42 @@ class Palette {
 
   @override
   int get hashCode => storageId.hashCode;
+
+  // -------------------------------------------------------------------
+  // Accent merge
+  // -------------------------------------------------------------------
+
+  /// Returns [base] with its primary identity replaced by [accent]'s:
+  /// `primary`, `onPrimary`, `primaryContainer`, `onPrimaryContainer`, and
+  /// `inversePrimary`. Everything else — every surface role, `secondary`,
+  /// `tertiary`, `outline`, `error`, and critically `surfaceTint` — passes
+  /// through from [base] untouched.
+  ///
+  /// [accent]'s own `primary` already clears 4.5:1 against *its own*
+  /// `surface` — that is what generating it guaranteed. It says nothing
+  /// about whether it clears against [base]'s surface, which is a different
+  /// color the accent's recipe never saw, so `primary` is pushed through
+  /// [_meet] again here, against [base].surface, before it is used. The
+  /// container pair is not re-measured: `onPrimaryContainer` already clears
+  /// AA against `primaryContainer` because both came from the same accent
+  /// palette, which already guarantees that pairing.
+  ///
+  /// `surfaceTint` is deliberately left as [base]'s: Material tints elevated
+  /// surfaces (menus, dialogs) with it, and if it followed the accent, every
+  /// elevated surface in the app would shift color the moment someone picked
+  /// an accent that differs from their palette — a far bigger visual change
+  /// than "routine cards and buttons are accented."
+  static ColorScheme withAccent(ColorScheme base, ColorScheme accent) {
+    final darken = base.brightness == Brightness.light;
+    final primary = _meet(accent.primary, base.surface, 4.5, darken: darken);
+    return base.copyWith(
+      primary: primary,
+      onPrimary: _on(primary, base.onSurface),
+      primaryContainer: accent.primaryContainer,
+      onPrimaryContainer: accent.onPrimaryContainer,
+      inversePrimary: accent.inversePrimary,
+    );
+  }
 }
 
 /// The mascot's colours, carried on the theme so [MascotSlot] never imports a

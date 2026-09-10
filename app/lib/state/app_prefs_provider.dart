@@ -76,3 +76,29 @@ class PaletteSetting extends _$PaletteSetting {
   /// slider frame would be sixty writes for one decision.
   void preview(Palette palette) => state = palette;
 }
+
+/// The accent color routine cards and primary actions take on, chosen
+/// independently of [PaletteSetting]. Deliberately falls back to
+/// [Palette.inkIris] rather than [Palette.defaultPalette] — the accent's
+/// default is a separate product decision from the background palette's, and
+/// the two must not recouple just because one of them changes later.
+@Riverpod(keepAlive: true)
+class AccentSetting extends _$AccentSetting {
+  @override
+  Palette build() {
+    final id = ref.watch(appPrefsProvider).accentId;
+    if (id == null) return Palette.inkIris;
+    return Palette.builtIns.firstWhere(
+      (palette) => palette.id == id,
+      orElse: () => Palette.inkIris,
+    );
+  }
+
+  Future<void> setAccent(Palette accent) async {
+    await ref.read(appPrefsProvider).setAccentId(accent.id);
+    state = accent;
+  }
+
+  /// Repaints without touching disk — see [PaletteSetting.preview].
+  void preview(Palette accent) => state = accent;
+}

@@ -29,6 +29,7 @@ class AppPrefs {
   static const _storageModeKey = 'storage_mode';
   static const _localeOverrideKey = 'locale_override';
   static const _paletteKey = 'theme_palette';
+  static const _accentKey = 'accent_color';
   static const _reminderLeadKey = 'reminder_lead_minutes';
   static const _installClientIdKey = 'install_client_id';
   static const _driveCutoverFolderIdKey = 'drive_cutover_folder_id';
@@ -114,6 +115,20 @@ class AppPrefs {
   Future<void> setPaletteId(String? id) {
     if (id == null) return _prefs.remove(_paletteKey);
     return _prefs.setString(_paletteKey, id);
+  }
+
+  /// A `Palette.storageId` for the accent color that tints routine cards and
+  /// primary actions, independent of the background palette above. Modeled
+  /// exactly on [paletteId]: null means "never chosen", which resolves to
+  /// purple (`Palette.inkIris`), and an id this build doesn't recognize falls
+  /// back the same way rather than leaving anything unthemed. Unlike the
+  /// background palette, the accent only ever names a built-in — there's no
+  /// custom-hue variant to round-trip here.
+  String? get accentId => _prefs.getString(_accentKey);
+
+  Future<void> setAccentId(String? id) {
+    if (id == null) return _prefs.remove(_accentKey);
+    return _prefs.setString(_accentKey, id);
   }
 
   /// How far before a routine's start time its reminder fires. Five minutes by
