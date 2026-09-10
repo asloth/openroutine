@@ -599,4 +599,39 @@ void main() {
 
     await _disposeCleanly(tester);
   });
+
+  // Task 3.3: the home screen widget publishes a snapshot, so a row can name a
+  // routine that has since been deleted. Tapping it must not strand the app on
+  // a spinner that never resolves.
+  testWidgets('a run for a routine that no longer exists does not hang', (
+    WidgetTester tester,
+  ) async {
+    final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageAdapterProvider.overrideWithValue(adapter),
+          notificationServiceProvider.overrideWithValue(
+            _NoopNotificationService(),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const TimerScreen(routineId: 'deleted-since-publish'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    // And it leaves no trace in the stats: a routine with no steps never
+    // becomes an active run, so there is nothing to log.
+    expect(
+      await adapter.completionsInRange(DateTime(2000), DateTime(2100)),
+      isEmpty,
+    );
+    await _disposeCleanly(tester);
+  });
 }

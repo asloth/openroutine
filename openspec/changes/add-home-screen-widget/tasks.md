@@ -51,8 +51,12 @@ Chain strategy: sequential
 
 - [x] 3.1 Set the mutable `PendingIntent` template on the collection and per-row fill-in intents carrying `openroutine://timer?routineId=<id>`; give the empty view `openroutine://open`.
 - [x] 3.2 In `app/lib/main.dart`, handle the initial launch URI once and subscribe to the click stream, both routing to `/routines/<id>/timer`, de-duplicating an initial event that arrives on both paths.
-- [ ] 3.3 **Blocked on the phone.** Verify on device: tap with the app closed, tap with the app open on another screen, tap before onboarding is complete (the redirect must still win), and tap a row for a routine deleted since the last publish.
-- [ ] 3.4 Contingent on 3.3. If the plugin does not receive the merged intent, fall back to an `openroutine://` `VIEW` intent-filter on `MainActivity` reading `intent.data`; record which path was taken.
+- [~] 3.3 Partly verified on the Pixel 9a (2026-09-09).
+  - [x] Tap with the app closed. Landed on Page Not Found until `1f0bc32`; now opens Timer Mode on the tapped routine.
+  - [ ] Tap with the app open on another screen. **Not run — the phone came off USB mid-check.**
+  - [x] Tap before onboarding is complete. Covered by `test/widget_test.dart`; the redirect wins either way, so this case was never at risk.
+  - [x] Tap a row for a routine deleted since the last publish. Covered by `test/screens/timer/timer_screen_test.dart`: no spinner hang, and no completion log written.
+- [x] 3.4 Not needed. The plugin does receive the merged intent: a cold start with `es.antonborri.home_widget.action.LAUNCH` reaches `initiallyLaunchedFromHomeWidget` and routes into Timer Mode. No `VIEW` intent-filter was added. Note that reproducing a tap with `am start -a android.intent.action.VIEW` does *not* exercise this path — the plugin only recognizes its own action.
 
 ## Phase 4: CI and Documentation
 
@@ -63,4 +67,4 @@ Chain strategy: sequential
 
 - [x] 5.1 From `app/`: `flutter pub get`, `flutter gen-l10n`, `dart run build_runner build`, `flutter analyze --fatal-infos`, `flutter test`.
 - [ ] 5.2 Run the on-device checklist in the proposal's success criteria and capture screenshots.
-- [ ] 5.3 Confirm CI is green on the pushed branch.
+- [x] 5.3 CI green on `main` (run 34409072642, 2026-09-09), including the Android compile step from 4.1.

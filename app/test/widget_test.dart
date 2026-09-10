@@ -128,4 +128,31 @@ void main() {
     expect(foregroundSyncs, 1);
     await _disposeCleanly(tester);
   });
+
+  // A widget tap arrives as the platform's default route. Onboarding has to
+  // win over it: someone who taps the widget before finishing setup should
+  // land on the first slide, not part-way into a routine they have not
+  // configured yet.
+  testWidgets('a widget tap before onboarding still lands on onboarding', (
+    WidgetTester tester,
+  ) async {
+    tester.platformDispatcher.defaultRouteNameTestValue =
+        'openroutine://timer?routineId=abc123';
+    addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: const OpenRoutineApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(Scaffold).first);
+    final l10n = AppLocalizations.of(context)!;
+
+    expect(find.text(l10n.onboardingSlide1Title), findsOneWidget);
+  });
 }
