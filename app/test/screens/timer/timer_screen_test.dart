@@ -17,6 +17,7 @@ import 'package:openroutine/services/timer/timer_machine.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
 import 'package:openroutine/theme/theme.dart';
+import 'package:openroutine/widgets/tinted/tinted.dart';
 
 /// The real service would reach for platform channels that don't exist under
 /// flutter_test. Scheduling is covered by the machine's own tests; here we only
@@ -509,7 +510,171 @@ void main() {
     expect(find.byIcon(Icons.skip_next), findsNothing);
     expect(find.byIcon(Icons.pause), findsOneWidget);
     expect(find.byIcon(Icons.restart_alt), findsOneWidget);
-    expect(find.byType(NeumorphicCircleButton), findsNWidgets(2));
+    // Close, pause, and restart are all `SoftCircleButton`s now; none of them
+    // is the neumorphic control the tinted-paper redesign replaces.
+    expect(find.byType(SoftCircleButton), findsNWidgets(3));
+    expect(find.byType(NeumorphicCircleButton), findsNothing);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('close is a neutral 48px SoftCircleButton', (tester) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final close = tester.widget<SoftCircleButton>(
+      find.widgetWithIcon(SoftCircleButton, Icons.close),
+    );
+    expect(close.size, 48);
+    expect(close.style, SoftCircleButtonStyle.neutral);
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    expect(close.tooltip, l10n.timerAbandonConfirmAction);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('pause/resume and restart step are accent SoftCircleButtons', (
+    tester,
+  ) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final pause = tester.widget<SoftCircleButton>(
+      find.widgetWithIcon(SoftCircleButton, Icons.pause),
+    );
+    expect(pause.size, 64);
+    expect(pause.style, SoftCircleButtonStyle.accent);
+
+    final restart = tester.widget<SoftCircleButton>(
+      find.widgetWithIcon(SoftCircleButton, Icons.restart_alt),
+    );
+    expect(restart.size, 64);
+    expect(restart.style, SoftCircleButtonStyle.accent);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('the running screen sits on the timer ground color', (
+    tester,
+  ) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    final context = tester.element(find.byType(Scaffold));
+    expect(scaffold.backgroundColor, context.routineCardColors.timerGround);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets(
+    'shows a segmented step progress instead of a linear bar, and it advances',
+    (tester) async {
+      final adapter = await _seed(
+        steps: [
+          _step('s1', order: 0),
+          _step('s2', order: 1),
+          _step('s3', order: 2),
+          _step('s4', order: 3),
+        ],
+      );
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      SegmentedProgress progress() =>
+          tester.widget<SegmentedProgress>(find.byType(SegmentedProgress));
+
+      expect(progress().count, 4);
+      expect(progress().filled, 1);
+      expect(progress().semanticsLabel, l10n.timerStepCounter(1, 4));
+
+      await tester.tap(find.text(l10n.timerDone));
+      await tester.pumpAndSettle();
+
+      expect(progress().filled, 2);
+      expect(progress().semanticsLabel, l10n.timerStepCounter(2, 4));
+
+      await _disposeCleanly(tester);
+    },
+  );
+
+  testWidgets('Do later renders in onSurface rather than the accent', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [
+        _step('s1', order: 0, name: 'Brush my teeth'),
+        _step('s2', order: 1, name: 'Shower'),
+      ],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    final button = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, l10n.timerDoLater),
+    );
+    final colorScheme = Theme.of(
+      tester.element(find.byType(Scaffold)),
+    ).colorScheme;
+    expect(
+      button.style?.foregroundColor?.resolve(<WidgetState>{}),
+      colorScheme.onSurface,
+    );
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('no overflow running screen at 1.5x text scale', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    final adapter = await _seed(
+      steps: [
+        _step(
+          's1',
+          order: 0,
+          name: 'Brush my teeth thoroughly for two whole minutes',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('no overflow running screen at 2.0x text scale', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    final adapter = await _seed(
+      steps: [
+        _step(
+          's1',
+          order: 0,
+          name: 'Brush my teeth thoroughly for two whole minutes',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
 
     await _disposeCleanly(tester);
   });
