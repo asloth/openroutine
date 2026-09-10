@@ -40,7 +40,17 @@ abstract final class AppRadius {
   static const card = 12.0;
   static const pill = 9999.0;
 
+  /// The default corner for tinted-paper surfaces: `TintedCard` and anything
+  /// built from it.
+  static const tinted = 20.0;
+
+  /// Larger tinted surfaces — a hero card, a big stat tile — that read as one
+  /// size step up from `tinted` rather than sharing its radius.
+  static const hero = 24.0;
+
   static const cardBorder = BorderRadius.all(Radius.circular(card));
   static const mediumBorder = BorderRadius.all(Radius.circular(medium));
   static const pillBorder = BorderRadius.all(Radius.circular(pill));
+  static const tintedBorder = BorderRadius.all(Radius.circular(tinted));
+  static const heroBorder = BorderRadius.all(Radius.circular(hero));
 }

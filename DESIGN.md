@@ -225,6 +225,16 @@ Every animated duration passes through the reduced-motion resolver rather than r
 
 Interactive neumorphic controls own their pressed state, so a caller supplies the action, not the visual feedback.
 
+### Tinted surfaces
+
+"Tinted paper" is the approved direction that replaces neumorphism, one redesigned screen at a time: a flat, tinted fill instead of the shadow pair, and no stock Material chrome — no `AppBar` strip, `TabBar`, `NavigationBar`, or FAB shadow. Depth comes from color contrast against the surface behind a control, not from a shadow.
+
+`TintedCard` is the flat-surface equivalent of `NeumorphicCard`: a solid fill with a required foreground color, no shadow, an ink response and a small press deform when it's tappable. `SoftCircleButton` replaces `NeumorphicCircleButton` the same way, in a neutral or accent fill. `PageHeader`, `SectionLabel`, `SegmentedProgress`, and `PillSegmentedControl` cover the layout and progress roles a stock `AppBar`, section heading, `LinearProgressIndicator`, and `TabBar` would otherwise fill — each with no bar, no elevation, and no shadow of its own. All six live under `app/lib/widgets/tinted/`.
+
+Every tinted-surface widget takes its colors from `Theme.of(context).colorScheme` or from a caller-supplied color, never a literal — the same discipline as the neumorphic set, applied to a flat fill instead of a shadow pair.
+
+The two idioms coexist for as long as the redesign is in progress. A screen the redesign hasn't reached yet keeps its neumorphic widgets; nothing here retires `NeumorphicTheme` or its widgets while a single screen still depends on them.
+
 ## Do's and don'ts
 
 - Don't hand-pick a color in a screen. If a screen needs a color that isn't a token, the design system is missing a role.
