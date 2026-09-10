@@ -116,4 +116,27 @@ abstract final class AppTypography {
   static const tabularFigures = TextStyle(
     fontFeatures: [FontFeature.tabularFigures()],
   );
+
+  /// The tinted-paper redesign's screen title, set by `PageHeader`.
+  ///
+  /// Deliberately not a `TextTheme` role: adding it there would restyle every
+  /// existing screen that reads `headlineSmall` or similar. It's a static
+  /// style a widget applies directly instead.
+  static const pageTitle = TextStyle(
+    fontFamily: display,
+    fontSize: 30,
+    height: 1.2,
+    letterSpacing: -0.4,
+    fontWeight: FontWeight.w600,
+  );
+
+  /// The tinted-paper redesign's section caption, set by `SectionLabel`.
+  /// Callers uppercase the text themselves; the style doesn't force a case.
+  static const sectionLabel = TextStyle(
+    fontFamily: display,
+    fontSize: 12,
+    height: 1,
+    letterSpacing: 1.2,
+    fontWeight: FontWeight.w600,
+  );
 }
