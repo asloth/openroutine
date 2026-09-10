@@ -17,6 +17,7 @@ import 'screens/routine_detail/routine_detail_screen.dart';
 import 'screens/routine_form/routine_form_screen.dart';
 import 'screens/routines_list/routines_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/shell/app_shell.dart';
 import 'screens/step_form/step_form_screen.dart';
 import 'screens/timer/timer_screen.dart';
 import 'models/completion_log.dart';
@@ -68,13 +69,38 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           child: const OnboardingScreen(),
         ),
       ),
-      GoRoute(
-        path: '/routines',
-        pageBuilder: (context, state) => appPage(
-          context,
-          key: state.pageKey,
-          child: const RoutinesListScreen(),
-        ),
+      // The two top-level destinations. Each branch keeps its own Navigator,
+      // so switching away and back restores where the user was rather than
+      // rebuilding from the branch root.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/routines',
+                pageBuilder: (context, state) => appPage(
+                  context,
+                  key: state.pageKey,
+                  child: const RoutinesListScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/stats',
+                pageBuilder: (context, state) => appPage(
+                  context,
+                  key: state.pageKey,
+                  child: const StatsScreen(),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: '/routines/new',
@@ -141,11 +167,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/import',
         pageBuilder: (context, state) =>
             appPage(context, key: state.pageKey, child: const ImportScreen()),
-      ),
-      GoRoute(
-        path: '/stats',
-        pageBuilder: (context, state) =>
-            appPage(context, key: state.pageKey, child: const StatsScreen()),
       ),
       GoRoute(
         path: '/settings',

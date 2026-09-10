@@ -55,7 +55,11 @@
 
   "routinesMenuImport": "Importar",
 
-  "routinesMenuSettings": "Configuración",
+  "navRoutines": "Rutinas",
+
+  "navStats": "Estadísticas",
+
+  "settingsTitle": "Configuración",
 
   "routinesNewRoutine": "Nueva rutina",
 

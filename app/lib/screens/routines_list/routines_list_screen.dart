@@ -12,7 +12,8 @@ import '../../theme/theme.dart';
 import '../../widgets/mascot_slot.dart';
 
 /// docs/SPEC.md §7 screen 2: tabs Scheduled/Flexible, sections by trigger,
-/// FAB for new routine, overflow menu with Import/Settings.
+/// FAB for new routine, and a settings icon. Statistics is a destination on
+/// the bottom bar; Import lives in Settings.
 class RoutinesListScreen extends ConsumerWidget {
   const RoutinesListScreen({super.key});
 
@@ -34,31 +35,13 @@ class RoutinesListScreen extends ConsumerWidget {
             ],
           ),
           actions: [
-            PopupMenuButton<_OverflowAction>(
-              onSelected: (action) {
-                switch (action) {
-                  case _OverflowAction.import:
-                    context.push('/import');
-                  case _OverflowAction.stats:
-                    context.push('/stats');
-                  case _OverflowAction.settings:
-                    context.push('/settings');
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: _OverflowAction.import,
-                  child: Text(l10n.routinesMenuImport),
-                ),
-                PopupMenuItem(
-                  value: _OverflowAction.stats,
-                  child: Text(l10n.statsTitle),
-                ),
-                PopupMenuItem(
-                  value: _OverflowAction.settings,
-                  child: Text(l10n.routinesMenuSettings),
-                ),
-              ],
+            // Statistics moved to the bottom bar and Import into Settings, so
+            // the corner the overflow menu used to occupy now holds the one
+            // destination left: Settings itself.
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: l10n.settingsTitle,
+              onPressed: () => context.push('/settings'),
             ),
           ],
         ),
@@ -142,8 +125,6 @@ void _armReminders(
         );
   });
 }
-
-enum _OverflowAction { import, stats, settings }
 
 class _RoutineSectionList extends ConsumerWidget {
   const _RoutineSectionList({

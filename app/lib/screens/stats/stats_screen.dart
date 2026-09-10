@@ -23,7 +23,12 @@ class StatsScreen extends ConsumerWidget {
     final statsAsync = ref.watch(statisticsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.statsTitle)),
+      appBar: AppBar(
+        title: Text(l10n.statsTitle),
+        // A destination root, not a pushed page: there is nothing behind it
+        // to go back to.
+        automaticallyImplyLeading: false,
+      ),
       body: statsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => Center(

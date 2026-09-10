@@ -133,12 +133,22 @@
 
   "routinesMenuImport": "Import",
   "@routinesMenuImport": {
-    "description": "Overflow menu item on the routines list, opens the Import screen."
+    "description": "Row in the Settings data section, opens the Import screen."
   },
 
-  "routinesMenuSettings": "Settings",
-  "@routinesMenuSettings": {
-    "description": "Overflow menu item on the routines list, opens the Settings screen."
+  "navRoutines": "Routines",
+  "@navRoutines": {
+    "description": "Bottom navigation bar label for the routines list."
+  },
+
+  "navStats": "Statistics",
+  "@navStats": {
+    "description": "Bottom navigation bar label for the statistics screen."
+  },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of the Settings screen, and the tooltip on the routines list icon that opens it."
   },
 
   "routinesNewRoutine": "New routine",
@@ -148,7 +158,7 @@
 
   "statsTitle": "Statistics",
   "@statsTitle": {
-    "description": "Title of the statistics screen and its overflow menu entry."
+    "description": "Title of the statistics screen."
   },
   "statsEmptyTitle": "Nothing to show yet",
   "@statsEmptyTitle": {

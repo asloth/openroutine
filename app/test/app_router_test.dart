@@ -34,4 +34,27 @@ void main() {
 
     expect(initialLocation(), '/routines');
   });
+
+  test('the routes a widget or notification tap needs still resolve', () {
+    binding.platformDispatcher.defaultRouteNameTestValue = '/';
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider);
+
+    // Wrapping /routines and /stats in a shell must not move the routes the
+    // home screen widget and reminder notifications navigate to.
+    for (final location in [
+      '/routines/abc123',
+      '/routines/abc123/timer',
+      '/settings',
+      '/import',
+      '/stats',
+    ]) {
+      expect(
+        router.configuration.findMatch(Uri.parse(location)).routes,
+        isNotEmpty,
+        reason: '$location no longer matches a route',
+      );
+    }
+  });
 }

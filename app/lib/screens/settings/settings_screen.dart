@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -36,7 +37,7 @@ class SettingsScreen extends ConsumerWidget {
     final sync = ref.watch(syncControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.routinesMenuSettings)),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         children: [
           _SectionHeader(l10n.settingsStorageSection),
@@ -76,7 +77,9 @@ class SettingsScreen extends ConsumerWidget {
                     ],
                   ),
                   subtitle: Text(
-                    driveAvailable ? l10n.driveExplainer : l10n.driveUnavailable,
+                    driveAvailable
+                        ? l10n.driveExplainer
+                        : l10n.driveUnavailable,
                   ),
                 ),
               ],
@@ -88,13 +91,11 @@ class SettingsScreen extends ConsumerWidget {
               // The title has to match what tapping does, and in needsReauth
               // tapping reconnects — showing "Disconnect" there read as an
               // offer to undo something that had already come undone.
-              title: Text(
-                switch (sync.status) {
-                  SyncStatus.disconnected ||
-                  SyncStatus.needsReauth => l10n.driveConnect,
-                  _ => l10n.driveDisconnect,
-                },
-              ),
+              title: Text(switch (sync.status) {
+                SyncStatus.disconnected ||
+                SyncStatus.needsReauth => l10n.driveConnect,
+                _ => l10n.driveDisconnect,
+              }),
               subtitle: Text(_syncLabel(l10n, sync)),
               onTap: () {
                 final controller = ref.read(syncControllerProvider.notifier);
@@ -136,6 +137,14 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           _SectionHeader(l10n.settingsDataSection),
+          // Import sits with export rather than in a menu of its own: they are
+          // one idea in two directions, and someone looking for either will
+          // look where the other is.
+          ListTile(
+            leading: const Icon(Icons.file_download_outlined),
+            title: Text(l10n.routinesMenuImport),
+            onTap: () => context.push('/import'),
+          ),
           ListTile(
             leading: const Icon(Icons.ios_share_outlined),
             title: Text(l10n.settingsExportAll),
