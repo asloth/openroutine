@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +11,18 @@ import '../../state/reminder_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../theme/theme.dart';
 import '../../widgets/mascot_slot.dart';
+import '../../widgets/tinted/tinted.dart';
+
+/// The mockup's vertical rhythm. These don't match any step in [AppSpacing],
+/// so they live here as named literals rather than as new shared tokens —
+/// see `openspec/changes/restyle-routines-list/design.md`.
+const _headerToPillGap = 24.0;
+const _labelToCardsGap = 12.0;
+const _cardGap = 12.0;
+const _groupGap = 28.0;
+
+/// Clears the FAB so the last card is never trapped underneath it.
+const _fabClearance = AppSpacing.section * 2.5;
 
 /// docs/SPEC.md §7 screen 2: tabs Scheduled/Flexible, sections by trigger,
 /// FAB for new routine, and a settings icon. Statistics is a destination on
@@ -20,64 +33,112 @@ class RoutinesListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final brightness = Theme.of(context).brightness;
     final routinesAsync = ref.watch(routinesProvider);
     final triggersAsync = ref.watch(triggersProvider);
 
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.appTitle),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: l10n.routinesTabScheduled),
-              Tab(text: l10n.routinesTabFlexible),
-            ],
-          ),
-          actions: [
-            // Statistics moved to the bottom bar and Import into Settings, so
-            // the corner the overflow menu used to occupy now holds the one
-            // destination left: Settings itself.
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              tooltip: l10n.settingsTitle,
-              onPressed: () => context.push('/settings'),
+      child: Builder(
+        builder: (context) {
+          // Removing the AppBar removes the status-bar styling it used to
+          // supply for free, so the screen sets its own: dark icons over the
+          // light theme, light icons over the dark one, and a transparent
+          // bar so the tinted background shows through behind it.
+          final overlayStyle =
+              (brightness == Brightness.dark
+                      ? SystemUiOverlayStyle.light
+                      : SystemUiOverlayStyle.dark)
+                  .copyWith(statusBarColor: Colors.transparent);
+
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: overlayStyle,
+            child: Scaffold(
+              body: SafeArea(
+                bottom: false,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.element,
+                      ),
+                      child: Column(
+                        children: [
+                          PageHeader(
+                            title: l10n.appTitle,
+                            actions: [
+                              SoftCircleButton(
+                                icon: Icons.settings_outlined,
+                                tooltip: l10n.settingsTitle,
+                                onPressed: () => context.push('/settings'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: _headerToPillGap),
+                          PillSegmentedControl(
+                            controller: DefaultTabController.of(context),
+                            labels: [
+                              l10n.routinesTabScheduled,
+                              l10n.routinesTabFlexible,
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: routinesAsync.when(
+                        data: (routines) {
+                          final triggersById = {
+                            for (final t
+                                in triggersAsync.value ?? const <Trigger>[])
+                              t.id: t,
+                          };
+                          _armReminders(context, ref, routines, triggersById);
+                          return TabBarView(
+                            controller: DefaultTabController.of(context),
+                            children: [
+                              _RoutineSectionList(
+                                routines: routines
+                                    .where(
+                                      (r) =>
+                                          r.schedule.mode ==
+                                          ScheduleMode.scheduled,
+                                    )
+                                    .toList(),
+                                triggersById: triggersById,
+                                emptyMessage: l10n.routinesEmptyScheduled,
+                              ),
+                              _RoutineSectionList(
+                                routines: routines
+                                    .where(
+                                      (r) =>
+                                          r.schedule.mode ==
+                                          ScheduleMode.flexible,
+                                    )
+                                    .toList(),
+                                triggersById: triggersById,
+                                emptyMessage: l10n.routinesEmptyFlexible,
+                              ),
+                            ],
+                          );
+                        },
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (error, stack) =>
+                            Center(child: Text(l10n.routinesLoadError)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              floatingActionButton: FloatingActionButton(
+                onPressed: () => context.push('/routines/new'),
+                tooltip: l10n.routinesNewRoutine,
+                child: const Icon(Icons.add),
+              ),
             ),
-          ],
-        ),
-        body: routinesAsync.when(
-          data: (routines) {
-            final triggersById = {
-              for (final t in triggersAsync.value ?? const <Trigger>[]) t.id: t,
-            };
-            _armReminders(context, ref, routines, triggersById);
-            return TabBarView(
-              children: [
-                _RoutineSectionList(
-                  routines: routines
-                      .where((r) => r.schedule.mode == ScheduleMode.scheduled)
-                      .toList(),
-                  triggersById: triggersById,
-                  emptyMessage: l10n.routinesEmptyScheduled,
-                ),
-                _RoutineSectionList(
-                  routines: routines
-                      .where((r) => r.schedule.mode == ScheduleMode.flexible)
-                      .toList(),
-                  triggersById: triggersById,
-                  emptyMessage: l10n.routinesEmptyFlexible,
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(child: Text(l10n.routinesLoadError)),
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => context.push('/routines/new'),
-          tooltip: l10n.routinesNewRoutine,
-          child: const Icon(Icons.add),
-        ),
+          );
+        },
       ),
     );
   }
@@ -167,46 +228,37 @@ class _RoutineSectionList extends ConsumerWidget {
         ),
       );
 
-    final theme = Theme.of(context);
-
     // A single untriggered group means every routine here is untriggered, and
     // a heading announcing that above the whole list is pure noise. Headings
     // earn their place only when they tell one group apart from another.
     final showHeaders = sectionKeys.length > 1 || sectionKeys.single != null;
 
+    final children = <Widget>[];
+    for (final (index, triggerId) in sectionKeys.indexed) {
+      // A heading belongs to the cards under it, so it sits closer to them
+      // than to the group above.
+      if (index > 0) children.add(const SizedBox(height: _groupGap));
+      if (showHeaders) {
+        children.add(
+          SectionLabel(triggersById[triggerId]?.name ?? l10n.routinesNoTrigger),
+        );
+        children.add(const SizedBox(height: _labelToCardsGap));
+      }
+      final groupRoutines = byTrigger[triggerId]!;
+      for (final (i, routine) in groupRoutines.indexed) {
+        if (i > 0) children.add(const SizedBox(height: _cardGap));
+        children.add(_RoutineCard(routine: routine));
+      }
+    }
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         AppSpacing.element,
         AppSpacing.element,
         AppSpacing.element,
-        // Clears the FAB so the last card is never trapped underneath it.
-        AppSpacing.section * 2.5,
+        MediaQuery.paddingOf(context).bottom + _fabClearance,
       ),
-      children: [
-        for (final (index, triggerId) in sectionKeys.indexed) ...[
-          if (showHeaders)
-            Padding(
-              // A heading belongs to the cards under it, so it sits closer to
-              // them than to the group above. The old padding had that
-              // backwards — 16 above, 8 below — which read as the heading
-              // being crowded by its own first card.
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.base,
-                index == 0 ? 0 : AppSpacing.section,
-                AppSpacing.base,
-                AppSpacing.element,
-              ),
-              child: Text(
-                triggersById[triggerId]?.name ?? l10n.routinesNoTrigger,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          for (final routine in byTrigger[triggerId]!)
-            _RoutineCard(routine: routine),
-        ],
-      ],
+      children: children,
     );
   }
 }
@@ -216,18 +268,28 @@ class _RoutineCard extends ConsumerWidget {
 
   final Routine routine;
 
+  static const _nameStyle = TextStyle(
+    fontFamily: AppTypography.display,
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final colors = context.routineCardColors;
     final steps = ref.watch(routineStepsProvider(routine.id)).value;
     final hasCoreSteps = steps?.any((step) => step.isCore) ?? false;
-    return NeumorphicCard(
-      margin: const EdgeInsets.only(bottom: AppSpacing.element),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.element,
-        vertical: AppSpacing.element,
-      ),
+    final secondaryStyle = TextStyle(
+      fontFamily: AppTypography.body,
+      fontSize: 14,
+      color: colors.onFill.withValues(alpha: 0.8),
+    );
+
+    return TintedCard(
+      color: colors.fill,
+      foregroundColor: colors.onFill,
+      padding: EdgeInsets.fromLTRB(16, 18, hasCoreSteps ? 12 : 16, 18),
       onTap: () => context.push('/routines/${routine.id}'),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -237,45 +299,81 @@ class _RoutineCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(routine.name, style: theme.textTheme.titleMedium),
+                Text(routine.name, style: _nameStyle),
                 const SizedBox(height: 2),
                 Text(
                   l10n.routinesStepCount(routine.stepIds.length),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: secondaryStyle,
                 ),
                 if (steps != null && !hasCoreSteps) ...[
                   const SizedBox(height: 4),
                   Text(
                     l10n.routinesLowModeSetupGuidance,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: secondaryStyle,
                   ),
                 ],
               ],
             ),
           ),
           if (hasCoreSteps)
-            Semantics(
-              button: true,
-              child: SizedBox(
-                height: 48,
-                child: TextButton(
-                  onPressed: () => context.push(
-                    '/routines/${routine.id}/timer?mode=low&steps=${steps!.where((step) => step.isCore).map((step) => step.id).join(',')}',
-                  ),
-                  child: Text(l10n.routinesStartLowMode),
-                ),
+            _LowModePill(
+              label: l10n.routinesStartLowMode,
+              onFill: colors.onFill,
+              onPressed: () => context.push(
+                '/routines/${routine.id}/timer?mode=low&steps=${steps!.where((step) => step.isCore).map((step) => step.id).join(',')}',
               ),
             )
           else
-            Icon(
-              Icons.chevron_right,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            Icon(Icons.chevron_right, color: colors.onFill),
         ],
+      ),
+    );
+  }
+}
+
+/// "Start Low Mode" as a filled pill: `onFill` at 10% opacity, its label in
+/// full `onFill`. Nested inside the card's own tappable `TintedCard` the same
+/// way the stock `TextButton` it replaces was, so a tap on the pill wins over
+/// a tap on the card behind it.
+class _LowModePill extends StatelessWidget {
+  const _LowModePill({
+    required this.label,
+    required this.onFill,
+    required this.onPressed,
+  });
+
+  final String label;
+  final Color onFill;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: AppRadius.pillBorder,
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: onFill.withValues(alpha: 0.1),
+              borderRadius: AppRadius.pillBorder,
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: AppTypography.display,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: onFill,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -297,7 +395,7 @@ class _StartTime extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final onFill = context.routineCardColors.onFill;
     final time = _parse(routine.schedule.startTime);
 
     return SizedBox(
@@ -313,8 +411,11 @@ class _StartTime extends StatelessWidget {
                   context,
                 ),
               ),
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.primary,
+              style: TextStyle(
+                fontFamily: AppTypography.display,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: onFill,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),

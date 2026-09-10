@@ -235,13 +235,17 @@ abstract final class AppTheme {
         dividerColor: scheme.outlineVariant,
       ),
 
+      // Tinted paper: a flat, perfectly round FAB with no drop shadow in any
+      // state — depth here comes from color contrast, not elevation.
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
-        elevation: 4,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(AppRadius.card * 1.5)),
-        ),
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        highlightElevation: 0,
+        disabledElevation: 0,
+        shape: const CircleBorder(),
       ),
 
       progressIndicatorTheme: ProgressIndicatorThemeData(
