@@ -481,16 +481,27 @@ class _TemplateCarousel extends StatelessWidget {
   final List<StepTemplateCategory> categories;
   final ValueChanged<StepTemplate> onSelected;
 
-  static const _height = 104.0;
+  /// The card's fixed padding, and the text stack that sits inside it at the
+  /// default text scale: emoji, a two-line name, and the duration.
+  static const _verticalPadding = 20.0;
+  static const _textHeight = 84.0;
   static const _cardWidth = 116.0;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    // Every line inside the card grows with the text scale, but the padding
+    // does not — so scale only the text's share. A fixed height left the name
+    // with about a pixel to draw in at 1.5x, and because it sits in a
+    // Flexible it was sliced through the middle of the letters rather than
+    // overflowing where anyone would notice. At the default scale this comes
+    // out at the same 104 the card has always been.
+    final textScaler = MediaQuery.textScalerOf(context);
+    final height = _verticalPadding + textScaler.scale(_textHeight);
 
     return SizedBox(
-      height: _height,
+      height: height,
       child: ListView(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
@@ -511,7 +522,9 @@ class _TemplateCarousel extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: SizedBox(
-                  width: _cardWidth,
+                  // Widen with the text too, or a scaled-up name ellipses away
+                  // to a couple of words in a card that stayed narrow.
+                  width: textScaler.scale(_cardWidth),
                   child: _TemplateCard(
                     template: template,
                     onTap: () => onSelected(template),
