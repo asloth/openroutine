@@ -12,6 +12,7 @@ import '../../state/storage_provider.dart';
 import '../../state/timer_provider.dart';
 import '../../theme/theme.dart';
 import '../../widgets/mascot_slot.dart';
+import '../../widgets/tinted/tinted.dart';
 
 /// docs/SPEC.md §7 screen 7 — the full-screen playlist runner.
 ///
@@ -84,6 +85,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: context.routineCardColors.timerGround,
         body: SafeArea(
           child: stepsAsync.hasError
               ? Center(child: Text(l10n.commonLoadError))
@@ -147,8 +149,8 @@ class _Running extends ConsumerWidget {
       children: [
         Align(
           alignment: Alignment.topRight,
-          child: IconButton(
-            icon: const Icon(Icons.close),
+          child: SoftCircleButton(
+            icon: Icons.close,
             tooltip: l10n.timerAbandonConfirmAction,
             onPressed: () => Navigator.of(context).maybePop(),
           ),
@@ -160,9 +162,18 @@ class _Running extends ConsumerWidget {
             style: theme.textTheme.labelLarge,
           ),
         ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: (state.currentIndex + 1) / state.steps.length,
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: SegmentedProgress(
+            count: state.steps.length,
+            filled: state.currentIndex + 1,
+            color: theme.colorScheme.onSurface,
+            semanticsLabel: l10n.timerStepCounter(
+              state.currentIndex + 1,
+              state.steps.length,
+            ),
+          ),
         ),
         // Scrollable so the runner survives short screens and large system
         // font scales; the controls below stay pinned either way.
@@ -232,9 +243,11 @@ class _Running extends ConsumerWidget {
           ),
         ),
         // Sits below the primary action and stays out of the way: deferring a
-        // step is the rarer intent, and it must not compete with Done.
-        // Hidden rather than disabled on the last step and on a step already
-        // deferred once — a permanently greyed control is just noise.
+        // step is the rarer intent, and it must not compete with Done. It's
+        // colored `onSurface` rather than the theme's default (the accent),
+        // so it stays out of Done's way visually too. Hidden rather than
+        // disabled on the last step and on a step already deferred once — a
+        // permanently greyed control is just noise.
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
           child: SizedBox(
@@ -242,6 +255,9 @@ class _Running extends ConsumerWidget {
             child: state.canPostpone
                 ? TextButton.icon(
                     onPressed: notifier.postpone,
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onSurface,
+                    ),
                     icon: const Icon(Icons.schedule, size: 20),
                     label: Text(l10n.timerDoLater),
                   )
@@ -491,10 +507,10 @@ class _SummaryState extends ConsumerState<_Summary> {
   }
 }
 
-/// Neutral neumorphic circles rather than `IconButton.filledTonal`, which
-/// paints itself `secondaryContainer` — a mint green that shouts louder than
-/// the primary Done action sitting right beneath it. Same size, same icons,
-/// same positions; only the surface treatment changes.
+/// A 64px accent `SoftCircleButton`: the tinted-paper redesign's circular
+/// control. Done stays the one full-width, unambiguously primary action
+/// beneath these, so the accent color here doesn't compete with it — it just
+/// reads as "the other controls that matter on this screen."
 class _CircleAction extends StatelessWidget {
   const _CircleAction({
     required this.icon,
@@ -508,10 +524,12 @@ class _CircleAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NeumorphicCircleButton(
+    return SoftCircleButton(
       icon: icon,
       tooltip: label,
       onPressed: onPressed,
+      size: 64,
+      style: SoftCircleButtonStyle.accent,
     );
   }
 }
