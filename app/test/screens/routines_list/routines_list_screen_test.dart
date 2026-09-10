@@ -1,11 +1,15 @@
+import 'dart:ui' show Tristate;
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
+import 'package:openroutine/models/trigger.dart';
 import 'package:openroutine/screens/routines_list/routines_list_screen.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
@@ -13,6 +17,8 @@ import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/state/app_prefs_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
+import 'package:openroutine/theme/theme.dart';
+import 'package:openroutine/widgets/tinted/tinted.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The screen arms routine reminders whenever the list resolves, which reads
@@ -22,16 +28,62 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// there still have to exist.
 late SharedPreferences _prefs;
 
-Widget _wrap(StorageAdapter adapter) {
+/// Records the last path this test's router navigated to, so a test can
+/// assert a control's destination without a real screen behind each route.
+class _RouteRecorder {
+  String? last;
+}
+
+GoRouter _router(_RouteRecorder recorder) => GoRouter(
+  initialLocation: '/',
+  routes: [
+    GoRoute(path: '/', builder: (context, state) => const RoutinesListScreen()),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) {
+        recorder.last = '/settings';
+        return const Scaffold(body: Text('Settings screen'));
+      },
+    ),
+    GoRoute(
+      path: '/routines/new',
+      builder: (context, state) {
+        recorder.last = '/routines/new';
+        return const Scaffold(body: Text('New routine screen'));
+      },
+    ),
+    GoRoute(
+      path: '/routines/:routineId',
+      builder: (context, state) {
+        recorder.last = '/routines/${state.pathParameters['routineId']}';
+        return Scaffold(
+          body: Text('Routine ${state.pathParameters['routineId']}'),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/routines/:routineId/timer',
+      builder: (context, state) {
+        recorder.last =
+            '/routines/${state.pathParameters['routineId']}/timer'
+            '?mode=${state.uri.queryParameters['mode']}';
+        return const Scaffold(body: Text('Timer screen'));
+      },
+    ),
+  ],
+);
+
+Widget _wrap(StorageAdapter adapter, {_RouteRecorder? recorder}) {
   return ProviderScope(
     overrides: [
       storageAdapterProvider.overrideWithValue(adapter),
       sharedPreferencesProvider.overrideWithValue(_prefs),
     ],
-    child: MaterialApp(
+    child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const RoutinesListScreen(),
+      theme: AppTheme.light(),
+      routerConfig: _router(recorder ?? _RouteRecorder()),
     ),
   );
 }
@@ -48,6 +100,37 @@ Future<void> _disposeCleanly(WidgetTester tester) async {
   await tester.pump(Duration.zero);
 }
 
+Future<LocalAdapter> _adapterWithRoutine({
+  required String id,
+  required String name,
+  ScheduleMode mode = ScheduleMode.scheduled,
+  String? triggerId,
+  String? startTime,
+  List<RoutineStep> steps = const [],
+}) async {
+  final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+  final now = DateTime.utc(2026, 1, 1);
+  await adapter.saveRoutine(
+    Routine(
+      id: id,
+      name: name,
+      triggerId: triggerId,
+      schedule: Schedule(
+        mode: mode,
+        days: const [DayOfWeek.mon],
+        startTime: startTime,
+      ),
+      stepIds: [for (final step in steps) step.id],
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+  for (final step in steps) {
+    await adapter.saveStep(step);
+  }
+  return adapter;
+}
+
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -61,7 +144,9 @@ void main() {
       await tester.pumpWidget(_wrap(adapter));
       await tester.pumpAndSettle();
 
-      final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
       expect(find.text(l10n.routinesEmptyScheduled), findsOneWidget);
 
       await _disposeCleanly(tester);
@@ -69,21 +154,9 @@ void main() {
   );
 
   testWidgets('a saved routine renders in the list', (tester) async {
-    final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
-    final now = DateTime.utc(2026, 1, 1);
-    await adapter.saveRoutine(
-      Routine(
-        id: 'r1',
-        name: 'Morning Routine',
-        triggerId: null,
-        schedule: const Schedule(
-          mode: ScheduleMode.scheduled,
-          days: [DayOfWeek.mon],
-        ),
-        stepIds: const [],
-        createdAt: now,
-        updatedAt: now,
-      ),
+    final adapter = await _adapterWithRoutine(
+      id: 'r1',
+      name: 'Morning Routine',
     );
 
     await tester.pumpWidget(_wrap(adapter));
@@ -152,11 +225,323 @@ void main() {
     await tester.pumpWidget(_wrap(adapter));
     await tester.pumpAndSettle();
 
-    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(RoutinesListScreen)),
+    )!;
     expect(find.text(l10n.routinesStartLowMode), findsOneWidget);
     expect(find.text(l10n.routinesLowModeSetupGuidance), findsOneWidget);
     expect((await adapter.getSteps('r2')).single.isCore, isFalse);
 
     await _disposeCleanly(tester);
+  });
+
+  group('header', () {
+    testWidgets('shows the app title with no AppBar', (tester) async {
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      expect(find.text(l10n.appTitle), findsOneWidget);
+      expect(find.byType(AppBar), findsNothing);
+      expect(find.byType(PageHeader), findsOneWidget);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('the settings control navigates to /settings', (tester) async {
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      final recorder = _RouteRecorder();
+      await tester.pumpWidget(_wrap(adapter, recorder: recorder));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      await tester.tap(find.byTooltip(l10n.settingsTitle));
+      await tester.pumpAndSettle();
+
+      expect(recorder.last, '/settings');
+
+      await _disposeCleanly(tester);
+    });
+  });
+
+  group('segmented control', () {
+    testWidgets('replaces the TabBar and switches tabs on tap', (tester) async {
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      expect(find.byType(TabBar), findsNothing);
+      expect(find.byType(PillSegmentedControl), findsOneWidget);
+      expect(find.text(l10n.routinesEmptyScheduled), findsOneWidget);
+
+      await tester.tap(find.text(l10n.routinesTabFlexible));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.routinesEmptyFlexible), findsOneWidget);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('swiping the tab content moves the segmented control', (
+      tester,
+    ) async {
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+
+      await tester.fling(find.byType(TabBarView), const Offset(-400, 0), 800);
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.routinesEmptyFlexible), findsOneWidget);
+      final segmentSemantics = tester.getSemantics(
+        find.text(l10n.routinesTabFlexible),
+      );
+      expect(
+        segmentSemantics.getSemanticsData().flagsCollection.isSelected,
+        Tristate.isTrue,
+      );
+
+      await _disposeCleanly(tester);
+    });
+  });
+
+  group('section labels', () {
+    testWidgets('a moment group heading renders as a SectionLabel', (
+      tester,
+    ) async {
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      final now = DateTime.utc(2026, 1, 1);
+      await adapter.saveTrigger(
+        Trigger(
+          id: 't1',
+          name: 'Waking up',
+          kind: TriggerKind.manual,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await adapter.saveTrigger(
+        Trigger(
+          id: 't2',
+          name: 'Before bed',
+          kind: TriggerKind.manual,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await adapter.saveRoutine(
+        Routine(
+          id: 'r1',
+          name: 'Morning Routine',
+          triggerId: 't1',
+          schedule: const Schedule(mode: ScheduleMode.scheduled, days: []),
+          stepIds: const [],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await adapter.saveRoutine(
+        Routine(
+          id: 'r2',
+          name: 'Evening Routine',
+          triggerId: 't2',
+          schedule: const Schedule(mode: ScheduleMode.scheduled, days: []),
+          stepIds: const [],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SectionLabel), findsNWidgets(2));
+
+      await _disposeCleanly(tester);
+    });
+  });
+
+  group('tinted routine cards', () {
+    testWidgets('a card is filled with the accent colors', (tester) async {
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: '07:30',
+      );
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(RoutinesListScreen));
+      final colors = context.routineCardColors;
+
+      final card = tester.widget<TintedCard>(find.byType(TintedCard));
+      expect(card.color, colors.fill);
+      expect(card.foregroundColor, colors.onFill);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('the start time renders inside the 62px column in onFill', (
+      tester,
+    ) async {
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: '07:30',
+      );
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(RoutinesListScreen));
+      final colors = context.routineCardColors;
+
+      final timeText = tester.widget<Text>(find.text('7:30 AM'));
+      expect(timeText.style?.color, colors.onFill);
+
+      final column = tester
+          .widgetList<SizedBox>(find.byType(SizedBox))
+          .where((box) => box.width == 62)
+          .toList();
+      expect(column, isNotEmpty);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('Start Low Mode still starts Low Mode for core steps', (
+      tester,
+    ) async {
+      final now = DateTime.utc(2026, 1, 1);
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        steps: [
+          RoutineStep(
+            id: 's1',
+            routineId: 'r1',
+            name: 'Core',
+            emoji: '✅',
+            durationSeconds: 60,
+            order: 0,
+            noExplicitTime: false,
+            isCore: true,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      );
+      final recorder = _RouteRecorder();
+
+      await tester.pumpWidget(_wrap(adapter, recorder: recorder));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      await tester.tap(find.text(l10n.routinesStartLowMode));
+      await tester.pumpAndSettle();
+
+      expect(recorder.last, '/routines/r1/timer?mode=low');
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('tapping a card opens the routine', (tester) async {
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+      );
+      final recorder = _RouteRecorder();
+
+      await tester.pumpWidget(_wrap(adapter, recorder: recorder));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Morning Routine'));
+      await tester.pumpAndSettle();
+
+      expect(recorder.last, '/routines/r1');
+
+      await _disposeCleanly(tester);
+    });
+  });
+
+  group('FAB', () {
+    testWidgets('creates a routine when tapped', (tester) async {
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      final recorder = _RouteRecorder();
+      await tester.pumpWidget(_wrap(adapter, recorder: recorder));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      await tester.tap(find.byTooltip(l10n.routinesNewRoutine));
+      await tester.pumpAndSettle();
+
+      expect(recorder.last, '/routines/new');
+
+      await _disposeCleanly(tester);
+    });
+
+    test('is a flat circle with no elevation in every state', () {
+      final theme = AppTheme.light().floatingActionButtonTheme;
+      expect(theme.shape, const CircleBorder());
+      expect(theme.elevation, 0);
+      expect(theme.focusElevation, 0);
+      expect(theme.hoverElevation, 0);
+      expect(theme.highlightElevation, 0);
+      expect(theme.disabledElevation, 0);
+    });
+  });
+
+  group('text scale', () {
+    for (final scale in [1.5, 2.0]) {
+      testWidgets('renders without overflow at ${scale}x text scale', (
+        tester,
+      ) async {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+        final adapter = await _adapterWithRoutine(
+          id: 'r1',
+          name: 'A Fairly Long Morning Routine Name',
+          startTime: '07:30',
+          steps: [
+            RoutineStep(
+              id: 's1',
+              routineId: 'r1',
+              name: 'Core',
+              emoji: '✅',
+              durationSeconds: 60,
+              order: 0,
+              noExplicitTime: false,
+              isCore: true,
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(_wrap(adapter));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+
+        await _disposeCleanly(tester);
+      });
+    }
   });
 }
