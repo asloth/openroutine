@@ -188,8 +188,18 @@
   "@statsCompletionTitle": {"description": "Section heading for completion rate and streak."},
   "statsCompletionRate": "{finished} of {total} runs finished",
   "@statsCompletionRate": {
-    "description": "Finished runs against total runs.",
+    "description": "Finished runs against total runs. Used as the hero card's combined screen-reader sentence.",
     "placeholders": {"finished": {"type": "int"}, "total": {"type": "int"}}
+  },
+  "statsCompletionFinished": "{finished}",
+  "@statsCompletionFinished": {
+    "description": "The finished-run count on its own, shown as a large standalone figure in the hero finishing card.",
+    "placeholders": {"finished": {"type": "int"}}
+  },
+  "statsCompletionOfTotal": "of {total} runs finished",
+  "@statsCompletionOfTotal": {
+    "description": "Trailing phrase next to the finished-run count in the hero finishing card.",
+    "placeholders": {"total": {"type": "int"}}
   },
   "statsStreak": "{days, plural, =0{No current streak} =1{1 day in a row} other{{days} days in a row}}",
   "@statsStreak": {

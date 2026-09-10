@@ -73,6 +73,8 @@
   "statsEstimateExact": "Justo en la estimación",
   "statsCompletionTitle": "Finalización",
   "statsCompletionRate": "{finished} de {total} ejecuciones terminadas",
+  "statsCompletionFinished": "{finished}",
+  "statsCompletionOfTotal": "de {total} ejecuciones terminadas",
   "statsStreak": "{days, plural, =0{Sin racha actual} =1{1 día seguido} other{{days} días seguidos}}",
   "statsSkippedTitle": "Más saltados",
   "statsSkippedNone": "No te has saltado ningún paso.",
