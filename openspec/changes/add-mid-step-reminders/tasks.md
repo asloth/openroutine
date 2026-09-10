@@ -35,7 +35,7 @@ Chained delivery. Each numbered group is a review point; the suite must be green
 
 ## 4. Verification — NOT IN THIS SLICE
 
-- [ ] 4.1 Run `/home/sabera/fvm/bin/fvm flutter analyze --fatal-infos` from `app/` and verify no issues
-- [ ] 4.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes at or above the then-current baseline
-- [ ] 4.3 Confirm on device that a mid-step nudge sounds and vibrates while the step-end nudge stays silent
-- [ ] 4.4 Run `openspec validate add-mid-step-reminders --type change --strict` and verify it passes
+- [x] 4.1 Run `/home/sabera/fvm/bin/fvm flutter analyze --fatal-infos` from `app/` and verify no issues — clean, 2026-09-09.
+- [x] 4.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes at or above the then-current baseline — 343 passing, 2026-09-09.
+- [ ] 4.3 Confirm on device that a mid-step nudge sounds and vibrates while the step-end nudge stays silent. **Needs the phone, and needs listening to it — this one can't be checked from a screenshot.**
+- [x] 4.4 Run `openspec validate add-mid-step-reminders --type change --strict` and verify it passes — valid, 2026-09-09.
