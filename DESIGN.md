@@ -125,6 +125,10 @@ The mascot's three colors are fixed across both themes. It's a creature, not a s
 
 The app ships several palettes and lets the user choose one in Settings › Appearance, because "cozy" isn't a universal fact — the same terracotta reads as warm to some people and as brown to others. Changing a palette changes the ground as well as the accent; an accent-only swap leaves the app still looking like the color the user rejected.
 
+Separately, Settings › Appearance also offers an accent color: the color routine cards and primary actions carry, chosen independently of the palette above it. Purple (`ink_iris`) is the default. Picking an accent doesn't touch the palette's ground, and picking a palette doesn't touch the accent — they're two decisions, not one, and each is reversible on its own. The accent only ever names one of the shipped palettes; there's no custom hue for it the way there is for the background.
+
+"A routine is coming up soon" is a fixed green, in both themes, belonging to neither the palette nor the accent. It's a status, not a decoration — recoloring it with whatever the user picked would mean it stops reliably meaning the same thing.
+
 The tokens above are `warm_paper`, the one literal hand-tuned palette. It's the reference this document describes, but it's not what a fresh install is themed with — the shipped default is `sea_glass`. Those are deliberately different things: warm paper is the scheme every other palette is generated *from*, so it stays the normative description of the system's structure even when it's not the one on screen. Read the tokens above as the shape of a palette, not as the colours the app opens in. Every other shipped palette is generated from it at a different base hue, reusing its HSL structure: the same lightness ladder, the same saturation falloff across the surface roles, and the same hue offsets between primary, secondary, and the neutrals. Generate a new palette that way rather than hand-picking one, or it ends up looking like a hue-rotated screenshot instead of a coherent scheme. Palette identifiers are persisted to preferences, so they're stable keys and never get localized.
 
 ## Themes

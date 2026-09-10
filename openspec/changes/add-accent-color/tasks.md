@@ -36,26 +36,26 @@
 
 ## 2. Settings picker (slice 2)
 
-- [ ] 2.1 Add ARB strings (`settingsAccentTitle`/description "Accent color", `settingsAccentHelper`/
+- [x] 2.1 Add ARB strings (`settingsAccentTitle`/description "Accent color", `settingsAccentHelper`/
       description "Colors your routine cards and main buttons.") to `app_en.arb` **and**
       `app_es.arb`, run `flutter gen-l10n`
-- [ ] 2.2 Add a widget test for `AccentPicker`: it renders a swatch per `Palette.builtIns` showing
+- [x] 2.2 Add a widget test for `AccentPicker`: it renders a swatch per `Palette.builtIns` showing
       each one's light `primary`, and tapping a swatch updates `accentSettingProvider`; verify it
       fails (no widget exists yet)
-- [ ] 2.3 Add `app/lib/widgets/accent_picker.dart`, following `palette_picker.dart`'s swatch and
+- [x] 2.3 Add `app/lib/widgets/accent_picker.dart`, following `palette_picker.dart`'s swatch and
       semantics pattern (no custom-hue entry), and verify 2.2 passes
-- [ ] 2.4 Add the picker to Settings › Appearance, under the existing `PalettePicker`, with the new
+- [x] 2.4 Add the picker to Settings › Appearance, under the existing `PalettePicker`, with the new
       title/helper strings
-- [ ] 2.5 Update `DESIGN.md`'s Colors section with a short paragraph on the accent concept and the
+- [x] 2.5 Update `DESIGN.md`'s Colors section with a short paragraph on the accent concept and the
       fixed "coming up" green
-- [ ] 2.6 Run `flutter analyze --fatal-infos` and `flutter test` from `app/`; fix anything this slice
-      breaks
+- [x] 2.6 Run `flutter analyze --fatal-infos` and `flutter test` from `app/`; fix anything this slice
+      breaks (nothing broke)
 
 ## 3. Verification
 
-- [ ] 3.1 Run `/home/sabera/fvm/bin/fvm flutter analyze --fatal-infos` from `app/` and verify no
+- [x] 3.1 Run `/home/sabera/fvm/bin/fvm flutter analyze --fatal-infos` from `app/` and verify no
       issues
-- [ ] 3.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes at or
-      above the current 354 baseline
-- [ ] 3.3 Format only the touched files with
+- [x] 3.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes at or
+      above the current 354 baseline (443 pass)
+- [x] 3.3 Format only the touched files with
       `/home/sabera/fvm/bin/fvm dart format $(git diff --name-only --diff-filter=ACM | grep '\.dart$')`

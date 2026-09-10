@@ -535,6 +535,16 @@
   "themeCustomTitle": "Custom colour",
   "themeCustomHue": "Hue",
 
+  "settingsAccentTitle": "Accent color",
+  "@settingsAccentTitle": {
+    "description": "Heading above the accent colour picker, under Settings › Appearance."
+  },
+
+  "settingsAccentHelper": "Colors your routine cards and main buttons.",
+  "@settingsAccentHelper": {
+    "description": "One-line explainer under the accent colour picker's heading."
+  },
+
   "commonDone": "Done",
   "@commonDone": {
     "description": "Dismisses a sheet whose changes have already been applied."

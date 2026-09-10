@@ -322,6 +322,8 @@
   "themeCustom": "Personalizado",
   "themeCustomTitle": "Color personalizado",
   "themeCustomHue": "Tono",
+  "settingsAccentTitle": "Color de acento",
+  "settingsAccentHelper": "Colorea las tarjetas de rutina y los botones principales.",
   "commonDone": "Listo",
 
   "settingsRemindersSection": "Recordatorios",
