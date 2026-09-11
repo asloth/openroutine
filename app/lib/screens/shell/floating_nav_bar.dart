@@ -106,6 +106,13 @@ class _Destination extends StatelessWidget {
 
   static const _iconSize = 22.0;
 
+  /// Horizontal breathing room between the highlight's edge and the icon or
+  /// label it holds. Without this, the highlight hugs the label exactly —
+  /// at 12px Lexend, "Routines" comes out about as wide as the whole
+  /// destination is tall, so [AppRadius.pillBorder] rounds it into a near
+  /// circle that the label pokes out of at both bottom corners.
+  static const _horizontalPadding = 14.0;
+
   /// The label never grows past this scale, even at a large system text
   /// scale.
   ///
@@ -136,11 +143,17 @@ class _Destination extends StatelessWidget {
         // `maxWidth` is what keeps a long label from pushing the pill past
         // the screen edge once [_labelScaleCap] has done what it can: past
         // this width the label wraps onto a second line instead, the same
-        // trade `PageHeader` makes for its title at a large text scale.
+        // trade `PageHeader` makes for its title at a large text scale. It
+        // has to clear the widest single-line case: "Estadísticas" at the
+        // 1.6x cap measures about 114dp on its own, and [_horizontalPadding]
+        // adds 28dp around it, for about 142dp — 150 leaves a little room
+        // to spare without letting the bar get close to a 360dp screen's
+        // edge (two destinations this wide, plus the gap between them and
+        // the outer pill's own padding, still land well under 360dp).
         constraints: const BoxConstraints(
           minWidth: AppSpacing.touchTargetMin,
           minHeight: AppSpacing.touchTargetMin,
-          maxWidth: 140,
+          maxWidth: 150,
         ),
         child: AnimatedContainer(
           duration: context.motion(AppMotion.standard),
@@ -155,7 +168,10 @@ class _Destination extends StatelessWidget {
               onTap: onTap,
               borderRadius: AppRadius.pillBorder,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: _horizontalPadding,
+                  vertical: 5,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
