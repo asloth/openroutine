@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../state/app_prefs_provider.dart';
 import '../theme/theme.dart';
-import 'palette_picker.dart' show paletteName;
+import 'palette_picker.dart' show accentName;
 
 /// Settings › Appearance's second picker: the accent color that tints
 /// routine cards and primary actions, chosen independently of the
@@ -67,7 +67,7 @@ class AccentPicker extends ConsumerWidget {
             children: [
               for (final palette in Palette.builtIns)
                 _AccentSwatch(
-                  label: paletteName(l10n, palette),
+                  label: accentName(l10n, palette),
                   selected: selected.id == palette.id,
                   accent: palette.scheme(brightness).primary,
                   border: theme.colorScheme.outlineVariant,
@@ -84,7 +84,7 @@ class AccentPicker extends ConsumerWidget {
             AppSpacing.element,
           ),
           child: Text(
-            l10n.settingsThemeCurrent(paletteName(l10n, selected)),
+            l10n.settingsThemeCurrent(accentName(l10n, selected)),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

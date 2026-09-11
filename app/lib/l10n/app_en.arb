@@ -547,6 +547,16 @@
     }
   },
 
+  "settingsThemeTitle": "Theme",
+  "@settingsThemeTitle": {
+    "description": "Heading above the background palette picker, under Settings › Appearance."
+  },
+
+  "settingsThemeHelper": "Sets the background and surfaces of the app.",
+  "@settingsThemeHelper": {
+    "description": "One-line explainer under the background palette picker's heading."
+  },
+
   "themeWarmPaper": "Warm Paper",
   "themeInkIris": "Ink & Iris",
   "themeSeaGlass": "Sea Glass",
@@ -570,6 +580,36 @@
   "settingsAccentHelper": "Colors your routine cards and main buttons.",
   "@settingsAccentHelper": {
     "description": "One-line explainer under the accent colour picker's heading."
+  },
+
+  "accentColorTerracotta": "Terracotta",
+  "@accentColorTerracotta": {
+    "description": "Accent swatch name for the warm-paper hue (a burnt orange), used in the accent picker's semantics label, tooltip, and selected caption — never the palette name."
+  },
+
+  "accentColorIndigo": "Indigo",
+  "@accentColorIndigo": {
+    "description": "Accent swatch name for the ink-and-iris hue (a blue-violet)."
+  },
+
+  "accentColorTeal": "Teal",
+  "@accentColorTeal": {
+    "description": "Accent swatch name for the sea-glass hue (a blue-green)."
+  },
+
+  "accentColorMagenta": "Magenta",
+  "@accentColorMagenta": {
+    "description": "Accent swatch name for the plum hue (a pink-red)."
+  },
+
+  "accentColorBlue": "Blue",
+  "@accentColorBlue": {
+    "description": "Accent swatch name for the slate hue."
+  },
+
+  "accentColorGreen": "Green",
+  "@accentColorGreen": {
+    "description": "Accent swatch name for the moss hue."
   },
 
   "commonDone": "Done",
