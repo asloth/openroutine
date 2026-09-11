@@ -227,6 +227,11 @@
     "description": "Section header for routines with no trigger_id set. User-facing term is \"moment\"; the stored field is trigger_id and does not change."
   },
 
+  "routinesNextUp": "Next up",
+  "@routinesNextUp": {
+    "description": "Section label above the hero card for the next routine occurring today, on the Scheduled tab."
+  },
+
   "routinesEmptyScheduled": "No scheduled routines yet. Tap + to create one.",
   "@routinesEmptyScheduled": {
     "description": "Empty state for the Scheduled tab."

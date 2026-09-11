@@ -617,10 +617,21 @@ void main() {
       final colors = context.routineCardColors;
       final l10n = AppLocalizations.of(context)!;
 
-      final card = tester.widget<TintedCard>(find.byType(TintedCard));
+      // This single scheduled routine also qualifies as "next up," which
+      // renders as its own hero `TintedCard` above the moment group — so
+      // this test targets the *last* `TintedCard`, the routine's own card in
+      // its moment group, the same one this test covered before that hero
+      // card existed.
+      final card = tester.widget<TintedCard>(find.byType(TintedCard).last);
       expect(card.color, colors.upcomingFill);
       expect(card.foregroundColor, colors.onUpcomingFill);
-      expect(find.textContaining(l10n.routinesUpcomingIn(10)), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(TintedCard).last,
+          matching: find.textContaining(l10n.routinesUpcomingIn(10)),
+        ),
+        findsOneWidget,
+      );
 
       await _disposeCleanly(tester);
     });
@@ -658,10 +669,18 @@ void main() {
       final colors = context.routineCardColors;
       final l10n = AppLocalizations.of(context)!;
 
-      final card = tester.widget<TintedCard>(find.byType(TintedCard));
+      // Same reasoning as the previous test: this routine also qualifies as
+      // "next up," so its moment-group card is the *last* `TintedCard`.
+      final card = tester.widget<TintedCard>(find.byType(TintedCard).last);
       expect(card.color, colors.upcomingFill);
       expect(card.foregroundColor, colors.onUpcomingFill);
-      expect(find.textContaining(l10n.routinesUpcomingNow), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(TintedCard).last,
+          matching: find.textContaining(l10n.routinesUpcomingNow),
+        ),
+        findsOneWidget,
+      );
 
       await _disposeCleanly(tester);
     });
@@ -758,7 +777,10 @@ void main() {
 
       final context = tester.element(find.byType(RoutinesListScreen));
       final colors = context.routineCardColors;
-      final card = tester.widget<TintedCard>(find.byType(TintedCard));
+      // This routine also qualifies as "next up," so its moment-group card
+      // is the *last* `TintedCard` — the hero card above it is a separate
+      // one with its own "Start Timer" action, not "Start Low Mode".
+      final card = tester.widget<TintedCard>(find.byType(TintedCard).last);
       expect(card.color, colors.upcomingFill);
 
       final l10n = AppLocalizations.of(context)!;
@@ -787,10 +809,288 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Morning Routine'));
+      // This routine also qualifies as "next up," so its name now appears
+      // twice — once on the hero card, once on its moment-group card below.
+      // Both open the same routine; this test taps the moment-group copy,
+      // the *last* one, matching what it tapped before the hero card
+      // existed.
+      await tester.tap(find.text('Morning Routine').last);
       await tester.pumpAndSettle();
 
       expect(recorder.last, '/routines/r1');
+
+      await _disposeCleanly(tester);
+    });
+  });
+
+  group('next up card', () {
+    testWidgets(
+      'shows the earliest-remaining routine, which still appears in its '
+      'moment group',
+      (tester) async {
+        final fixedNow = _fixedNow();
+        final scheduledToday = [_dayOfWeek(fixedNow)];
+        final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+        final createdAt = DateTime.utc(2026, 1, 1);
+        await adapter.saveRoutine(
+          Routine(
+            id: 'later',
+            name: 'Later Routine',
+            triggerId: null,
+            schedule: Schedule(
+              mode: ScheduleMode.scheduled,
+              days: scheduledToday,
+              startTime: _hhmm(fixedNow.add(const Duration(minutes: 60))),
+            ),
+            stepIds: const [],
+            createdAt: createdAt,
+            updatedAt: createdAt,
+          ),
+        );
+        await adapter.saveRoutine(
+          Routine(
+            id: 'earlier',
+            name: 'Earlier Routine',
+            triggerId: null,
+            schedule: Schedule(
+              mode: ScheduleMode.scheduled,
+              days: scheduledToday,
+              startTime: _hhmm(fixedNow.add(const Duration(minutes: 30))),
+            ),
+            stepIds: const [],
+            createdAt: createdAt,
+            updatedAt: createdAt,
+          ),
+        );
+
+        await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(RoutinesListScreen)),
+        )!;
+        expect(find.text(l10n.routinesNextUp.toUpperCase()), findsOneWidget);
+        // The hero card names the earlier routine; the moment group below
+        // still lists both, so the earlier routine's name appears twice.
+        expect(find.text('Earlier Routine'), findsNWidgets(2));
+        expect(find.text('Later Routine'), findsOneWidget);
+
+        await _disposeCleanly(tester);
+      },
+    );
+
+    testWidgets('is green when upcoming and accent otherwise', (tester) async {
+      final fixedNow = _fixedNow();
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(fixedNow.add(const Duration(minutes: 10))),
+        days: [_dayOfWeek(fixedNow)],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(RoutinesListScreen));
+      final colors = context.routineCardColors;
+      final l10n = AppLocalizations.of(context)!;
+
+      final heroCard = tester.widget<TintedCard>(
+        find.byKey(const Key('nextUpCard')),
+      );
+      expect(heroCard.color, colors.upcomingFill);
+      expect(heroCard.foregroundColor, colors.onUpcomingFill);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('nextUpCard')),
+          matching: find.textContaining(l10n.routinesUpcomingIn(10)),
+        ),
+        findsOneWidget,
+      );
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('is the accent color when not inside its upcoming window', (
+      tester,
+    ) async {
+      final fixedNow = _fixedNow();
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(fixedNow.add(const Duration(hours: 2))),
+        days: [_dayOfWeek(fixedNow)],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(RoutinesListScreen));
+      final colors = context.routineCardColors;
+
+      final heroCard = tester.widget<TintedCard>(
+        find.byKey(const Key('nextUpCard')),
+      );
+      expect(heroCard.color, colors.fill);
+      expect(heroCard.foregroundColor, colors.onFill);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('Start Timer navigates to the timer route', (tester) async {
+      final fixedNow = _fixedNow();
+      final now = DateTime.utc(2026, 1, 1);
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(fixedNow.add(const Duration(minutes: 10))),
+        days: [_dayOfWeek(fixedNow)],
+        steps: [
+          RoutineStep(
+            id: 's1',
+            routineId: 'r1',
+            name: 'Stretch',
+            emoji: '🧘',
+            durationSeconds: 60,
+            order: 0,
+            noExplicitTime: false,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      );
+      final recorder = _RouteRecorder();
+
+      await tester.pumpWidget(
+        _wrap(adapter, now: fixedNow, recorder: recorder),
+      );
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      await tester.tap(find.text(l10n.routineDetailStartTimer));
+      await tester.pumpAndSettle();
+
+      expect(recorder.last, '/routines/r1/timer?mode=null');
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('tapping the card elsewhere opens the routine', (tester) async {
+      final fixedNow = _fixedNow();
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(fixedNow.add(const Duration(minutes: 10))),
+        days: [_dayOfWeek(fixedNow)],
+      );
+      final recorder = _RouteRecorder();
+
+      await tester.pumpWidget(
+        _wrap(adapter, now: fixedNow, recorder: recorder),
+      );
+      await tester.pumpAndSettle();
+
+      // The hero card's copy of the routine's name is the *first* match —
+      // the moment group's copy comes after it.
+      await tester.tap(find.text('Morning Routine').first);
+      await tester.pumpAndSettle();
+
+      expect(recorder.last, '/routines/r1');
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('no card when nothing is left today', (tester) async {
+      final fixedNow = _fixedNow();
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(fixedNow.subtract(const Duration(minutes: 10))),
+        days: [_dayOfWeek(fixedNow)],
+      );
+      final completedAt = fixedNow.subtract(const Duration(minutes: 5)).toUtc();
+      await adapter.appendCompletion(
+        CompletionLog(
+          id: 'c1',
+          routineId: 'r1',
+          startedAt: completedAt,
+          endedAt: completedAt,
+          outcome: CompletionOutcome.completed,
+          steps: const [],
+        ),
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      expect(find.text(l10n.routinesNextUp.toUpperCase()), findsNothing);
+      expect(find.byKey(const Key('nextUpCard')), findsNothing);
+      // The routine itself still renders in its moment group.
+      expect(find.text('Morning Routine'), findsOneWidget);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('never shown on the Flexible tab', (tester) async {
+      final fixedNow = _fixedNow();
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Evening Wind-down',
+        mode: ScheduleMode.flexible,
+        days: const [],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      await tester.tap(find.text(l10n.routinesTabFlexible));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.routinesNextUp.toUpperCase()), findsNothing);
+      expect(find.byKey(const Key('nextUpCard')), findsNothing);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('does not overflow at 2.0x text scale', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      final fixedNow = _fixedNow();
+      final now = DateTime.utc(2026, 1, 1);
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'A Fairly Long Morning Wake-up Routine',
+        startTime: _hhmm(fixedNow.add(const Duration(minutes: 10))),
+        days: [_dayOfWeek(fixedNow)],
+        steps: [
+          for (var i = 0; i < 6; i++)
+            RoutineStep(
+              id: 's$i',
+              routineId: 'r1',
+              name: 'Step $i',
+              emoji: '✅',
+              durationSeconds: 60,
+              order: i,
+              noExplicitTime: false,
+              createdAt: now,
+              updatedAt: now,
+            ),
+        ],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
 
       await _disposeCleanly(tester);
     });
