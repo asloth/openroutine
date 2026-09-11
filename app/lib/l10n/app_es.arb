@@ -82,6 +82,7 @@
   "statsTimeTitle": "Cuándo empiezas",
   "statsTimeHour": "{hour}:00",
   "routinesNoTrigger": "Sin momento",
+  "routinesNextUp": "Lo siguiente",
 
   "routinesEmptyScheduled": "Aún no hay rutinas programadas. Toca + para crear una.",
 

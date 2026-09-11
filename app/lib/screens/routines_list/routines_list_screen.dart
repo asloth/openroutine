@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
+import '../../models/step.dart';
 import '../../models/trigger.dart';
 import '../../services/routines/estimate.dart';
+import '../../services/routines/next_up.dart';
 import '../../services/routines/upcoming.dart';
 import '../../state/clock_provider.dart';
 import '../../state/reminder_provider.dart';
@@ -27,6 +29,31 @@ const _groupGap = 28.0;
 
 /// Clears the FAB so the last card is never trapped underneath it.
 const _fabClearance = AppSpacing.section * 2.5;
+
+/// The fill/foreground pair a routine's card — the moment-group one and the
+/// "next up" hero — both draw from: the fixed upcoming green while
+/// [upcoming] is non-null, the accent otherwise. Shared so the two widgets
+/// can't drift apart on which pair means what.
+(Color, Color) _upcomingCardColors(
+  RoutineCardColors colors,
+  UpcomingState? upcoming,
+) => upcoming == null
+    ? (colors.fill, colors.onFill)
+    : (colors.upcomingFill, colors.onUpcomingFill);
+
+/// "in {n} min" while a routine's still counting down, "Now" once it's
+/// started, `null` when it isn't upcoming at all — never blank when it is,
+/// so the state never rides on color alone. Minutes round up and never show
+/// zero: a routine 40 seconds out still reads "in 1 min".
+String? _upcomingLabel(AppLocalizations l10n, UpcomingState? upcoming) {
+  return switch (upcoming) {
+    StartsIn(:final remaining) => l10n.routinesUpcomingIn(
+      (remaining.inSeconds / 60).ceil().clamp(1, 1 << 30),
+    ),
+    InProgress() => l10n.routinesUpcomingNow,
+    null => null,
+  };
+}
 
 /// docs/SPEC.md §7 screen 2: tabs Scheduled/Flexible, sections by trigger,
 /// FAB for new routine, and a settings icon. Statistics is a destination on
@@ -111,6 +138,7 @@ class RoutinesListScreen extends ConsumerWidget {
                                     .toList(),
                                 triggersById: triggersById,
                                 emptyMessage: l10n.routinesEmptyScheduled,
+                                isScheduledTab: true,
                               ),
                               _RoutineSectionList(
                                 routines: routines
@@ -196,11 +224,17 @@ class _RoutineSectionList extends ConsumerWidget {
     required this.routines,
     required this.triggersById,
     required this.emptyMessage,
+    this.isScheduledTab = false,
   });
 
   final List<Routine> routines;
   final Map<String, Trigger> triggersById;
   final String emptyMessage;
+
+  /// Only the Scheduled tab's instance computes and shows the "Next up"
+  /// hero card — Flexible routines have no start time to rank by, so the
+  /// Flexible tab's identical widget never runs that computation.
+  final bool isScheduledTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -221,6 +255,46 @@ class _RoutineSectionList extends ConsumerWidget {
     }
 
     final l10n = AppLocalizations.of(context)!;
+
+    // Every candidate's steps and today's completions, the same providers
+    // each visible `_RoutineCard` below already reads for itself — reading
+    // them here too is what lets `nextUpRoutine` rank the whole tab at once.
+    Widget? nextUpCard;
+    if (isScheduledTab) {
+      final now = ref.watch(clockProvider);
+      final today = DateTime(now.year, now.month, now.day);
+      final stepsById = <String, List<RoutineStep>?>{};
+      final estimateById = <String, Duration>{};
+      final completedTodayById = <String, bool>{};
+      for (final routine in routines) {
+        final steps = ref.watch(routineStepsProvider(routine.id)).value;
+        final completions =
+            ref.watch(routineCompletionsProvider(routine.id)).value ?? const [];
+        stepsById[routine.id] = steps;
+        estimateById[routine.id] = routineEstimate(steps ?? const []);
+        completedTodayById[routine.id] = completions.any(
+          (log) => log.completed && log.localDay == today,
+        );
+      }
+      final nextUp = nextUpRoutine(
+        routines,
+        now: now,
+        estimateFor: (routine) => estimateById[routine.id]!,
+        completedTodayFor: (routine) => completedTodayById[routine.id]!,
+      );
+      if (nextUp != null) {
+        nextUpCard = _NextUpCard(
+          routine: nextUp,
+          moment:
+              triggersById[nextUp.triggerId]?.name ?? l10n.routinesNoTrigger,
+          steps: stepsById[nextUp.id],
+          now: now,
+          estimate: estimateById[nextUp.id]!,
+          completedToday: completedTodayById[nextUp.id]!,
+        );
+      }
+    }
+
     final byTrigger = <String?, List<Routine>>{};
     for (final routine in routines) {
       byTrigger.putIfAbsent(routine.triggerId, () => []).add(routine);
@@ -238,6 +312,12 @@ class _RoutineSectionList extends ConsumerWidget {
     final showHeaders = sectionKeys.length > 1 || sectionKeys.single != null;
 
     final children = <Widget>[];
+    if (nextUpCard != null) {
+      children.add(SectionLabel(l10n.routinesNextUp));
+      children.add(const SizedBox(height: _labelToCardsGap));
+      children.add(nextUpCard);
+      children.add(const SizedBox(height: _groupGap));
+    }
     for (final (index, triggerId) in sectionKeys.indexed) {
       // A heading belongs to the cards under it, so it sits closer to them
       // than to the group above.
@@ -299,24 +379,14 @@ class _RoutineCard extends ConsumerWidget {
       completedToday: completedToday,
     );
 
-    final fill = upcoming == null ? colors.fill : colors.upcomingFill;
-    final onFill = upcoming == null ? colors.onFill : colors.onUpcomingFill;
+    final (fill, onFill) = _upcomingCardColors(colors, upcoming);
     final secondaryStyle = TextStyle(
       fontFamily: AppTypography.body,
       fontSize: 14,
       color: onFill.withValues(alpha: 0.8),
     );
 
-    // "in {n} min" while it's still counting down, "Now" once it's started;
-    // never blank, so the state never rides on color alone. Minutes round up
-    // and never show zero — a routine 40 seconds out still reads "in 1 min".
-    final upcomingLabel = switch (upcoming) {
-      StartsIn(:final remaining) => l10n.routinesUpcomingIn(
-        (remaining.inSeconds / 60).ceil().clamp(1, 1 << 30),
-      ),
-      InProgress() => l10n.routinesUpcomingNow,
-      null => null,
-    };
+    final upcomingLabel = _upcomingLabel(l10n, upcoming);
     final stepCountLine = upcomingLabel == null
         ? l10n.routinesStepCount(routine.stepIds.length)
         : '${l10n.routinesStepCount(routine.stepIds.length)} · $upcomingLabel';
@@ -406,6 +476,208 @@ class _LowModePill extends StatelessWidget {
                 fontWeight: FontWeight.w500,
                 color: onFill,
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The Scheduled tab's hero card for the next routine left to run today,
+/// picked by `nextUpRoutine` in `_RoutineSectionList`. The routine it names
+/// still appears in its own moment group below; this is a second, larger
+/// presentation of the same routine, not a replacement for it.
+class _NextUpCard extends StatelessWidget {
+  const _NextUpCard({
+    required this.routine,
+    required this.moment,
+    required this.steps,
+    required this.now,
+    required this.estimate,
+    required this.completedToday,
+  });
+
+  final Routine routine;
+  final String moment;
+  final List<RoutineStep>? steps;
+  final DateTime now;
+  final Duration estimate;
+  final bool completedToday;
+
+  static const _nameStyle = TextStyle(
+    fontFamily: AppTypography.display,
+    fontSize: 28,
+    fontWeight: FontWeight.w600,
+    height: 1.15,
+    letterSpacing: -0.3,
+  );
+  static const _momentStyle = TextStyle(
+    fontFamily: AppTypography.display,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+  );
+  static const _timeStyle = TextStyle(
+    fontFamily: AppTypography.display,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  /// Up to five, in step order — a sixth or later step earns its place on
+  /// the detail screen, not here.
+  static const _maxEmoji = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = context.routineCardColors;
+    final upcoming = upcomingState(
+      routine,
+      now: now,
+      estimate: estimate,
+      completedToday: completedToday,
+    );
+    final (fill, onFill) = _upcomingCardColors(colors, upcoming);
+    final upcomingLabel = _upcomingLabel(l10n, upcoming);
+    final secondaryStyle = TextStyle(
+      fontFamily: AppTypography.body,
+      fontSize: 14,
+      color: onFill.withValues(alpha: 0.8),
+    );
+
+    final timeOfDay = _StartTime._parse(routine.schedule.startTime);
+    final timeText = timeOfDay == null
+        ? ''
+        : MaterialLocalizations.of(context).formatTimeOfDay(
+            timeOfDay,
+            alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+          );
+
+    final visibleSteps = (steps ?? const []).take(_maxEmoji).toList();
+    final hasSteps = (steps ?? const []).isNotEmpty;
+    final stepsLine = estimate > Duration.zero
+        ? '${l10n.routinesStepCount(routine.stepIds.length)} · '
+              '${l10n.routineDetailEstimateMinutes((estimate.inSeconds / 60).ceil())}'
+        : l10n.routinesStepCount(routine.stepIds.length);
+
+    final momentLine = upcomingLabel == null
+        ? moment
+        : '$moment · $upcomingLabel';
+    final summary = upcomingLabel == null
+        ? '${l10n.routinesNextUp}: ${routine.name}, $moment, $timeText'
+        : '${l10n.routinesNextUp}: ${routine.name}, $moment, $timeText, '
+              '$upcomingLabel';
+
+    return Semantics(
+      label: summary,
+      child: TintedCard(
+        key: const Key('nextUpCard'),
+        color: fill,
+        foregroundColor: onFill,
+        borderRadius: AppRadius.heroBorder,
+        padding: const EdgeInsets.fromLTRB(20, 20, 16, 20),
+        onTap: () => context.push('/routines/${routine.id}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: Text(momentLine, style: _momentStyle)),
+                Text(timeText, style: _timeStyle),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(routine.name, style: _nameStyle),
+            const SizedBox(height: 14),
+            if (visibleSteps.isNotEmpty) ...[
+              Row(
+                children: [
+                  for (final (i, step) in visibleSteps.indexed) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    Text(step.emoji, style: const TextStyle(fontSize: 22)),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
+            Row(
+              children: [
+                Expanded(child: Text(stepsLine, style: secondaryStyle)),
+                if (hasSteps)
+                  _StartTimerPill(
+                    label: l10n.routineDetailStartTimer,
+                    fill: fill,
+                    onFill: onFill,
+                    onPressed: () =>
+                        context.push('/routines/${routine.id}/timer'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Start Timer" as a solid pill: filled with the card's foreground color,
+/// its label and icon in the card's fill color — the inverse of
+/// `_LowModePill`'s translucent treatment, since this is the hero card's one
+/// primary action rather than a secondary one. `minHeight` rather than a
+/// fixed `height` keeps the label from clipping at a large text scale.
+class _StartTimerPill extends StatelessWidget {
+  const _StartTimerPill({
+    required this.label,
+    required this.fill,
+    required this.onFill,
+    required this.onPressed,
+  });
+
+  final String label;
+
+  /// The card's own fill — this pill's label and icon color, so it reads as
+  /// a cutout of the card rather than an unrelated color.
+  final Color fill;
+
+  /// The card's own foreground — this pill's fill.
+  final Color onFill;
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: AppRadius.pillBorder,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.fromLTRB(18, 0, 14, 0),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: onFill,
+              borderRadius: AppRadius.pillBorder,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: AppTypography.display,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: fill,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(Icons.play_arrow, size: 18, color: fill),
+              ],
             ),
           ),
         ),
