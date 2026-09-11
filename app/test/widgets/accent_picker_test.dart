@@ -5,6 +5,7 @@ import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/state/app_prefs_provider.dart';
 import 'package:openroutine/theme/palette.dart';
 import 'package:openroutine/widgets/accent_picker.dart';
+import 'package:openroutine/widgets/palette_picker.dart' show paletteName;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Follows `palette_picker.dart`'s swatch and semantics pattern (see
@@ -37,7 +38,9 @@ void main() {
     expect(find.bySemanticsLabel('Custom'), findsNothing);
   });
 
-  testWidgets('ink iris is selected by default', (tester) async {
+  testWidgets('ink iris is selected by default, named as a color', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     await _pump(tester, prefs);
@@ -45,9 +48,31 @@ void main() {
     final context = tester.element(find.byType(AccentPicker));
     final l10n = AppLocalizations.of(context)!;
     expect(
-      find.text(l10n.settingsThemeCurrent(l10n.themeInkIris)),
+      find.text(l10n.settingsThemeCurrent(l10n.accentColorIndigo)),
       findsOneWidget,
     );
+  });
+
+  testWidgets('swatch labels are color words, not palette names', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    await _pump(tester, prefs);
+
+    final context = tester.element(find.byType(AccentPicker));
+    final l10n = AppLocalizations.of(context)!;
+
+    for (final palette in Palette.builtIns) {
+      expect(find.bySemanticsLabel(_labelFor(palette)), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(paletteName(l10n, palette)),
+        findsNothing,
+        reason:
+            'accent swatch for ${palette.id} should not carry the theme '
+            'name ${paletteName(l10n, palette)}',
+      );
+    }
   });
 
   testWidgets('tapping a swatch updates accentSettingProvider', (tester) async {
@@ -81,11 +106,11 @@ void main() {
 }
 
 String _labelFor(Palette palette) => switch (palette.id) {
-  'warm_paper' => 'Warm Paper',
-  'ink_iris' => 'Ink & Iris',
-  'sea_glass' => 'Sea Glass',
-  'plum' => 'Plum',
-  'slate' => 'Slate',
-  'moss' => 'Moss',
+  'warm_paper' => 'Terracotta',
+  'ink_iris' => 'Indigo',
+  'sea_glass' => 'Teal',
+  'plum' => 'Magenta',
+  'slate' => 'Blue',
+  'moss' => 'Green',
   _ => palette.id,
 };

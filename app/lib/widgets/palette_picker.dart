@@ -7,15 +7,38 @@ import '../theme/theme.dart';
 
 /// Localised display name for a palette. Lives here rather than on [Palette]
 /// so the palette stays a pure colour value with no dependency on l10n.
-String paletteName(AppLocalizations l10n, Palette palette) => switch (palette.id) {
-  'warm_paper' => l10n.themeWarmPaper,
-  'ink_iris' => l10n.themeInkIris,
-  'sea_glass' => l10n.themeSeaGlass,
-  'plum' => l10n.themePlum,
-  'slate' => l10n.themeSlate,
-  'moss' => l10n.themeMoss,
-  _ => l10n.themeCustom,
-};
+String paletteName(AppLocalizations l10n, Palette palette) =>
+    switch (palette.id) {
+      'warm_paper' => l10n.themeWarmPaper,
+      'ink_iris' => l10n.themeInkIris,
+      'sea_glass' => l10n.themeSeaGlass,
+      'plum' => l10n.themePlum,
+      'slate' => l10n.themeSlate,
+      'moss' => l10n.themeMoss,
+      _ => l10n.themeCustom,
+    };
+
+/// Localised colour word for a palette used as an *accent*, as opposed to
+/// [paletteName]'s theme identity.
+///
+/// A background palette and its accent swatch are different settings shown
+/// side by side, and [paletteName] answers "which look is this?" — "Warm
+/// Paper", "Ink & Iris" — names that make sense for a whole theme but not for
+/// a single dot of colour. [accentName] answers the question the accent
+/// picker actually asks: "which colour is this?" Each word is picked by eye
+/// against the palette's own light `primary`, not derived from its id or
+/// seed hue, because a palette's name and its rendered hue don't always
+/// agree — "Plum" renders as a pink-magenta, not the near-black fruit.
+String accentName(AppLocalizations l10n, Palette palette) =>
+    switch (palette.id) {
+      'warm_paper' => l10n.accentColorTerracotta,
+      'ink_iris' => l10n.accentColorIndigo,
+      'sea_glass' => l10n.accentColorTeal,
+      'plum' => l10n.accentColorMagenta,
+      'slate' => l10n.accentColorBlue,
+      'moss' => l10n.accentColorGreen,
+      _ => l10n.themeCustom,
+    };
 
 /// The row of palette swatches for Settings › Appearance.
 ///
@@ -40,6 +63,32 @@ class PalettePicker extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.element,
+            AppSpacing.base,
+            AppSpacing.element,
+            0,
+          ),
+          child: Text(
+            l10n.settingsThemeTitle,
+            style: theme.textTheme.titleMedium,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.element,
+            AppSpacing.base / 2,
+            AppSpacing.element,
+            AppSpacing.base,
+          ),
+          child: Text(
+            l10n.settingsThemeHelper,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.element,
