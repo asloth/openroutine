@@ -234,7 +234,6 @@
 
   "stepFormAddTitle": "Añadir paso",
   "stepFormEditTitle": "Editar paso",
-  "stepFormTemplatesLabel": "Plantillas",
   "stepFormChooseTemplate": "Empezar desde una plantilla",
   "@stepFormChooseTemplate": {
     "description": "Button that opens the template picker sheet on Add step."
