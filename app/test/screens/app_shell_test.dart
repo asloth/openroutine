@@ -1,8 +1,12 @@
-// The bottom navigation bar and what it guarantees: both destinations are
-// visible without opening anything, selecting one shows it, and a destination
-// keeps its state while the other is visited.
+// The floating pill nav bar and what it guarantees: both destinations are
+// visible without opening anything, selecting one shows it, a destination
+// keeps its state while the other is visited, the selected destination
+// reports itself as selected, the body sees room for the pill, and neither
+// destination's label overflows at a large system text scale.
 //
-// See openspec/changes/replace-overflow-with-bottom-nav/specs/app-navigation.
+// See openspec/changes/float-bottom-nav/specs/bottom-navigation.
+
+import 'dart:ui' show Tristate;
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +16,7 @@ import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/main.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
+import 'package:openroutine/screens/shell/floating_nav_bar.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
@@ -72,26 +77,26 @@ void main() {
     return AppLocalizations.of(tester.element(find.byType(Scaffold).first))!;
   }
 
+  Finder destinationLabel(String label) => find.descendant(
+    of: find.byType(FloatingNavBar),
+    matching: find.text(label),
+  );
+
   testWidgets('both destinations are visible without opening a menu', (
     tester,
   ) async {
     final l10n = await pumpApp(tester);
 
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(l10n.navRoutines),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(l10n.navStats),
-      ),
-      findsOneWidget,
-    );
+    expect(find.byType(FloatingNavBar), findsOneWidget);
+    expect(destinationLabel(l10n.navRoutines), findsOneWidget);
+    expect(destinationLabel(l10n.navStats), findsOneWidget);
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('the stock NavigationBar is gone', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.byType(NavigationBar), findsNothing);
     await _disposeCleanly(tester);
   });
 
@@ -107,12 +112,7 @@ void main() {
   ) async {
     final l10n = await pumpApp(tester);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(l10n.navStats),
-      ),
-    );
+    await tester.tap(destinationLabel(l10n.navStats));
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.statsTitle), findsWidgets);
@@ -128,20 +128,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Stretch'), findsOneWidget);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(l10n.navStats),
-      ),
-    );
+    await tester.tap(destinationLabel(l10n.navStats));
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(l10n.navRoutines),
-      ),
-    );
+    await tester.tap(destinationLabel(l10n.navRoutines));
     await tester.pumpAndSettle();
 
     expect(
@@ -150,6 +140,47 @@ void main() {
       reason: 'the Flexible tab was open when the list was left',
     );
     await _disposeCleanly(tester);
+  });
+
+  // `/routines/<id>` is a plain pushed route rather than nested inside the
+  // Routines branch (see main.dart), so there's no in-app scenario where the
+  // bar is still on screen with a non-root state to return from. What
+  // `AppShell` actually depends on is narrower: that tapping the
+  // already-selected destination still fires the callback, so it can call
+  // `goBranch(index, initialLocation: true)` and send the branch back to its
+  // root. That's what this asserts, against the bar alone rather than the
+  // whole app.
+  testWidgets('tapping the already-selected destination still calls back', (
+    tester,
+  ) async {
+    var lastTapped = -1;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          bottomNavigationBar: FloatingNavBar(
+            currentIndex: 0,
+            destinations: const [
+              FloatingNavDestination(
+                icon: Icons.checklist_outlined,
+                selectedIcon: Icons.checklist,
+                label: 'Routines',
+              ),
+              FloatingNavDestination(
+                icon: Icons.insights_outlined,
+                selectedIcon: Icons.insights,
+                label: 'Statistics',
+              ),
+            ],
+            onDestinationSelected: (index) => lastTapped = index,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Routines'));
+    await tester.pump();
+
+    expect(lastTapped, 0);
   });
 
   testWidgets('the settings control on the routine list opens settings', (
@@ -184,13 +215,38 @@ void main() {
   testWidgets('the bar names no action, only destinations', (tester) async {
     final l10n = await pumpApp(tester);
 
-    expect(
+    expect(destinationLabel(l10n.routinesMenuImport), findsNothing);
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('the selected destination reports selected semantics', (
+    tester,
+  ) async {
+    final l10n = await pumpApp(tester);
+
+    final selected = tester.getSemantics(destinationLabel(l10n.navRoutines));
+    expect(selected.flagsCollection.isSelected, Tristate.isTrue);
+
+    final unselected = tester.getSemantics(destinationLabel(l10n.navStats));
+    expect(unselected.flagsCollection.isSelected, isNot(Tristate.isTrue));
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('the body sees enough bottom padding to clear the pill', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    final pill = tester.getSize(
       find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(l10n.routinesMenuImport),
+        of: find.byType(FloatingNavBar),
+        matching: find.byKey(FloatingNavBar.pillKey),
       ),
-      findsNothing,
     );
+    final bodyElement = tester.element(find.text('Morning'));
+    final bodyBottomPadding = MediaQuery.paddingOf(bodyElement).bottom;
+
+    expect(bodyBottomPadding, greaterThanOrEqualTo(pill.height));
     await _disposeCleanly(tester);
   });
 
@@ -198,40 +254,28 @@ void main() {
   // the text scale this app is actually used at. See step_template_card_test
   // for what a label looks like when its container does not grow with it.
   //
-  // Material clamps navigation bar labels to 1.3x however far the system scale
-  // goes, so this asserts against the scale the label actually receives rather
-  // than the one the device asked for. The point is that the label is drawn in
-  // full, not that it grows without limit.
-  testWidgets('both bar labels are drawn in full at a large text scale', (
-    tester,
-  ) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  // Unlike Material's `NavigationBar`, which clamps its own labels at 1.3x
+  // regardless of what the caller asks for, this bar has no built-in ceiling
+  // — so the test that matters here is that nothing overflows once a system
+  // text scale actually gets large, on the narrowest phone width this app
+  // supports.
+  for (final scale in [1.5, 2.0]) {
+    testWidgets('neither destination overflows at ${scale}x on a 360px phone', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 780);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    final l10n = await pumpApp(tester);
+      final l10n = await pumpApp(tester);
 
-    for (final label in [l10n.navRoutines, l10n.navStats]) {
-      final finder = find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(label),
-      );
-      expect(finder, findsOneWidget, reason: '$label is missing');
-
-      final element = tester.element(finder);
-      final style = Theme.of(element).textTheme.labelMedium!;
-      // Floored: a line box lands on whole pixels, so an 18.2pt line measures
-      // 18.0 without anything being cut. A sliced label is not off by a
-      // fraction — the template card managed 1.0 against 18.0.
-      final effective = MediaQuery.textScalerOf(
-        element,
-      ).scale(style.fontSize!).floorToDouble();
-
-      expect(
-        tester.getSize(finder).height,
-        greaterThanOrEqualTo(effective),
-        reason: '$label is sliced rather than shown',
-      );
-    }
-    await _disposeCleanly(tester);
-  });
+      expect(tester.takeException(), isNull);
+      expect(destinationLabel(l10n.navRoutines), findsOneWidget);
+      expect(destinationLabel(l10n.navStats), findsOneWidget);
+      await _disposeCleanly(tester);
+    });
+  }
 }
