@@ -7,8 +7,12 @@ import '../../l10n/app_localizations.dart';
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
 import '../../models/trigger.dart';
+import '../../services/routines/estimate.dart';
+import '../../services/routines/upcoming.dart';
+import '../../state/clock_provider.dart';
 import '../../state/reminder_provider.dart';
 import '../../state/routines_provider.dart';
+import '../../state/timer_provider.dart';
 import '../../theme/theme.dart';
 import '../../widgets/mascot_slot.dart';
 import '../../widgets/tinted/tinted.dart';
@@ -280,52 +284,83 @@ class _RoutineCard extends ConsumerWidget {
     final colors = context.routineCardColors;
     final steps = ref.watch(routineStepsProvider(routine.id)).value;
     final hasCoreSteps = steps?.any((step) => step.isCore) ?? false;
+
+    final now = ref.watch(clockProvider);
+    final completions =
+        ref.watch(routineCompletionsProvider(routine.id)).value ?? const [];
+    final today = DateTime(now.year, now.month, now.day);
+    final completedToday = completions.any(
+      (log) => log.completed && log.localDay == today,
+    );
+    final upcoming = upcomingState(
+      routine,
+      now: now,
+      estimate: routineEstimate(steps ?? const []),
+      completedToday: completedToday,
+    );
+
+    final fill = upcoming == null ? colors.fill : colors.upcomingFill;
+    final onFill = upcoming == null ? colors.onFill : colors.onUpcomingFill;
     final secondaryStyle = TextStyle(
       fontFamily: AppTypography.body,
       fontSize: 14,
-      color: colors.onFill.withValues(alpha: 0.8),
+      color: onFill.withValues(alpha: 0.8),
     );
 
-    return TintedCard(
-      color: colors.fill,
-      foregroundColor: colors.onFill,
-      padding: EdgeInsets.fromLTRB(16, 18, hasCoreSteps ? 12 : 16, 18),
-      onTap: () => context.push('/routines/${routine.id}'),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _StartTime(routine: routine),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(routine.name, style: _nameStyle),
-                const SizedBox(height: 2),
-                Text(
-                  l10n.routinesStepCount(routine.stepIds.length),
-                  style: secondaryStyle,
-                ),
-                if (steps != null && !hasCoreSteps) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.routinesLowModeSetupGuidance,
-                    style: secondaryStyle,
-                  ),
+    // "in {n} min" while it's still counting down, "Now" once it's started;
+    // never blank, so the state never rides on color alone. Minutes round up
+    // and never show zero — a routine 40 seconds out still reads "in 1 min".
+    final upcomingLabel = switch (upcoming) {
+      StartsIn(:final remaining) => l10n.routinesUpcomingIn(
+        (remaining.inSeconds / 60).ceil().clamp(1, 1 << 30),
+      ),
+      InProgress() => l10n.routinesUpcomingNow,
+      null => null,
+    };
+    final stepCountLine = upcomingLabel == null
+        ? l10n.routinesStepCount(routine.stepIds.length)
+        : '${l10n.routinesStepCount(routine.stepIds.length)} · $upcomingLabel';
+
+    return Semantics(
+      hint: upcomingLabel,
+      child: TintedCard(
+        color: fill,
+        foregroundColor: onFill,
+        padding: EdgeInsets.fromLTRB(16, 18, hasCoreSteps ? 12 : 16, 18),
+        onTap: () => context.push('/routines/${routine.id}'),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _StartTime(routine: routine, onFill: onFill),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(routine.name, style: _nameStyle),
+                  const SizedBox(height: 2),
+                  Text(stepCountLine, style: secondaryStyle),
+                  if (steps != null && !hasCoreSteps) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.routinesLowModeSetupGuidance,
+                      style: secondaryStyle,
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ),
-          if (hasCoreSteps)
-            _LowModePill(
-              label: l10n.routinesStartLowMode,
-              onFill: colors.onFill,
-              onPressed: () => context.push(
-                '/routines/${routine.id}/timer?mode=low&steps=${steps!.where((step) => step.isCore).map((step) => step.id).join(',')}',
               ),
-            )
-          else
-            Icon(Icons.chevron_right, color: colors.onFill),
-        ],
+            ),
+            if (hasCoreSteps)
+              _LowModePill(
+                label: l10n.routinesStartLowMode,
+                onFill: onFill,
+                onPressed: () => context.push(
+                  '/routines/${routine.id}/timer?mode=low&steps=${steps!.where((step) => step.isCore).map((step) => step.id).join(',')}',
+                ),
+              )
+            else
+              Icon(Icons.chevron_right, color: onFill),
+          ],
+        ),
       ),
     );
   }
@@ -386,16 +421,19 @@ class _LowModePill extends StatelessWidget {
 /// their cards slide left would break the alignment for every scheduled one
 /// around them, which is the whole reason the column exists.
 class _StartTime extends StatelessWidget {
-  const _StartTime({required this.routine});
+  const _StartTime({required this.routine, required this.onFill});
 
   final Routine routine;
+
+  /// The card's current foreground color — the accent's `onFill`, or
+  /// `onUpcomingFill` while the routine is coming up soon.
+  final Color onFill;
 
   /// Wide enough for "12:00 AM" at the body-small size.
   static const _width = 62.0;
 
   @override
   Widget build(BuildContext context) {
-    final onFill = context.routineCardColors.onFill;
     final time = _parse(routine.schedule.startTime);
 
     return SizedBox(

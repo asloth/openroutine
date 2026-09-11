@@ -1,5 +1,6 @@
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
+import '../routines/schedule_time.dart';
 
 /// One reminder to hand to the OS: an absolute local instant and the routine
 /// it belongs to.
@@ -73,10 +74,10 @@ abstract final class ReminderSchedule {
     if (routine.schedule.mode != ScheduleMode.scheduled) return const [];
     if (routine.schedule.days.isEmpty) return const [];
 
-    final time = _parseStartTime(routine.schedule.startTime);
+    final time = ScheduleTime.parseStartTime(routine.schedule.startTime);
     if (time == null) return const [];
 
-    final weekdays = routine.schedule.days.map(_weekday).toSet();
+    final weekdays = routine.schedule.days.map(ScheduleTime.weekday).toSet();
     final today = DateTime(now.year, now.month, now.day);
     final result = <DateTime>[];
 
@@ -90,13 +91,7 @@ abstract final class ReminderSchedule {
       // Built from date parts rather than by adding a Duration: adding hours
       // to midnight lands an hour off on a DST transition day, whereas the
       // constructor resolves the wall-clock time the user actually meant.
-      final start = DateTime(
-        day.year,
-        day.month,
-        day.day,
-        time.$1,
-        time.$2,
-      );
+      final start = DateTime(day.year, day.month, day.day, time.$1, time.$2);
       final at = start.subtract(lead);
       if (at.isAfter(now)) result.add(at);
     }
@@ -150,28 +145,4 @@ abstract final class ReminderSchedule {
     }
     return requests;
   }
-
-  /// "HH:MM" per schemas/routine.schema.json, as (hour, minute). Anything
-  /// malformed — including a value an agent wrote by hand — yields null so the
-  /// routine simply gets no reminder.
-  static (int, int)? _parseStartTime(String? raw) {
-    if (raw == null) return null;
-    final parts = raw.split(':');
-    if (parts.length != 2) return null;
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return null;
-    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
-    return (hour, minute);
-  }
-
-  static int _weekday(DayOfWeek day) => switch (day) {
-    DayOfWeek.mon => DateTime.monday,
-    DayOfWeek.tue => DateTime.tuesday,
-    DayOfWeek.wed => DateTime.wednesday,
-    DayOfWeek.thu => DateTime.thursday,
-    DayOfWeek.fri => DateTime.friday,
-    DayOfWeek.sat => DateTime.saturday,
-    DayOfWeek.sun => DateTime.sunday,
-  };
 }

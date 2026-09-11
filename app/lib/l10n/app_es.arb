@@ -98,6 +98,14 @@
     }
   },
 
+  "routinesUpcomingIn": "en {minutes} min",
+  "@routinesUpcomingIn": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "routinesUpcomingNow": "Ahora",
+
   "commonCancel": "Cancelar",
   "commonAdd": "Añadir",
   "commonSave": "Guardar",

@@ -252,6 +252,18 @@
     }
   },
 
+  "routinesUpcomingIn": "in {minutes} min",
+  "@routinesUpcomingIn": {
+    "description": "Appended to a routine card's step-count line when the routine is coming up soon, counting down to its start.",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "routinesUpcomingNow": "Now",
+  "@routinesUpcomingNow": {
+    "description": "Appended to a routine card's step-count line once the routine has started and is still inside its estimated window."
+  },
+
   "commonCancel": "Cancel",
   "commonAdd": "Add",
   "commonSave": "Save",

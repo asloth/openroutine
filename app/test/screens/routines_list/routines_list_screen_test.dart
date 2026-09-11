@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
+import 'package:openroutine/models/completion_log.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
@@ -16,6 +17,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/state/app_prefs_provider.dart';
+import 'package:openroutine/state/clock_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/theme/theme.dart';
 import 'package:openroutine/widgets/tinted/tinted.dart';
@@ -73,11 +75,16 @@ GoRouter _router(_RouteRecorder recorder) => GoRouter(
   ],
 );
 
-Widget _wrap(StorageAdapter adapter, {_RouteRecorder? recorder}) {
+Widget _wrap(
+  StorageAdapter adapter, {
+  _RouteRecorder? recorder,
+  DateTime? now,
+}) {
   return ProviderScope(
     overrides: [
       storageAdapterProvider.overrideWithValue(adapter),
       sharedPreferencesProvider.overrideWithValue(_prefs),
+      if (now != null) clockProvider.overrideWithValue(now),
     ],
     child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -106,6 +113,7 @@ Future<LocalAdapter> _adapterWithRoutine({
   ScheduleMode mode = ScheduleMode.scheduled,
   String? triggerId,
   String? startTime,
+  List<DayOfWeek> days = const [DayOfWeek.mon],
   List<RoutineStep> steps = const [],
 }) async {
   final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
@@ -115,11 +123,7 @@ Future<LocalAdapter> _adapterWithRoutine({
       id: id,
       name: name,
       triggerId: triggerId,
-      schedule: Schedule(
-        mode: mode,
-        days: const [DayOfWeek.mon],
-        startTime: startTime,
-      ),
+      schedule: Schedule(mode: mode, days: days, startTime: startTime),
       stepIds: [for (final step in steps) step.id],
       createdAt: now,
       updatedAt: now,
@@ -129,6 +133,31 @@ Future<LocalAdapter> _adapterWithRoutine({
     await adapter.saveStep(step);
   }
   return adapter;
+}
+
+/// The inverse of `ScheduleTime.weekday`, so a test can schedule a routine on
+/// whatever weekday its fixed clock actually falls on.
+DayOfWeek _dayOfWeek(DateTime date) => switch (date.weekday) {
+  DateTime.monday => DayOfWeek.mon,
+  DateTime.tuesday => DayOfWeek.tue,
+  DateTime.wednesday => DayOfWeek.wed,
+  DateTime.thursday => DayOfWeek.thu,
+  DateTime.friday => DayOfWeek.fri,
+  DateTime.saturday => DayOfWeek.sat,
+  _ => DayOfWeek.sun,
+};
+
+/// "HH:MM" per schemas/routine.schema.json.
+String _hhmm(DateTime time) =>
+    '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+/// Noon today (real "today," not a fixed calendar date): late enough in the
+/// day that adding or subtracting a handful of minutes never crosses
+/// midnight, and "today" so it lines up with `routineCompletionsProvider`,
+/// which always reads the real device clock for its own "today."
+DateTime _fixedNow() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day, 12);
 }
 
 void main() {
@@ -543,5 +572,227 @@ void main() {
         await _disposeCleanly(tester);
       });
     }
+
+    testWidgets('an upcoming card does not overflow at 2.0x text scale', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      final fixedNow = _fixedNow();
+      final start = fixedNow.add(const Duration(minutes: 10));
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'A Fairly Long Morning Routine Name',
+        startTime: _hhmm(start),
+        days: [_dayOfWeek(fixedNow)],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      await _disposeCleanly(tester);
+    });
+  });
+
+  group('upcoming state', () {
+    testWidgets('a routine starting soon is green and shows a countdown', (
+      tester,
+    ) async {
+      final fixedNow = _fixedNow();
+      final start = fixedNow.add(const Duration(minutes: 10));
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(start),
+        days: [_dayOfWeek(fixedNow)],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(RoutinesListScreen));
+      final colors = context.routineCardColors;
+      final l10n = AppLocalizations.of(context)!;
+
+      final card = tester.widget<TintedCard>(find.byType(TintedCard));
+      expect(card.color, colors.upcomingFill);
+      expect(card.foregroundColor, colors.onUpcomingFill);
+      expect(find.textContaining(l10n.routinesUpcomingIn(10)), findsOneWidget);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('a routine in progress is green and shows "Now"', (
+      tester,
+    ) async {
+      final fixedNow = _fixedNow();
+      final start = fixedNow.subtract(const Duration(minutes: 10));
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(start),
+        days: [_dayOfWeek(fixedNow)],
+        steps: [
+          RoutineStep(
+            id: 's1',
+            routineId: 'r1',
+            name: 'Core',
+            emoji: '✅',
+            durationSeconds: const Duration(minutes: 30).inSeconds,
+            order: 0,
+            noExplicitTime: false,
+            isCore: true,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(RoutinesListScreen));
+      final colors = context.routineCardColors;
+      final l10n = AppLocalizations.of(context)!;
+
+      final card = tester.widget<TintedCard>(find.byType(TintedCard));
+      expect(card.color, colors.upcomingFill);
+      expect(card.foregroundColor, colors.onUpcomingFill);
+      expect(find.textContaining(l10n.routinesUpcomingNow), findsOneWidget);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('a routine already completed today keeps the accent', (
+      tester,
+    ) async {
+      final fixedNow = _fixedNow();
+      final start = fixedNow.subtract(const Duration(minutes: 10));
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(start),
+        days: [_dayOfWeek(fixedNow)],
+        steps: [
+          RoutineStep(
+            id: 's1',
+            routineId: 'r1',
+            name: 'Core',
+            emoji: '✅',
+            durationSeconds: const Duration(minutes: 30).inSeconds,
+            order: 0,
+            noExplicitTime: false,
+            isCore: true,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+      );
+      final today = DateTime.now();
+      final completedAt = DateTime(
+        today.year,
+        today.month,
+        today.day,
+        8,
+      ).toUtc();
+      await adapter.appendCompletion(
+        CompletionLog(
+          id: 'c1',
+          routineId: 'r1',
+          startedAt: completedAt,
+          endedAt: completedAt.add(const Duration(minutes: 5)),
+          outcome: CompletionOutcome.completed,
+          steps: const [],
+        ),
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: fixedNow));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(RoutinesListScreen));
+      final colors = context.routineCardColors;
+      final l10n = AppLocalizations.of(context)!;
+
+      final card = tester.widget<TintedCard>(find.byType(TintedCard));
+      expect(card.color, colors.fill);
+      expect(card.foregroundColor, colors.onFill);
+      expect(find.textContaining(l10n.routinesUpcomingNow), findsNothing);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('an upcoming card still navigates and Low Mode still works', (
+      tester,
+    ) async {
+      final fixedNow = _fixedNow();
+      final start = fixedNow.subtract(const Duration(minutes: 10));
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(start),
+        days: [_dayOfWeek(fixedNow)],
+        steps: [
+          RoutineStep(
+            id: 's1',
+            routineId: 'r1',
+            name: 'Core',
+            emoji: '✅',
+            durationSeconds: const Duration(minutes: 30).inSeconds,
+            order: 0,
+            noExplicitTime: false,
+            isCore: true,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+      );
+      final recorder = _RouteRecorder();
+
+      await tester.pumpWidget(
+        _wrap(adapter, now: fixedNow, recorder: recorder),
+      );
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(RoutinesListScreen));
+      final colors = context.routineCardColors;
+      final card = tester.widget<TintedCard>(find.byType(TintedCard));
+      expect(card.color, colors.upcomingFill);
+
+      final l10n = AppLocalizations.of(context)!;
+      await tester.tap(find.text(l10n.routinesStartLowMode));
+      await tester.pumpAndSettle();
+      expect(recorder.last, '/routines/r1/timer?mode=low');
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('an upcoming card still opens the routine on tap', (
+      tester,
+    ) async {
+      final fixedNow = _fixedNow();
+      final start = fixedNow.add(const Duration(minutes: 10));
+      final adapter = await _adapterWithRoutine(
+        id: 'r1',
+        name: 'Morning Routine',
+        startTime: _hhmm(start),
+        days: [_dayOfWeek(fixedNow)],
+      );
+      final recorder = _RouteRecorder();
+
+      await tester.pumpWidget(
+        _wrap(adapter, now: fixedNow, recorder: recorder),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Morning Routine'));
+      await tester.pumpAndSettle();
+
+      expect(recorder.last, '/routines/r1');
+
+      await _disposeCleanly(tester);
+    });
   });
 }
