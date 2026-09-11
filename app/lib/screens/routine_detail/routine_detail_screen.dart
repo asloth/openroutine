@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/step.dart';
 import '../../models/completion_log.dart';
 import '../../models/trigger.dart';
+import '../../services/routines/estimate.dart';
 import '../../services/storage/storage_adapter.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/routines_provider.dart';
@@ -426,9 +427,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
   }
 
   String _estimatedDuration(AppLocalizations l10n, List<RoutineStep> steps) {
-    final totalSeconds = steps
-        .where((s) => !s.noExplicitTime)
-        .fold<int>(0, (sum, s) => sum + (s.durationSeconds ?? 0));
+    final totalSeconds = routineEstimate(steps).inSeconds;
     if (totalSeconds == 0) return l10n.routineDetailNoEstimate;
     final minutes = (totalSeconds / 60).ceil();
     return l10n.routineDetailEstimateMinutes(minutes);

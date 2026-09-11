@@ -277,5 +277,44 @@ void main() {
         );
       },
     );
+
+    test(
+      'a run that started before midnight is still in progress after it',
+      () {
+        // Scheduled only on the day that just ended, so only yesterday's
+        // occurrence can explain the green.
+        final scheduledDay = _dayOfWeek(DateTime(2026, 6, 15));
+        final routine = _routine(days: [scheduledDay], startTime: '23:40');
+        final now = DateTime(2026, 6, 16, 0, 5);
+
+        expect(
+          upcomingState(
+            routine,
+            now: now,
+            estimate: const Duration(minutes: 30),
+            completedToday: false,
+            lead: _defaultLead,
+          ),
+          isA<InProgress>(),
+        );
+      },
+    );
+
+    test('a start just after midnight is upcoming the evening before', () {
+      final scheduledDay = _dayOfWeek(DateTime(2026, 6, 16));
+      final routine = _routine(days: [scheduledDay], startTime: '00:05');
+      final now = DateTime(2026, 6, 15, 23, 55);
+
+      final state = upcomingState(
+        routine,
+        now: now,
+        estimate: const Duration(minutes: 30),
+        completedToday: false,
+        lead: _defaultLead,
+      );
+
+      expect(state, isA<StartsIn>());
+      expect((state! as StartsIn).remaining, const Duration(minutes: 10));
+    });
   });
 }

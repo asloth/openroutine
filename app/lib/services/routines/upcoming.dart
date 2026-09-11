@@ -28,11 +28,15 @@ class InProgress extends UpcomingState {
 /// `ReminderSchedule`, and for the same reason: a fake `now` is what keeps
 /// this deterministic in tests without a fake clock harness.
 ///
-/// Only a scheduled routine with a valid start time on today's weekday can be
-/// upcoming. Its window is `[start − lead, start + estimate)`: before that,
-/// or once [completedToday] is `true`, the result is `null`. Inside the lead
-/// but before the start, the result is [StartsIn]; from the start until the
-/// estimate ends, it's [InProgress].
+/// Only a scheduled routine with a valid start time can be upcoming. Each
+/// occurrence's window is `[start − lead, start + estimate)`: outside every
+/// window, or once [completedToday] is `true`, the result is `null`. Inside
+/// the lead but before the start, the result is [StartsIn]; from the start
+/// until the estimate ends, it's [InProgress].
+///
+/// A window can cross midnight in either direction — a 23:40 run is still in
+/// progress at 00:05, and a 00:05 start is already upcoming at 23:55 — so
+/// yesterday's and tomorrow's occurrences are checked alongside today's.
 UpcomingState? upcomingState(
   Routine routine, {
   required DateTime now,
@@ -47,17 +51,23 @@ UpcomingState? upcomingState(
   if (time == null) return null;
 
   final weekdays = routine.schedule.days.map(ScheduleTime.weekday).toSet();
-  if (!weekdays.contains(now.weekday)) return null;
 
-  // Built from date parts rather than by adding a Duration to midnight — see
-  // ReminderSchedule.occurrences for why: that avoids landing an hour off on
-  // a DST transition day.
-  final start = DateTime(now.year, now.month, now.day, time.$1, time.$2);
-  final windowStart = start.subtract(lead);
-  final windowEnd = start.add(estimate);
+  for (final offset in const [-1, 0, 1]) {
+    // Built from date parts rather than by adding a Duration to midnight — see
+    // ReminderSchedule.occurrences for why: that avoids landing an hour off
+    // on a DST transition day. The constructor also normalizes day 0 or 32.
+    final start = DateTime(
+      now.year,
+      now.month,
+      now.day + offset,
+      time.$1,
+      time.$2,
+    );
+    if (!weekdays.contains(start.weekday)) continue;
 
-  if (now.isBefore(windowStart)) return null;
-  if (now.isBefore(start)) return StartsIn(start.difference(now));
-  if (now.isBefore(windowEnd)) return const InProgress();
+    if (now.isBefore(start.subtract(lead))) continue;
+    if (now.isBefore(start)) return StartsIn(start.difference(now));
+    if (now.isBefore(start.add(estimate))) return const InProgress();
+  }
   return null;
 }

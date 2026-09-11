@@ -80,6 +80,18 @@ NOT be considered upcoming, regardless of the current time.
 - **WHEN** its upcoming state is computed at 00:05 the next day
 - **THEN** the result is not upcoming
 
+#### Scenario: A run that started before midnight is still in progress after it
+
+- **GIVEN** a routine scheduled only on Monday, starting at 23:40 with a 30-minute estimate
+- **WHEN** its upcoming state is computed at 00:05 on Tuesday
+- **THEN** the result is "in progress"
+
+#### Scenario: A start just after midnight is upcoming the evening before
+
+- **GIVEN** a routine scheduled only on Tuesday, starting at 00:05
+- **WHEN** its upcoming state is computed at 23:55 on Monday
+- **THEN** the result counts down 10 minutes
+
 ### Requirement: Finishing a routine today ends its upcoming state early
 
 A routine already completed today SHALL NOT be considered upcoming, even if the current time
