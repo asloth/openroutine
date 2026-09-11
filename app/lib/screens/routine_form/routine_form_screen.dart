@@ -34,6 +34,8 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
   String? _startTime;
   bool _loaded = false;
   bool _saving = false;
+  String? _daysError;
+  String? _startTimeError;
 
   bool get _isEditing => widget.routineId != null;
 
@@ -97,17 +99,48 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
   Future<void> _pickStartTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: _parseStartTime(_startTime) ?? TimeOfDay.now(),
     );
     if (picked == null) return;
     setState(() {
       _startTime =
           '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      _startTimeError = null;
     });
+  }
+
+  /// "HH:MM" per schemas/routine.schema.json — matches `_StartTime._parse` in
+  /// routines_list_screen.dart. Anything malformed is treated as "no time"
+  /// rather than crashing the picker it seeds.
+  static TimeOfDay? _parseStartTime(String? raw) {
+    if (raw == null) return null;
+    final parts = raw.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return TimeOfDay(hour: hour, minute: minute);
   }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    if (_mode == ScheduleMode.scheduled) {
+      final daysError = _days.isEmpty ? l10n.routineFormDaysRequired : null;
+      final startTimeError = _startTime == null
+          ? l10n.routineFormStartTimeRequired
+          : null;
+      if (daysError != null || startTimeError != null) {
+        setState(() {
+          _daysError = daysError;
+          _startTimeError = startTimeError;
+        });
+        return;
+      }
+    }
+
     setState(() => _saving = true);
 
     final storage = ref.read(storageAdapterProvider);
@@ -300,24 +333,55 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
                     FilterChip(
                       label: Text(_dayLabel(l10n, day)),
                       selected: _days.contains(day),
-                      onSelected: (selected) => setState(
-                        () => selected ? _days.add(day) : _days.remove(day),
-                      ),
+                      onSelected: (selected) => setState(() {
+                        selected ? _days.add(day) : _days.remove(day);
+                        if (_days.isNotEmpty) _daysError = null;
+                      }),
                     ),
                 ],
               ),
+              if (_daysError != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _daysError!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(l10n.routineFormStartTimeLabel),
-                subtitle: Text(_startTime ?? l10n.routineFormStartTimeUnset),
+                subtitle: Text(_startTimeText(context)),
                 trailing: const Icon(Icons.access_time),
                 onTap: _pickStartTime,
               ),
+              if (_startTimeError != null)
+                Text(
+                  _startTimeError!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  /// Follows the phone's 12/24-hour setting, matching `_StartTime` on the
+  /// routines list — the stored "HH:MM" is display-only here; the field
+  /// itself never changes format.
+  String _startTimeText(BuildContext context) {
+    final time = _parseStartTime(_startTime);
+    if (time == null) {
+      return AppLocalizations.of(context)!.routineFormStartTimeUnset;
+    }
+    return MaterialLocalizations.of(context).formatTimeOfDay(
+      time,
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
     );
   }
 

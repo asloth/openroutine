@@ -306,6 +306,14 @@
   },
   "routineFormStartTimeLabel": "Start time",
   "routineFormStartTimeUnset": "Not set",
+  "routineFormDaysRequired": "Pick at least one day",
+  "@routineFormDaysRequired": {
+    "description": "Inline error under the day chips when saving a Scheduled routine with no day selected."
+  },
+  "routineFormStartTimeRequired": "Pick a start time",
+  "@routineFormStartTimeRequired": {
+    "description": "Inline error under the start-time tile when saving a Scheduled routine with no start time set."
+  },
 
   "commonEdit": "Edit",
 
