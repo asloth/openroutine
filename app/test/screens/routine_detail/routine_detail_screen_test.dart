@@ -21,7 +21,7 @@ import 'package:openroutine/widgets/tinted/tinted.dart';
 
 final _createdAt = DateTime.utc(2026, 8, 1);
 
-RoutineStep _step(String id, int order) => RoutineStep(
+RoutineStep _step(String id, int order, {bool isCore = false}) => RoutineStep(
   id: id,
   routineId: 'r1',
   name: 'Step $id',
@@ -29,6 +29,7 @@ RoutineStep _step(String id, int order) => RoutineStep(
   durationSeconds: 60,
   order: order,
   noExplicitTime: false,
+  isCore: isCore,
   createdAt: _createdAt,
   updatedAt: _createdAt,
 );
@@ -237,6 +238,58 @@ void main() {
     expect(find.byIcon(Icons.drag_handle), findsNothing);
 
     await _disposeCleanly(tester);
+  });
+
+  group('low-mode setup guidance', () {
+    testWidgets(
+      'shows the guidance under Steps when steps exist and none is essential',
+      (tester) async {
+        final db = AppDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final adapter = await _seed(db, [_step('s1', 0)]);
+        await tester.pumpWidget(_wrap(adapter));
+        await tester.pumpAndSettle();
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(RoutineDetailScreen)),
+        )!;
+
+        expect(find.text(l10n.routinesLowModeSetupGuidance), findsOneWidget);
+
+        await _disposeCleanly(tester);
+      },
+    );
+
+    testWidgets('hides the guidance once a step is essential', (tester) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final adapter = await _seed(db, [_step('s1', 0, isCore: true)]);
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutineDetailScreen)),
+      )!;
+
+      expect(find.text(l10n.routinesLowModeSetupGuidance), findsNothing);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('hides the guidance when the routine has no steps', (
+      tester,
+    ) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final adapter = await _seed(db, const []);
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutineDetailScreen)),
+      )!;
+
+      expect(find.text(l10n.routinesLowModeSetupGuidance), findsNothing);
+
+      await _disposeCleanly(tester);
+    });
   });
 
   testWidgets('does not expose a meaningless handle for one step', (

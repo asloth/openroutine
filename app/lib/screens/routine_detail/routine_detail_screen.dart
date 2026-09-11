@@ -280,6 +280,20 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                             ),
                           ],
                         ),
+                        if (steps.isNotEmpty &&
+                            !steps.any((step) => step.isCore))
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8, top: 4),
+                            child: Text(
+                              l10n.routinesLowModeSetupGuidance,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ),
                         const SizedBox(height: 8),
                         if (steps.isEmpty)
                           Padding(

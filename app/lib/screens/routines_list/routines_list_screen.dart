@@ -409,13 +409,6 @@ class _RoutineCard extends ConsumerWidget {
                   Text(routine.name, style: _nameStyle),
                   const SizedBox(height: 2),
                   Text(stepCountLine, style: secondaryStyle),
-                  if (steps != null && !hasCoreSteps) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.routinesLowModeSetupGuidance,
-                      style: secondaryStyle,
-                    ),
-                  ],
                 ],
               ),
             ),

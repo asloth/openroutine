@@ -196,73 +196,77 @@ void main() {
     await _disposeCleanly(tester);
   });
 
-  testWidgets('guides setup without selecting steps when no core steps exist', (
-    tester,
-  ) async {
-    final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
-    final now = DateTime.utc(2026, 1, 1);
-    await adapter.saveRoutine(
-      Routine(
-        id: 'r1',
-        name: 'Morning Routine',
-        triggerId: null,
-        schedule: const Schedule(mode: ScheduleMode.scheduled, days: []),
-        stepIds: const ['s1'],
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
-    await adapter.saveRoutine(
-      Routine(
-        id: 'r2',
-        name: 'Other Routine',
-        triggerId: null,
-        schedule: const Schedule(mode: ScheduleMode.scheduled, days: []),
-        stepIds: const ['s2'],
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
-    await adapter.saveStep(
-      RoutineStep(
-        id: 's1',
-        routineId: 'r1',
-        name: 'Core',
-        emoji: '✅',
-        durationSeconds: 60,
-        order: 0,
-        noExplicitTime: false,
-        isCore: true,
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
-    await adapter.saveStep(
-      RoutineStep(
-        id: 's2',
-        routineId: 'r2',
-        name: 'Regular',
-        emoji: '✅',
-        durationSeconds: 60,
-        order: 0,
-        noExplicitTime: false,
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
+  testWidgets(
+    'omits low-mode setup guidance from the card when no core steps exist',
+    (tester) async {
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      final now = DateTime.utc(2026, 1, 1);
+      await adapter.saveRoutine(
+        Routine(
+          id: 'r1',
+          name: 'Morning Routine',
+          triggerId: null,
+          schedule: const Schedule(mode: ScheduleMode.scheduled, days: []),
+          stepIds: const ['s1'],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await adapter.saveRoutine(
+        Routine(
+          id: 'r2',
+          name: 'Other Routine',
+          triggerId: null,
+          schedule: const Schedule(mode: ScheduleMode.scheduled, days: []),
+          stepIds: const ['s2'],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await adapter.saveStep(
+        RoutineStep(
+          id: 's1',
+          routineId: 'r1',
+          name: 'Core',
+          emoji: '✅',
+          durationSeconds: 60,
+          order: 0,
+          noExplicitTime: false,
+          isCore: true,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await adapter.saveStep(
+        RoutineStep(
+          id: 's2',
+          routineId: 'r2',
+          name: 'Regular',
+          emoji: '✅',
+          durationSeconds: 60,
+          order: 0,
+          noExplicitTime: false,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
 
-    await tester.pumpWidget(_wrap(adapter));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
 
-    final l10n = AppLocalizations.of(
-      tester.element(find.byType(RoutinesListScreen)),
-    )!;
-    expect(find.text(l10n.routinesStartLowMode), findsOneWidget);
-    expect(find.text(l10n.routinesLowModeSetupGuidance), findsOneWidget);
-    expect((await adapter.getSteps('r2')).single.isCore, isFalse);
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(RoutinesListScreen)),
+      )!;
+      expect(find.text(l10n.routinesStartLowMode), findsOneWidget);
+      // The guidance moved to Routine detail — the list card keeps only its
+      // step count line and chevron so a fresh install isn't cluttered with it
+      // on every card.
+      expect(find.text(l10n.routinesLowModeSetupGuidance), findsNothing);
+      expect((await adapter.getSteps('r2')).single.isCore, isFalse);
 
-    await _disposeCleanly(tester);
-  });
+      await _disposeCleanly(tester);
+    },
+  );
 
   group('header', () {
     testWidgets('shows the app title with no AppBar', (tester) async {
