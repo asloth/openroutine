@@ -430,6 +430,37 @@
   "stepFormAddTitle": "Add step",
   "stepFormEditTitle": "Edit step",
   "stepFormTemplatesLabel": "Templates",
+  "stepFormChooseTemplate": "Start from a template",
+  "@stepFormChooseTemplate": {
+    "description": "Button that opens the template picker sheet on Add step."
+  },
+  "stepFormTemplateChipLabel": "{emoji} {name} · {duration}",
+  "@stepFormTemplateChipLabel": {
+    "description": "A template chip in the picker sheet, for a template that has a duration.",
+    "placeholders": {
+      "emoji": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "stepFormTemplateChipLabelNoDuration": "{emoji} {name}",
+  "@stepFormTemplateChipLabelNoDuration": {
+    "description": "A template chip in the picker sheet, for a template with no duration.",
+    "placeholders": {
+      "emoji": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "stepFormNameLabel": "Name",
   "stepFormNameRequired": "Name is required",
   "stepFormEmojiRequired": "Pick an emoji for this step",
@@ -440,7 +471,7 @@
   "stepFormCoreGuidance": "Choose 2 or 3 essentials for lower-capacity days. You can change this anytime.",
   "stepFormCoreLimit": "Keep this one for another day, or unmark an essential first.",
   "stepFormRemindDuringLabel": "Remind me during this step",
-  "stepFormRemindDuringGuidance": "A nudge halfway through and another near the end, so you can come back before the time runs out. Steps under 2 minutes stay quiet.",
+  "stepFormRemindDuringGuidance": "Nudges you halfway through and near the end. Steps under 2 minutes stay quiet.",
 
   "stepTemplateCategoryMorning": "Morning",
   "stepTemplateCategoryEvening": "Evening",
