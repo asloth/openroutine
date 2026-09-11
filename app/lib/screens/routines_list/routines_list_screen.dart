@@ -657,7 +657,7 @@ class _StartTimerPill extends StatelessWidget {
           borderRadius: AppRadius.pillBorder,
           child: Container(
             constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.fromLTRB(18, 0, 14, 0),
+            padding: const EdgeInsets.fromLTRB(14, 0, 18, 0),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: onFill,
