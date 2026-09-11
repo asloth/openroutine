@@ -11,7 +11,6 @@ import '../../services/storage/storage_adapter.dart';
 import '../../state/reference_data_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
-import '../../theme/theme.dart';
 
 /// docs/SPEC.md §7 screens 5 (Add step) and 6 (Edit step), combined into one
 /// screen: the same form serves both, with a template picker shown only
@@ -74,6 +73,39 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
         _minutes = (template.durationSeconds! / 60).ceil().clamp(1, 999);
       }
     });
+  }
+
+  Future<void> _pickTemplate(
+    AppLocalizations l10n,
+    List<StepTemplateCategory> categories,
+  ) async {
+    final selected = await showModalBottomSheet<StepTemplate>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          builder: (context, scrollController) {
+            return ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              children: [
+                for (final category in categories)
+                  _TemplateCategorySection(
+                    label: stepTemplateCategoryLabel(l10n, category.id),
+                    templates: category.steps,
+                    onSelected: (template) =>
+                        Navigator.of(context).pop(template),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (selected != null) _applyTemplate(l10n, selected);
   }
 
   Future<void> _pickEmoji(List<EmojiCategory> categories) async {
@@ -282,25 +314,22 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
                 ),
               ],
             ),
-            // Templates sit *under* the name field, not above it. As a
-            // full-height wrap of every category at the top of the form they
-            // filled a phone screen on their own, so the field you opened the
-            // screen to type into was below the fold. One horizontal row
-            // keeps them one tap away while leaving the form visible — and
-            // tapping one now fills a field you can actually see change.
+            // The template picker sits *under* the name field, not above it,
+            // and behind a button rather than shown inline: a full-height
+            // wrap of every category at the top of the form pushed the field
+            // you opened the screen to type into below the fold. A sheet
+            // gets that same room for readable names without spending it
+            // against the form that's visible by default.
             if (templatesAsync != null) ...[
               const SizedBox(height: 16),
-              Text(
-                l10n.stepFormTemplatesLabel,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
               templatesAsync.when(
-                data: (categories) => _TemplateCarousel(
-                  categories: categories,
-                  onSelected: (template) => _applyTemplate(l10n, template),
+                data: (categories) => SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickTemplate(l10n, categories),
+                    icon: const Icon(Icons.dashboard_customize_outlined),
+                    label: Text(l10n.stepFormChooseTemplate),
+                  ),
                 ),
                 loading: () => const LinearProgressIndicator(),
                 error: (_, _) => const SizedBox.shrink(),
@@ -470,132 +499,72 @@ String emojiCategoryLabel(AppLocalizations l10n, String id) {
   };
 }
 
-/// The step templates, as one horizontally-scrolling row.
-///
-/// Categories stay visible as inline markers between their cards rather than
-/// becoming four stacked sections — the grouping is worth keeping, the
-/// vertical space it used to cost is not.
-class _TemplateCarousel extends StatelessWidget {
-  const _TemplateCarousel({required this.categories, required this.onSelected});
+/// One category's section inside the template picker sheet: a heading,
+/// followed by that category's templates as a wrap of chips.
+class _TemplateCategorySection extends StatelessWidget {
+  const _TemplateCategorySection({
+    required this.label,
+    required this.templates,
+    required this.onSelected,
+  });
 
-  final List<StepTemplateCategory> categories;
+  final String label;
+  final List<StepTemplate> templates;
   final ValueChanged<StepTemplate> onSelected;
-
-  /// The card's fixed padding, and the text stack that sits inside it at the
-  /// default text scale: emoji, a two-line name, and the duration.
-  static const _verticalPadding = 20.0;
-  static const _textHeight = 84.0;
-  static const _cardWidth = 116.0;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    // Every line inside the card grows with the text scale, but the padding
-    // does not — so scale only the text's share. A fixed height left the name
-    // with about a pixel to draw in at 1.5x, and because it sits in a
-    // Flexible it was sliced through the middle of the letters rather than
-    // overflowing where anyone would notice. At the default scale this comes
-    // out at the same 104 the card has always been.
-    final textScaler = MediaQuery.textScalerOf(context);
-    final height = _verticalPadding + textScaler.scale(_textHeight);
-
-    return SizedBox(
-      height: height,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        children: [
-          for (final category in categories) ...[
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Text(
-                  stepTemplateCategoryLabel(l10n, category.id),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final template in templates)
+              _TemplateChip(
+                template: template,
+                onSelected: () => onSelected(template),
               ),
-            ),
-            for (final template in category.steps)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: SizedBox(
-                  // Widen with the text too, or a scaled-up name ellipses away
-                  // to a couple of words in a card that stayed narrow.
-                  width: textScaler.scale(_cardWidth),
-                  child: _TemplateCard(
-                    template: template,
-                    onTap: () => onSelected(template),
-                  ),
-                ),
-              ),
-            const SizedBox(width: 16),
           ],
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
 
-class _TemplateCard extends StatelessWidget {
-  const _TemplateCard({required this.template, required this.onTap});
+/// A single template inside the picker sheet, reading as one line of text —
+/// its emoji, its full name, and its duration when it has one — with no line
+/// limit, so nothing about the name ever truncates or gets clipped.
+class _TemplateChip extends StatelessWidget {
+  const _TemplateChip({required this.template, required this.onSelected});
 
   final StepTemplate template;
-  final VoidCallback onTap;
+  final VoidCallback onSelected;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final name = templateStepName(l10n, template.id);
     final minutes = template.durationSeconds == null
         ? null
         : (template.durationSeconds! / 60).ceil();
+    final label = minutes == null
+        ? l10n.stepFormTemplateChipLabelNoDuration(template.emoji, name)
+        : l10n.stepFormTemplateChipLabel(
+            template.emoji,
+            name,
+            l10n.stepDurationMinutes(minutes),
+          );
 
-    return Semantics(
-      button: true,
-      label: name,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.cardBorder,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: AppRadius.cardBorder,
-            border: Border.all(color: theme.colorScheme.outlineVariant),
-          ),
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(template.emoji, style: const TextStyle(fontSize: 26)),
-              const Spacer(),
-              // Flexible, not a bare Text: a two-line name plus the emoji and
-              // the duration just fits the card's fixed height at the default
-              // text scale, and anything that makes the line box taller — a
-              // wider font, a longer translation — overflows it by a few
-              // pixels. Letting the name give way keeps the card intact.
-              Flexible(
-                child: Text(
-                  name,
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (minutes != null)
-                Text(
-                  l10n.stepDurationMinutes(minutes),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+    return ActionChip(
+      label: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+      onPressed: onSelected,
     );
   }
 }

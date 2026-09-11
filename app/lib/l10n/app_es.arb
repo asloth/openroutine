@@ -235,6 +235,37 @@
   "stepFormAddTitle": "Añadir paso",
   "stepFormEditTitle": "Editar paso",
   "stepFormTemplatesLabel": "Plantillas",
+  "stepFormChooseTemplate": "Empezar desde una plantilla",
+  "@stepFormChooseTemplate": {
+    "description": "Button that opens the template picker sheet on Add step."
+  },
+  "stepFormTemplateChipLabel": "{emoji} {name} · {duration}",
+  "@stepFormTemplateChipLabel": {
+    "description": "A template chip in the picker sheet, for a template that has a duration.",
+    "placeholders": {
+      "emoji": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "stepFormTemplateChipLabelNoDuration": "{emoji} {name}",
+  "@stepFormTemplateChipLabelNoDuration": {
+    "description": "A template chip in the picker sheet, for a template with no duration.",
+    "placeholders": {
+      "emoji": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "stepFormNameLabel": "Nombre",
   "stepFormNameRequired": "El nombre es obligatorio",
   "stepFormEmojiRequired": "Elige un emoji para este paso",
@@ -245,7 +276,7 @@
   "stepFormCoreGuidance": "Elige 2 o 3 esenciales para los días con menos energía. Puedes cambiarlo cuando quieras.",
   "stepFormCoreLimit": "Guárdalo para otro día o desmarca primero un paso esencial.",
   "stepFormRemindDuringLabel": "Recuérdamelo durante este paso",
-  "stepFormRemindDuringGuidance": "Un aviso a la mitad y otro cerca del final, para que puedas volver antes de que se acabe el tiempo. Los pasos de menos de 2 minutos no avisan.",
+  "stepFormRemindDuringGuidance": "Te avisa a mitad del paso y cerca del final. Los pasos de menos de 2 minutos no avisan.",
 
   "stepTemplateCategoryMorning": "Mañana",
   "stepTemplateCategoryEvening": "Noche",

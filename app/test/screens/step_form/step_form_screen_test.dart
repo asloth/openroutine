@@ -131,7 +131,17 @@ void main() {
 
       // A template fills in the name and the emoji, both of which `_save`
       // insists on, without opening the emoji sheet.
-      await tester.tap(find.text(l10n.stepTemplateBrushTeeth));
+      await tester.tap(find.text(l10n.stepFormChooseTemplate));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.text(
+          l10n.stepFormTemplateChipLabel(
+            '🪥',
+            l10n.stepTemplateBrushTeeth,
+            l10n.stepDurationMinutes(3),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(l10n.commonSave));
       await tester.pumpAndSettle();

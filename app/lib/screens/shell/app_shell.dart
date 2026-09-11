@@ -10,7 +10,7 @@ import 'floating_nav_bar.dart';
 /// The bar carries two destinations, not three: Settings sits behind the gear
 /// on the routine list instead. Two labels have room to grow at a large text
 /// scale, which is the size this app is actually used at — see
-/// `step_template_card_test.dart` for what happens to a label that doesn't.
+/// `step_template_sheet_test.dart` for what happens to a label that doesn't.
 ///
 /// Each destination keeps its own `Navigator`, so leaving the routine list
 /// part-way into a routine and coming back lands where it was left rather than
