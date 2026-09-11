@@ -20,12 +20,13 @@ RoutineStep _step(
   int order, {
   required bool isCore,
   bool remindDuring = false,
+  int durationSeconds = 60,
 }) => RoutineStep(
   id: id,
   routineId: 'r1',
   name: 'Step $id',
   emoji: '✅',
-  durationSeconds: 60,
+  durationSeconds: durationSeconds,
   order: order,
   noExplicitTime: false,
   isCore: isCore,
@@ -249,6 +250,55 @@ void main() {
             'on it is dropped with it rather than left on invisibly',
       );
       expect(saved.durationSeconds, isNull);
+    });
+  });
+
+  group('the duration picker', () {
+    testWidgets('renders a chip for every preset', (tester) async {
+      await adapter.saveStep(_step('s4', 3, isCore: false));
+
+      final l10n = await pumpForm(tester, '/step');
+
+      for (final minutes in [1, 2, 3, 5, 10, 15, 20, 30, 45, 60]) {
+        expect(
+          find.widgetWithText(ChoiceChip, l10n.stepDurationMinutes(minutes)),
+          findsOneWidget,
+          reason: 'the $minutes-minute preset should have its own chip',
+        );
+      }
+    });
+
+    testWidgets(
+      'shows a step whose duration is not a preset as its own selected chip',
+      (tester) async {
+        await adapter.saveStep(
+          _step('s4', 3, isCore: false, durationSeconds: 7 * 60),
+        );
+
+        final l10n = await pumpForm(tester, '/step');
+
+        final chip = find.widgetWithText(
+          ChoiceChip,
+          l10n.stepDurationMinutes(7),
+        );
+        expect(
+          chip,
+          findsOneWidget,
+          reason: 'a 7-minute step is not one of the fixed presets',
+        );
+        expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
+      },
+    );
+  });
+
+  group('the name field', () {
+    testWidgets('hides its character counter', (tester) async {
+      await adapter.saveStep(_step('s4', 3, isCore: false));
+
+      await pumpForm(tester, '/step');
+
+      final nameField = tester.widget<TextField>(find.byType(TextField));
+      expect(nameField.decoration?.counterText, isEmpty);
     });
   });
 }

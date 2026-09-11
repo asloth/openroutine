@@ -45,6 +45,12 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
 
   bool get _isEditing => widget.stepId != null;
 
+  /// Fixed one-tap duration choices. When `_minutes` isn't one of these —
+  /// an edited step, or a template that seeded an odd value — it's added
+  /// as an extra chip rather than snapped to the nearest preset, so opening
+  /// the picker never silently changes what's stored.
+  static const _durationPresets = [1, 2, 3, 5, 10, 15, 20, 30, 45, 60];
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -305,6 +311,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
                     maxLength: 50,
                     decoration: InputDecoration(
                       labelText: l10n.stepFormNameLabel,
+                      counterText: '',
                     ),
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
@@ -342,47 +349,23 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
               value: _noExplicitTime,
               onChanged: (value) => setState(() => _noExplicitTime = value),
             ),
-            Semantics(
-              label: l10n.stepFormCoreGuidance,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n.stepFormCoreLabel),
-                    value: _isCore,
-                    onChanged: (value) =>
-                        setState(() => _isCore = value ?? false),
-                  ),
-                  Text(
-                    l10n.stepFormCoreGuidance,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.stepFormCoreLabel),
+              subtitle: Text(l10n.stepFormCoreGuidance),
+              value: _isCore,
+              onChanged: (value) => setState(() => _isCore = value ?? false),
             ),
             // Both the toggle and the duration chips live behind this
             // condition: a reminder at half of no estimate is not a moment,
             // so the control is unavailable rather than present and ignored.
             if (!_noExplicitTime) ...[
-              Semantics(
-                label: l10n.stepFormRemindDuringGuidance,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(l10n.stepFormRemindDuringLabel),
-                      value: _remindDuring,
-                      onChanged: (value) =>
-                          setState(() => _remindDuring = value),
-                    ),
-                    Text(
-                      l10n.stepFormRemindDuringGuidance,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.stepFormRemindDuringLabel),
+                subtitle: Text(l10n.stepFormRemindDuringGuidance),
+                value: _remindDuring,
+                onChanged: (value) => setState(() => _remindDuring = value),
               ),
               const SizedBox(height: 8),
               Text(
@@ -392,12 +375,12 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children: [
-                  for (final minutes in {
-                    (_minutes - 1).clamp(1, 999),
+                  for (final minutes in ({
+                    ..._durationPresets,
                     _minutes,
-                    _minutes + 1,
-                  })
+                  }.toList()..sort()))
                     ChoiceChip(
                       label: Text(l10n.stepDurationMinutes(minutes)),
                       selected: minutes == _minutes,
