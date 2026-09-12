@@ -5,12 +5,10 @@ import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/state/app_prefs_provider.dart';
 import 'package:openroutine/theme/palette.dart';
 import 'package:openroutine/widgets/accent_picker.dart';
-import 'package:openroutine/widgets/palette_picker.dart' show paletteName;
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Follows `palette_picker.dart`'s swatch and semantics pattern (see
-/// design.md), but with no custom-hue entry: the accent only ever names a
-/// built-in.
+/// The accent is the only colour choice left in Settings › Appearance: it
+/// colours the whole app, not just routine cards and buttons.
 Future<void> _pump(WidgetTester tester, SharedPreferences prefs) {
   return tester.pumpWidget(
     ProviderScope(
@@ -53,7 +51,7 @@ void main() {
     );
   });
 
-  testWidgets('swatch labels are color words, not palette names', (
+  testWidgets('helper explains the accent colors the whole app', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -63,16 +61,8 @@ void main() {
     final context = tester.element(find.byType(AccentPicker));
     final l10n = AppLocalizations.of(context)!;
 
-    for (final palette in Palette.builtIns) {
-      expect(find.bySemanticsLabel(_labelFor(palette)), findsOneWidget);
-      expect(
-        find.bySemanticsLabel(paletteName(l10n, palette)),
-        findsNothing,
-        reason:
-            'accent swatch for ${palette.id} should not carry the theme '
-            'name ${paletteName(l10n, palette)}',
-      );
-    }
+    expect(l10n.settingsAccentHelper, 'Colors the whole app.');
+    expect(find.text(l10n.settingsAccentHelper), findsOneWidget);
   });
 
   testWidgets('tapping a swatch updates accentSettingProvider', (tester) async {

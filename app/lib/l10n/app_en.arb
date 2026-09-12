@@ -572,12 +572,12 @@
 
   "settingsAppearanceSection": "Appearance",
   "@settingsAppearanceSection": {
-    "description": "Settings section holding the colour palette picker."
+    "description": "Settings section holding the accent colour picker."
   },
 
   "settingsThemeCurrent": "{name} selected",
   "@settingsThemeCurrent": {
-    "description": "Caption under the palette swatches naming the active one.",
+    "description": "Caption under the accent swatches naming the active one.",
     "placeholders": {
       "name": {
         "type": "String"
@@ -585,37 +585,12 @@
     }
   },
 
-  "settingsThemeTitle": "Theme",
-  "@settingsThemeTitle": {
-    "description": "Heading above the background palette picker, under Settings › Appearance."
-  },
-
-  "settingsThemeHelper": "Sets the background and surfaces of the app.",
-  "@settingsThemeHelper": {
-    "description": "One-line explainer under the background palette picker's heading."
-  },
-
-  "themeWarmPaper": "Warm Paper",
-  "themeInkIris": "Ink & Iris",
-  "themeSeaGlass": "Sea Glass",
-  "themePlum": "Plum",
-  "themeSlate": "Slate",
-  "themeMoss": "Moss",
-
-  "themeCustom": "Custom",
-  "@themeCustom": {
-    "description": "The swatch that opens the free hue picker."
-  },
-
-  "themeCustomTitle": "Custom colour",
-  "themeCustomHue": "Hue",
-
   "settingsAccentTitle": "Accent color",
   "@settingsAccentTitle": {
     "description": "Heading above the accent colour picker, under Settings › Appearance."
   },
 
-  "settingsAccentHelper": "Colors your routine cards and main buttons.",
+  "settingsAccentHelper": "Colors the whole app.",
   "@settingsAccentHelper": {
     "description": "One-line explainer under the accent colour picker's heading."
   },

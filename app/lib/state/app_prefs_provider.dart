@@ -60,28 +60,11 @@ class LocaleOverrideSetting extends _$LocaleOverrideSetting {
   }
 }
 
-@Riverpod(keepAlive: true)
-class PaletteSetting extends _$PaletteSetting {
-  @override
-  Palette build() =>
-      Palette.fromStorageId(ref.watch(appPrefsProvider).paletteId);
-
-  Future<void> setPalette(Palette palette) async {
-    await ref.read(appPrefsProvider).setPaletteId(palette.storageId);
-    state = palette;
-  }
-
-  /// Repaints the app without touching disk, for the live drag of the custom
-  /// hue slider. The commit happens once when the gesture ends — a write per
-  /// slider frame would be sixty writes for one decision.
-  void preview(Palette palette) => state = palette;
-}
-
-/// The accent color routine cards and primary actions take on, chosen
-/// independently of [PaletteSetting]. Deliberately falls back to
-/// [Palette.inkIris] rather than [Palette.defaultPalette] — the accent's
-/// default is a separate product decision from the background palette's, and
-/// the two must not recouple just because one of them changes later.
+/// The accent color that colors the whole app: surfaces, every role, and the
+/// mascot. It's the only color choice Settings › Appearance offers — there's
+/// no separate background palette to keep in sync with it. Falls back to
+/// [Palette.inkIris] when nothing is stored or the stored id isn't
+/// recognised.
 @Riverpod(keepAlive: true)
 class AccentSetting extends _$AccentSetting {
   @override
@@ -99,6 +82,7 @@ class AccentSetting extends _$AccentSetting {
     state = accent;
   }
 
-  /// Repaints without touching disk — see [PaletteSetting.preview].
+  /// Repaints the app without touching disk, for a live preview whose commit
+  /// happens once a gesture ends rather than on every frame of it.
   void preview(Palette accent) => state = accent;
 }
