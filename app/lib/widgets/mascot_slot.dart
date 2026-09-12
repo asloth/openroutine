@@ -96,8 +96,7 @@ class _MascotSlotState extends State<MascotSlot>
     // Follows whichever palette the user picked; falls back to the default
     // pet if the extension is somehow missing rather than rendering nothing.
     final colours =
-        Theme.of(context).extension<MascotPalette>() ??
-        Palette.defaultPalette.mascot;
+        Theme.of(context).extension<MascotPalette>() ?? Palette.inkIris.mascot;
 
     final pet = RepaintBoundary(
       child: SizedBox(
@@ -216,8 +215,12 @@ class _MascotPainter extends CustomPainter {
       canvas.drawPath(
         Path()
           ..moveTo(cx - w * 0.09, bodyRect.top + h * 0.04)
-          ..quadraticBezierTo(cx + dx * w * 0.02, top, cx + w * 0.09,
-              bodyRect.top + h * 0.04)
+          ..quadraticBezierTo(
+            cx + dx * w * 0.02,
+            top,
+            cx + w * 0.09,
+            bodyRect.top + h * 0.04,
+          )
           ..close(),
         earPaint,
       );
