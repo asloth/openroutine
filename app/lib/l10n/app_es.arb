@@ -169,14 +169,13 @@
   "timerZoneOrange": "¿Está todo bien?",
   "timerPause": "Pausar",
   "timerResume": "Reanudar",
-  "timerDone": "Listo",
+  "timerDone": "Hecho, siguiente paso",
   "timerFinish": "Terminar",
-  "timerRestartStep": "Reiniciar paso",
-  "timerDoLater": "Dejar para después",
+  "timerDoLater": "Dejar para el final",
   "timerAbandonConfirmTitle": "¿Detener esta rutina?",
   "timerAbandonConfirmBody": "Los pasos que ya terminaste igual quedan registrados.",
   "timerAbandonConfirmAction": "Detener",
-  "timerCompleteTitle": "Rutina completada",
+  "timerCompleteTitle": "¡Eso es todo!",
   "timerLowModeCompleteTitle": "Modo bajo completado",
   "timerAbandonedTitle": "Rutina detenida",
   "timerCompleteSummary": "{completed} de {total} pasos en {duration}",
@@ -199,7 +198,7 @@
   "@timerCompleteSkipped": {
     "placeholders": { "count": { "type": "int" } }
   },
-  "timerCloseSummary": "Cerrar",
+  "timerCloseSummary": "Volver a hoy",
   "timerCalibrationTitle": "¿Ajustar la estimación?",
   "timerCalibrationSummary": "Te llevó {actual}; la estimación era {estimate}.",
   "@timerCalibrationSummary": {
@@ -396,5 +395,11 @@
   "homeProgress": "{done} de {total}",
   "homeDone": "Hecha",
   "homeOtherDays": "Otros días",
-  "homeAddRoutine": "Añadir rutina"
+  "homeAddRoutine": "Añadir rutina",
+  "timerStepOfTotal": "{current} de {total}",
+  "timerSkip": "Saltar",
+  "timerRestOfRun": "Lo que queda",
+  "timerMinutesLeft": "Quedan {minutes} min",
+  "timerStepMinutes": "{minutes} min",
+  "timerHalfway": "Vas por la mitad de {step}, quedan {minutes} min."
 }

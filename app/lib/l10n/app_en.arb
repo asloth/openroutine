@@ -336,14 +336,13 @@
   "timerZoneOrange": "Everything okay?",
   "timerPause": "Pause",
   "timerResume": "Resume",
-  "timerDone": "Done",
+  "timerDone": "Done — next step",
   "timerFinish": "Finish",
-  "timerRestartStep": "Restart step",
-  "timerDoLater": "Do later",
+  "timerDoLater": "Do it last",
   "timerAbandonConfirmTitle": "Stop this routine?",
   "timerAbandonConfirmBody": "The steps you've already finished will still be logged.",
   "timerAbandonConfirmAction": "Stop",
-  "timerCompleteTitle": "Routine complete",
+  "timerCompleteTitle": "That's the whole thing.",
   "timerLowModeCompleteTitle": "Low Mode complete",
   "timerAbandonedTitle": "Routine stopped",
   "timerCompleteSummary": "{completed} of {total} steps done in {duration}",
@@ -366,7 +365,7 @@
   "@timerCompleteSkipped": {
     "placeholders": { "count": { "type": "int" } }
   },
-  "timerCloseSummary": "Close",
+  "timerCloseSummary": "Back to today",
   "timerCalibrationTitle": "Adjust estimate?",
   "timerCalibrationSummary": "You took {actual}; the estimate was {estimate}.",
   "@timerCalibrationSummary": {
@@ -736,5 +735,29 @@
   "homeOtherDays": "Other days",
   "@homeOtherDays": {"description": "Collapsed home section for scheduled routines that aren't due today."},
   "homeAddRoutine": "Add a routine",
-  "@homeAddRoutine": {"description": "Home's floating button for creating a routine."}
+  "@homeAddRoutine": {"description": "Home's floating button for creating a routine."},
+  "timerStepOfTotal": "{current} of {total}",
+  "@timerStepOfTotal": {
+    "description": "Short step counter in the timer header; screen readers hear timerStepCounter instead.",
+    "placeholders": {"current": {"type": "int"}, "total": {"type": "int"}}
+  },
+  "timerSkip": "Skip",
+  "@timerSkip": {"description": "Skips the current step and starts the next one."},
+  "timerRestOfRun": "Rest of the run",
+  "@timerRestOfRun": {"description": "Label above the list of every step in the run."},
+  "timerMinutesLeft": "{minutes} min left",
+  "@timerMinutesLeft": {
+    "description": "Estimated minutes left in the run, beside Rest of the run.",
+    "placeholders": {"minutes": {"type": "int"}}
+  },
+  "timerStepMinutes": "{minutes} min",
+  "@timerStepMinutes": {
+    "description": "A step's estimate in the Rest of the run list.",
+    "placeholders": {"minutes": {"type": "int"}}
+  },
+  "timerHalfway": "Halfway through {step}, {minutes} min to go.",
+  "@timerHalfway": {
+    "description": "Banner shown from the middle of a step that opted into mid-step reminders.",
+    "placeholders": {"step": {"type": "String"}, "minutes": {"type": "int"}}
+  }
 }
