@@ -81,7 +81,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.onboardingSlide1Title), findsNothing);
-    expect(find.text(l10n.appTitle), findsOneWidget);
+    expect(find.text(l10n.homeAddRoutine), findsOneWidget);
     expect(prefs.getBool('onboarding_complete'), isTrue);
 
     await _disposeCleanly(tester);

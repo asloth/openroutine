@@ -6,20 +6,20 @@
 
 ## 2. Header and nudge card
 
-- [ ] 2.1 Add widget tests for the date, the greeting, the streak pill, and the Settings gear, and verify they fail
-- [ ] 2.2 Build the header and verify 2.1 passes
-- [ ] 2.3 Add widget tests for the nudge card: shown with the time until the next routine, Start opens the timer, hidden when nothing is upcoming; verify they fail
-- [ ] 2.4 Build the nudge card with the Rive mascot and verify 2.3 passes
+- [x] 2.1 Add widget tests for the date, the greeting, the streak pill, and the Settings gear, and verify they fail
+- [x] 2.2 Build the header and verify 2.1 passes
+- [x] 2.3 Add widget tests for the nudge card: shown with the time until the next routine, Start opens the timer, hidden when nothing is upcoming; verify they fail
+- [x] 2.4 Build the nudge card with the Rive mascot and verify 2.3 passes
 
 ## 3. Anytime today, timeline, and Other days
 
-- [ ] 3.1 Add unit tests for today's progress from completion logs, and verify they fail
-- [ ] 3.2 Implement the progress rule and verify 3.1 passes
-- [ ] 3.3 Add widget tests for Anytime today (collapse, Start), the timeline (today only, sorted, badge, Low mode), and Other days; verify they fail
-- [ ] 3.4 Build the three sections and the Add a routine pill, remove the tabs and moment headings, and verify 3.3 passes
+- [x] 3.1 Add unit tests for today's progress from completion logs, and verify they fail
+- [x] 3.2 Implement the progress rule and verify 3.1 passes
+- [x] 3.3 Add widget tests for Anytime today (collapse, Start), the timeline (today only, sorted, badge, Low mode), and Other days; verify they fail
+- [x] 3.4 Build the three sections and the Add a routine pill, remove the tabs and moment headings, and verify 3.3 passes
 
 ## 4. Verification
 
-- [ ] 4.1 Run `flutter analyze --fatal-infos` and verify no issues
-- [ ] 4.2 Run `flutter test` and verify the suite passes
+- [x] 4.1 Run `flutter analyze --fatal-infos` and verify no issues
+- [x] 4.2 Run `flutter test` and verify the suite passes
 - [ ] 4.3 Build a debug APK with `--dart-define-from-file=dart_define.json`, install it with `adb install -r`, and compare a screenshot with the design
