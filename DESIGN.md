@@ -41,60 +41,60 @@ colors:
   mascotBlush: "#B4553A"
 typography:
   displayLarge:
-    fontFamily: Lexend
+    fontFamily: Bricolage Grotesque
     fontSize: 40px
     lineHeight: 1.2
     fontWeight: 600
     letterSpacing: -0.8px
   headlineLarge:
-    fontFamily: Lexend
+    fontFamily: Bricolage Grotesque
     fontSize: 32px
     lineHeight: 1.3
     fontWeight: 500
   headlineSmall:
-    fontFamily: Lexend
+    fontFamily: Bricolage Grotesque
     fontSize: 24px
     lineHeight: 1.3
     fontWeight: 600
   titleLarge:
-    fontFamily: Lexend
+    fontFamily: Bricolage Grotesque
     fontSize: 20px
     lineHeight: 1.3
     fontWeight: 600
   titleMedium:
-    fontFamily: Lexend
+    fontFamily: Bricolage Grotesque
     fontSize: 16px
     lineHeight: 1.4
     fontWeight: 600
   labelCaps:
-    fontFamily: Lexend
+    fontFamily: Bricolage Grotesque
     fontSize: 14px
     lineHeight: 1
     fontWeight: 600
     letterSpacing: 0.7px
   labelSmall:
-    fontFamily: Lexend
+    fontFamily: Bricolage Grotesque
     fontSize: 12px
     lineHeight: 1
     fontWeight: 600
     letterSpacing: 0.6px
   action:
-    fontFamily: Lexend
+    fontFamily: Bricolage Grotesque
     fontSize: 18px
     lineHeight: 1
     fontWeight: 500
   bodyLarge:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 20px
     lineHeight: 1.6
     fontWeight: 400
   bodyMedium:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 16px
     lineHeight: 1.6
     fontWeight: 400
   bodySmall:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 14px
     lineHeight: 1.5
     fontWeight: 400
@@ -175,7 +175,7 @@ The mascot tokens are identical in both themes.
 
 ## Typography
 
-Two typefaces split the work. Lexend carries anything structural or actionable — headings, hero numbers, button labels. Inter carries prose. Both are bundled rather than fetched at runtime, so type works offline like the rest of the app.
+Two typefaces split the work. Bricolage Grotesque carries anything structural or actionable — headings, hero numbers, button labels. Plus Jakarta Sans carries prose. Both are bundled rather than fetched at runtime, so type works offline like the rest of the app.
 
 The scales map onto Material 3's text roles, so stock widgets inherit them without per-screen overrides. For roles the design pass never named, interpolate from the ones it did rather than leaving them at Material's defaults — a single unstyled widget breaks the typographic voice.
 
