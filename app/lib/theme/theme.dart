@@ -71,8 +71,10 @@ abstract final class AppTheme {
       textTheme: textTheme,
       // The mascot and the routine card's own colors ride along on the theme,
       // the same way the neumorphic pair does, so neither MascotSlot nor a
-      // routine card ever has to import a palette to find them.
-      extensions: [neumorphic, palette.mascot, routineCardColors],
+      // routine card ever has to import a palette to find them. The pet takes
+      // the accent's colours, like every control around it; the background
+      // palette only sets the paper.
+      extensions: [neumorphic, accent.mascot, routineCardColors],
 
       // Flat and transparent: the neumorphic cards below supply the depth, and
       // a tinted elevated bar would fight them for attention.
