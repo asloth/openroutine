@@ -28,7 +28,6 @@ class AppPrefs {
   static const _onboardingCompleteKey = 'onboarding_complete';
   static const _storageModeKey = 'storage_mode';
   static const _localeOverrideKey = 'locale_override';
-  static const _paletteKey = 'theme_palette';
   static const _accentKey = 'accent_color';
   static const _reminderLeadKey = 'reminder_lead_minutes';
   static const _installClientIdKey = 'install_client_id';
@@ -104,26 +103,12 @@ class AppPrefs {
     return _prefs.setString(_localeOverrideKey, languageCode);
   }
 
-  /// A `Palette.storageId` — either a built-in name (`warm_paper`) or a
-  /// generated one carrying its hue (`custom:268`). Null means "never chosen",
-  /// which resolves to the default palette. Deliberately stored as an opaque
-  /// string rather than an enum: the custom option has no fixed set of values,
-  /// and `Palette.fromStorageId` already falls back safely for anything it
-  /// does not recognise, including ids written by a newer build.
-  String? get paletteId => _prefs.getString(_paletteKey);
-
-  Future<void> setPaletteId(String? id) {
-    if (id == null) return _prefs.remove(_paletteKey);
-    return _prefs.setString(_paletteKey, id);
-  }
-
-  /// A `Palette.storageId` for the accent color that tints routine cards and
-  /// primary actions, independent of the background palette above. Modeled
-  /// exactly on [paletteId]: null means "never chosen", which resolves to
-  /// purple (`Palette.inkIris`), and an id this build doesn't recognize falls
-  /// back the same way rather than leaving anything unthemed. Unlike the
-  /// background palette, the accent only ever names a built-in — there's no
-  /// custom-hue variant to round-trip here.
+  /// A built-in `Palette.id` for the accent color that colors the whole app.
+  /// Null means "never chosen", which resolves to purple (`Palette.inkIris`),
+  /// and an id this build doesn't recognize falls back the same way rather
+  /// than leaving anything unthemed. Deliberately stored as an opaque string
+  /// rather than an enum, matching how every other device setting here is
+  /// stored.
   String? get accentId => _prefs.getString(_accentKey);
 
   Future<void> setAccentId(String? id) {

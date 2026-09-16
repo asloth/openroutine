@@ -140,7 +140,7 @@ class _MascotSlotState extends State<MascotSlot> {
 
     final colours =
         Theme.of(context).extension<MascotPalette>() ??
-        Palette.defaultPalette.mascot;
+        Palette.inkIris.mascot;
     mascot.color('bodyColor')?.value = colours.body;
     mascot.color('inkColor')?.value = colours.ink;
     // Thought dots and Z's float outside the pet, so they contrast with the
@@ -226,7 +226,7 @@ class _MascotPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final colours =
         Theme.of(context).extension<MascotPalette>() ??
-        Palette.defaultPalette.mascot;
+        Palette.inkIris.mascot;
     return CustomPaint(
       size: Size(size, size),
       painter: _MascotPainter(

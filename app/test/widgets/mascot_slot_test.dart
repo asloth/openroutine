@@ -8,7 +8,7 @@ import 'package:openroutine/widgets/mascot_slot.dart';
 /// comes to rest, and it stays out of the semantics tree unless asked.
 void main() {
   Widget host(Widget child, {Palette? palette}) => MaterialApp(
-    theme: AppTheme.light(palette ?? Palette.defaultPalette),
+    theme: AppTheme.light(palette ?? Palette.inkIris),
     home: Scaffold(body: Center(child: child)),
   );
 

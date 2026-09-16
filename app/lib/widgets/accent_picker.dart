@@ -4,15 +4,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../state/app_prefs_provider.dart';
 import '../theme/theme.dart';
-import 'palette_picker.dart' show accentName;
 
-/// Settings › Appearance's second picker: the accent color that tints
-/// routine cards and primary actions, chosen independently of the
-/// background palette above it.
+/// Localised colour word for a palette used as an accent.
 ///
-/// Follows [PalettePicker]'s swatch and semantics pattern, with one
-/// deliberate omission: there's no custom-hue entry here. The accent only
-/// ever names a built-in — see design.md's "Non-Goals".
+/// A palette's id or seed hue doesn't always agree with how it renders —
+/// "Plum" renders as a pink-magenta, not the near-black fruit — so each word
+/// is picked by eye against the palette's own light `primary` rather than
+/// derived from either. The fallback only matters for a palette this build
+/// doesn't recognise, since the picker below only ever offers built-ins.
+String accentName(AppLocalizations l10n, Palette palette) =>
+    switch (palette.id) {
+      'warm_paper' => l10n.accentColorTerracotta,
+      'ink_iris' => l10n.accentColorIndigo,
+      'sea_glass' => l10n.accentColorTeal,
+      'plum' => l10n.accentColorMagenta,
+      'slate' => l10n.accentColorBlue,
+      'moss' => l10n.accentColorGreen,
+      _ => l10n.accentColorIndigo,
+    };
+
+/// Settings › Appearance's color picker: the accent that colors the whole
+/// app — surfaces, every role, and the mascot.
+///
+/// Tapping applies immediately and permanently — there is no Apply button and
+/// no confirmation. Colour is reversible by definition: the cost of picking
+/// the wrong one is one more tap, which is far less than the cost of a
+/// confirm step on every single try.
 class AccentPicker extends ConsumerWidget {
   const AccentPicker({super.key});
 
@@ -152,8 +169,8 @@ class _AccentSwatch extends StatelessWidget {
     );
   }
 
-  /// The tick sits on an arbitrary palette's accent colour, same as
-  /// [PalettePicker]'s own swatches — measured rather than assumed.
+  /// The tick sits on an arbitrary palette's accent colour, so which of
+  /// black or white is legible is measured rather than assumed.
   static Color _readableOn(Color background) =>
       contrastRatio(Colors.white, background) >=
           contrastRatio(Colors.black, background)

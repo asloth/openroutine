@@ -18,32 +18,22 @@ export 'typography.dart';
 /// `FilledButton` or `ListTile` already looks right. Any screen that has to
 /// override an appearance locally is a sign a component theme is missing.
 abstract final class AppTheme {
-  /// Both take the user's chosen background [Palette] and [accent], and fall
-  /// back to [Palette.defaultPalette] and [Palette.inkIris] respectively, so
-  /// a call site with no opinion still gets a themed app. Both parameters are
-  /// nullable rather than defaulted because neither default is a
-  /// compile-time constant.
-  static ThemeData light([Palette? palette, Palette? accent]) => _build(
-    palette ?? Palette.defaultPalette,
-    accent ?? Palette.inkIris,
-    Brightness.light,
-  );
+  /// Both take the user's chosen [Palette] and fall back to
+  /// [Palette.inkIris], so a call site with no opinion still gets a themed
+  /// app. The parameter is nullable rather than defaulted because the
+  /// default isn't a compile-time constant.
+  ///
+  /// The palette is the whole theme now — surfaces, every colour role, the
+  /// neumorphic pair, and the mascot all come from it. There's no separate
+  /// background palette merged underneath.
+  static ThemeData light([Palette? palette]) =>
+      _build(palette ?? Palette.inkIris, Brightness.light);
 
-  static ThemeData dark([Palette? palette, Palette? accent]) => _build(
-    palette ?? Palette.defaultPalette,
-    accent ?? Palette.inkIris,
-    Brightness.dark,
-  );
+  static ThemeData dark([Palette? palette]) =>
+      _build(palette ?? Palette.inkIris, Brightness.dark);
 
-  static ThemeData _build(
-    Palette palette,
-    Palette accent,
-    Brightness brightness,
-  ) {
-    final scheme = Palette.withAccent(
-      palette.scheme(brightness),
-      accent.scheme(brightness),
-    );
+  static ThemeData _build(Palette palette, Brightness brightness) {
+    final scheme = palette.scheme(brightness);
     final neumorphic = palette.neumorphic(brightness);
     final textTheme = AppTypography.textTheme.apply(
       bodyColor: scheme.onSurface,
@@ -71,10 +61,8 @@ abstract final class AppTheme {
       textTheme: textTheme,
       // The mascot and the routine card's own colors ride along on the theme,
       // the same way the neumorphic pair does, so neither MascotSlot nor a
-      // routine card ever has to import a palette to find them. The pet takes
-      // the accent's colours, like every control around it; the background
-      // palette only sets the paper.
-      extensions: [neumorphic, accent.mascot, routineCardColors],
+      // routine card ever has to import a palette to find them.
+      extensions: [neumorphic, palette.mascot, routineCardColors],
 
       // Flat and transparent: the neumorphic cards below supply the depth, and
       // a tinted elevated bar would fight them for attention.
@@ -274,13 +262,13 @@ abstract final class AppTheme {
 }
 
 /// The colors a routine card (and anything that means the same thing) draws
-/// from: the accent's container pair, the fixed "coming up soon" pair, and
-/// the timer's resting ground.
+/// from: the chosen palette's container pair, the fixed "coming up soon"
+/// pair, and the timer's resting ground.
 ///
 /// Carried as a [ThemeExtension] rather than read straight off
 /// `colorScheme.primaryContainer` so a routine card names the one thing it
 /// actually depends on — the accent, specifically — instead of assuming a
-/// role that a future change to the merge step could quietly detach from it.
+/// role a future change could quietly repoint.
 @immutable
 class RoutineCardColors extends ThemeExtension<RoutineCardColors> {
   const RoutineCardColors({

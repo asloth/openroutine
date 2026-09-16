@@ -12,7 +12,6 @@ import '../../state/package_info_provider.dart';
 import '../../state/reminder_provider.dart';
 import '../../state/sync_provider.dart';
 import '../../widgets/accent_picker.dart';
-import '../../widgets/palette_picker.dart';
 
 const _repoUrl = 'https://github.com/asloth/openroutine';
 const _agentDocsUrl =
@@ -128,7 +127,6 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           _SectionHeader(l10n.settingsAppearanceSection),
-          const PalettePicker(),
           const AccentPicker(),
           const Divider(),
           _SectionHeader(l10n.settingsLanguageSection),

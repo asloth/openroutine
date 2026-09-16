@@ -291,7 +291,6 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
     // sync can change the list while any screen is on top — or none.
     ref.watch(homeWidgetSyncProvider);
     final localeOverride = ref.watch(localeOverrideSettingProvider);
-    final palette = ref.watch(paletteSettingProvider);
     final accent = ref.watch(accentSettingProvider);
 
     return MaterialApp.router(
@@ -299,8 +298,8 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: localeOverride != null ? Locale(localeOverride) : null,
-      theme: AppTheme.light(palette, accent),
-      darkTheme: AppTheme.dark(palette, accent),
+      theme: AppTheme.light(accent),
+      darkTheme: AppTheme.dark(accent),
       routerConfig: router,
     );
   }
