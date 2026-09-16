@@ -13,4 +13,4 @@
 
 - [x] 3.1 Run `flutter analyze --fatal-infos` and verify no issues
 - [x] 3.2 Run `flutter test` and verify the suite passes
-- [ ] 3.3 Check the running and finished screens on a device or the desktop preview, in light and dark
+- [x] 3.3 Check the running and finished screens on a device or the desktop preview, in light and dark

@@ -108,6 +108,11 @@ class _MascotSlotState extends State<MascotSlot> {
     _mascot = loaded.viewModelInstance;
     _apply();
     _restAfterWarmUp();
+    // A slot that arrives already cheering, like the finished timer, never
+    // sees a mood change, so it celebrates here instead.
+    if (widget.mood == MascotMood.cheering) {
+      _mascot?.trigger('celebrate')?.trigger();
+    }
   }
 
   /// Stops advancing once the warm-up is over, and does not start at all when
