@@ -79,6 +79,7 @@ dependencies:
   # both cold start and warm start. Its only transitive dependency is
   # path_provider, so it stays clear of the `meta`/`analyzer` pin above.
   home_widget: ^0.9.4
+  rive: ^0.14.11
 
 dev_dependencies:
   flutter_test:
@@ -119,6 +120,7 @@ flutter:
 
   assets:
     - assets/emojis.json
+    - assets/mascot.riv
     - assets/step_templates.json
     - assets/drive_folder_readme.md
     - assets/schemas/routine.schema.json

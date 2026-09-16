@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+// Rive ships its own renderer types; the stand-in painter below wants
+// Flutter's.
+import 'package:rive/rive.dart' hide PaintingStyle;
 
 import '../theme/palette.dart';
 
@@ -56,68 +61,143 @@ class MascotSlot extends StatefulWidget {
   State<MascotSlot> createState() => _MascotSlotState();
 }
 
-class _MascotSlotState extends State<MascotSlot>
-    with SingleTickerProviderStateMixin {
-  /// How many breaths the pet takes before settling. The controller runs
-  /// once across all of them rather than repeating, so it finishes.
-  static const _breaths = 3;
-  static const _breathDuration = Duration(milliseconds: 3600);
+class _MascotSlotState extends State<MascotSlot> {
+  /// How long the pet moves on arrival before it settles into a still pose.
+  /// Perpetual motion in the corner of the eye is the kind of competing
+  /// stimulus this app exists to remove — see the note on [MascotSlot].
+  static const _warmUp = Duration(seconds: 11);
 
-  /// One controller drives everything. Breathing is a sine over each cycle and
-  /// the blink is a short window near the end of it, so the pet never blinks
-  /// mid-inhale — the detail that makes it read as alive rather than as two
-  /// loops running next to each other.
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: _breathDuration * _breaths,
+  /// Loaded here rather than by `RiveWidgetBuilder` so a missing
+  /// `rive_native` library lands in [_load]'s catch instead of escaping as an
+  /// unhandled async error on any platform where the runtime is unavailable.
+  late final Future<File?> _file = _load();
+
+  RiveWidgetController? _controller;
+  ViewModelInstance? _mascot;
+  Timer? _settle;
+
+  /// `flutter test` has the `rive_native` library but no renderer, and
+  /// loading a file there trips a native assertion that aborts the whole test
+  /// process — no Dart `catch` can stop it. So widget tests get the stand-in.
+  static final _riveAvailable = !Platform.environment.containsKey(
+    'FLUTTER_TEST',
   );
 
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // MediaQuery isn't available in initState, and reduce-motion decides
-    // whether the warm-up runs at all.
-    if (_started) return;
-    _started = true;
-    if (!MediaQuery.disableAnimationsOf(context)) _controller.forward();
+  Future<File?> _load() async {
+    if (!_riveAvailable) return null;
+    try {
+      return await File.asset('assets/mascot.riv', riveFactory: Factory.rive);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _settle?.cancel();
+    _file.then((file) => file?.dispose());
     super.dispose();
+  }
+
+  void _onLoaded(RiveLoaded loaded) {
+    _controller = loaded.controller
+      ..fit = Fit.contain
+      // The pet's own listeners react to a press, so the artboard has to see
+      // the pointer rather than letting it fall through to the screen.
+      ..hitTestBehavior = RiveHitTestBehavior.opaque;
+    _mascot = loaded.viewModelInstance;
+    _apply();
+    _restAfterWarmUp();
+  }
+
+  /// Stops advancing once the warm-up is over, and does not start at all when
+  /// the system asks for reduced motion.
+  void _restAfterWarmUp() {
+    _settle?.cancel();
+    final controller = _controller;
+    if (controller == null) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      controller.active = false;
+      return;
+    }
+    controller.active = true;
+    _settle = Timer(_warmUp, () {
+      if (mounted) _controller?.active = false;
+    });
+  }
+
+  /// Pushes the mood and the theme's colours into the artboard. Cheap enough
+  /// to run on every build, which is what keeps the pet in step with a palette
+  /// change or a mood change without a separate listener.
+  void _apply() {
+    final mascot = _mascot;
+    if (mascot == null) return;
+
+    final colours =
+        Theme.of(context).extension<MascotPalette>() ??
+        Palette.defaultPalette.mascot;
+    mascot.color('bodyColor')?.value = colours.body;
+    mascot.color('inkColor')?.value = colours.ink;
+    // Thought dots and Z's float outside the pet, so they contrast with the
+    // screen behind it rather than with its fur.
+    mascot.color('accentColor')?.value = Theme.of(
+      context,
+    ).colorScheme.onSurfaceVariant;
+
+    mascot.boolean('isThinking')?.value = widget.mood == MascotMood.focused;
+    mascot.boolean('isSleeping')?.value = widget.mood == MascotMood.resting;
+  }
+
+  @override
+  void didUpdateWidget(MascotSlot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.mood == widget.mood) return;
+    _apply();
+    // A mood change is worth moving for, even if the pet had already settled.
+    _wake();
+    if (widget.mood == MascotMood.cheering) {
+      _mascot?.trigger('celebrate')?.trigger();
+    }
+  }
+
+  /// Runs again for another warm-up, so a settled pet still reacts.
+  void _wake() {
+    _controller?.active = true;
+    _restAfterWarmUp();
   }
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    // Follows whichever palette the user picked; falls back to the default
-    // pet if the extension is somehow missing rather than rendering nothing.
-    final colours =
-        Theme.of(context).extension<MascotPalette>() ??
-        Palette.defaultPalette.mascot;
-
     final pet = RepaintBoundary(
       child: SizedBox(
         width: widget.size,
         height: widget.size,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) => CustomPaint(
-            painter: _MascotPainter(
-              mood: widget.mood,
-              // Phase within the current breath. The controller ends on a
-              // whole number of cycles, so it lands back at 0 — the rest
-              // pose — instead of freezing mid-inhale.
-              t: reduceMotion ? 0 : (_controller.value * _breaths) % 1.0,
-              body: colours.body,
-              bodyShade: colours.bodyShade,
-              ink: colours.ink,
-              blush: colours.blush,
-            ),
-          ),
+        child: FutureBuilder<File?>(
+          future: _file,
+          builder: (context, snapshot) {
+            final file = snapshot.data;
+            // Until the file is ready — and if it never loads — the
+            // hand-drawn stand-in keeps the slot filled rather than punching
+            // a hole in the layout.
+            if (file == null) {
+              return _MascotPlaceholder(mood: widget.mood, size: widget.size);
+            }
+            return RiveWidgetBuilder(
+              fileLoader: FileLoader.fromFile(file, riveFactory: Factory.rive),
+              dataBind: DataBind.auto(),
+              onLoaded: _onLoaded,
+              builder: (context, state) => switch (state) {
+                RiveLoaded(:final controller) => Listener(
+                  // The artboard's own listener fires `tap`, but a settled pet
+                  // is not advancing and so never sees it. Waking it here is
+                  // what makes a poke work at any moment.
+                  onPointerDown: (_) => _wake(),
+                  child: RiveWidget(controller: controller),
+                ),
+                _ => _MascotPlaceholder(mood: widget.mood, size: widget.size),
+              },
+            );
+          },
         ),
       ),
     );
@@ -126,6 +206,33 @@ class _MascotSlotState extends State<MascotSlot>
     return label == null
         ? ExcludeSemantics(child: pet)
         : Semantics(label: label, image: true, child: pet);
+  }
+}
+
+/// The pre-Rive drawing, kept as the fallback for the moments before the file
+/// loads and for any platform where it cannot.
+class _MascotPlaceholder extends StatelessWidget {
+  const _MascotPlaceholder({required this.mood, required this.size});
+
+  final MascotMood mood;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final colours =
+        Theme.of(context).extension<MascotPalette>() ??
+        Palette.defaultPalette.mascot;
+    return CustomPaint(
+      size: Size(size, size),
+      painter: _MascotPainter(
+        mood: mood,
+        t: 0,
+        body: colours.body,
+        bodyShade: colours.bodyShade,
+        ink: colours.ink,
+        blush: colours.blush,
+      ),
+    );
   }
 }
 
@@ -216,8 +323,12 @@ class _MascotPainter extends CustomPainter {
       canvas.drawPath(
         Path()
           ..moveTo(cx - w * 0.09, bodyRect.top + h * 0.04)
-          ..quadraticBezierTo(cx + dx * w * 0.02, top, cx + w * 0.09,
-              bodyRect.top + h * 0.04)
+          ..quadraticBezierTo(
+            cx + dx * w * 0.02,
+            top,
+            cx + w * 0.09,
+            bodyRect.top + h * 0.04,
+          )
           ..close(),
         earPaint,
       );

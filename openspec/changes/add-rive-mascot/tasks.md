@@ -1,0 +1,8 @@
+- [x] Add the `rive` dependency and bundle `assets/mascot.riv`.
+- [x] Render the artboard in `MascotSlot`, keeping `mood`, `size`, and `semanticLabel`.
+- [x] Map `MascotMood` onto the artboard's flags and triggers.
+- [x] Bind `MascotPalette` and `onSurfaceVariant` to the artboard's colour properties.
+- [x] Settle after the warm-up; wake on a mood change or a press; honour reduced motion.
+- [x] Keep the hand-drawn stand-in as the loading and failure fallback.
+- [x] Widget test: the slot renders, settles, and keeps its semantics.
+- [ ] Check it on the Pixel.
