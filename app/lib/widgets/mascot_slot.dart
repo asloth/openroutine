@@ -103,6 +103,13 @@ class _MascotSlotState extends State<MascotSlot> {
   /// unhandled async error on any platform where the runtime is unavailable.
   late final Future<File?> _file = _load();
 
+  /// Made once per file and reused. `RiveWidgetBuilder` compares loaders by
+  /// identity, so a fresh one on every build reloads the artboard from
+  /// scratch: a new state machine and view model each time. The running
+  /// timer rebuilds every second, which kept resetting the pet to the start
+  /// of idle and threw away every reaction fired at the old instance.
+  FileLoader? _loader;
+
   RiveWidgetController? _controller;
   ViewModelInstance? _mascot;
   Timer? _settle;
@@ -224,7 +231,10 @@ class _MascotSlotState extends State<MascotSlot> {
               return _MascotPlaceholder(mood: widget.mood, size: widget.size);
             }
             return RiveWidgetBuilder(
-              fileLoader: FileLoader.fromFile(file, riveFactory: Factory.rive),
+              fileLoader: _loader ??= FileLoader.fromFile(
+                file,
+                riveFactory: Factory.rive,
+              ),
               dataBind: DataBind.auto(),
               onLoaded: _onLoaded,
               builder: (context, state) => switch (state) {
