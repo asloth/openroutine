@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/routine.dart';
@@ -18,12 +17,11 @@ import '../../state/routines_provider.dart';
 import '../../state/stats_provider.dart';
 import '../../state/timer_provider.dart';
 import '../../widgets/mascot_slot.dart';
+import 'home/add_routine_button.dart';
 import 'home/anytime_section.dart';
 import 'home/home_header.dart';
-import 'home/home_ink.dart';
 import 'home/home_routine.dart';
 import 'home/nudge_card.dart';
-import 'home/other_days.dart';
 import 'home/timeline.dart';
 
 /// Side padding from the design.
@@ -34,7 +32,7 @@ const _fabClearance = 96.0;
 
 /// Home: today's date and streak, a nudge from the mascot about the next
 /// routine, flexible routines under Anytime today, today's scheduled routines
-/// on a timeline, and everything else folded under Other days. See
+/// on a timeline. Routines due on other days live on the Routines tab. See
 /// `openspec/changes/redesign-home-today/`.
 class RoutinesListScreen extends ConsumerStatefulWidget {
   const RoutinesListScreen({super.key});
@@ -45,7 +43,6 @@ class RoutinesListScreen extends ConsumerStatefulWidget {
 
 class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
   bool _anytimeOpen = true;
-  bool _otherDaysOpen = false;
 
   @override
   Widget build(BuildContext context) {
@@ -97,24 +94,8 @@ class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
                 Center(child: Text(l10n.routinesLoadError)),
           ),
         ),
-        // The shell's nav pill floats over the body and reports itself as
-        // bottom padding, which the Scaffold doesn't lift a button for. The
-        // pill is wide enough to collide with this one, so it clears it here.
-        floatingActionButton: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.paddingOf(context).bottom,
-          ),
-          child: FloatingActionButton.extended(
-            onPressed: () => context.push('/routines/new'),
-            backgroundColor: HomeInk.of(context).action,
-            foregroundColor: HomeInk.of(context).onAction,
-            shape: const StadiumBorder(),
-            icon: const Icon(Icons.add),
-            label: Text(
-              l10n.homeAddRoutine,
-              style: HomeInk.title.copyWith(fontSize: 15),
-            ),
-          ),
+        floatingActionButton: AddRoutineButton(
+          clearance: MediaQuery.paddingOf(context).bottom,
         ),
       ),
     );
@@ -141,10 +122,6 @@ class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
       for (final item in scheduled)
         if (_dueToday(item.routine, now)) item,
     ]..sort((a, b) => _startMinutes(a).compareTo(_startMinutes(b)));
-    final otherDays = [
-      for (final item in scheduled)
-        if (!_dueToday(item.routine, now)) item,
-    ];
 
     // The nudge only speaks up inside the routine's upcoming window: a
     // routine hours away is on the timeline, not worth interrupting for.
@@ -178,18 +155,6 @@ class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(_gutter - 8, 12, _gutter, 0),
             sliver: SliverToBoxAdapter(child: Timeline(routines: today)),
-          ),
-        if (otherDays.isNotEmpty)
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(_gutter, 20, _gutter, 0),
-            sliver: SliverToBoxAdapter(
-              child: OtherDays(
-                routines: otherDays,
-                open: _otherDaysOpen,
-                onToggle: () =>
-                    setState(() => _otherDaysOpen = !_otherDaysOpen),
-              ),
-            ),
           ),
         SliverToBoxAdapter(
           child: SizedBox(

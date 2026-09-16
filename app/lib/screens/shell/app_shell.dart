@@ -7,10 +7,9 @@ import 'floating_nav_bar.dart';
 /// Hosts the app's top-level destinations and the floating pill that
 /// switches between them.
 ///
-/// The bar carries two destinations, not three: Settings sits behind the gear
-/// on the routine list instead. Two labels have room to grow at a large text
-/// scale, which is the size this app is actually used at — see
-/// `step_template_sheet_test.dart` for what happens to a label that doesn't.
+/// The bar carries three destinations: Today, Routines, and Streaks. Settings
+/// sits behind the gear on Today. The pill shrinks its destinations to fit a
+/// narrow phone at a large text scale rather than growing off screen.
 ///
 /// Each destination keeps its own `Navigator`, so leaving the routine list
 /// part-way into a routine and coming back lands where it was left rather than
@@ -43,13 +42,18 @@ class AppShell extends StatelessWidget {
         ),
         destinations: [
           FloatingNavDestination(
+            icon: Icons.today_outlined,
+            selectedIcon: Icons.today,
+            label: l10n.navToday,
+          ),
+          FloatingNavDestination(
             icon: Icons.checklist_outlined,
             selectedIcon: Icons.checklist,
             label: l10n.navRoutines,
           ),
           FloatingNavDestination(
-            icon: Icons.insights_outlined,
-            selectedIcon: Icons.insights,
+            icon: Icons.local_fire_department_outlined,
+            selectedIcon: Icons.local_fire_department,
             label: l10n.navStats,
           ),
         ],

@@ -52,6 +52,7 @@ class FloatingNavBar extends StatelessWidget {
   static const _pillPadding = 5.0;
   static const _gap = 4.0;
   static const _bottomGap = 16.0;
+  static const _sideMargin = 12.0;
 
   @override
   Widget build(BuildContext context) {
@@ -63,27 +64,37 @@ class FloatingNavBar extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.only(bottom: _bottomGap + bottomInset),
-          child: DecoratedBox(
-            key: pillKey,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLowest,
-              borderRadius: AppRadius.pillBorder,
-              border: Border.all(color: colorScheme.outlineVariant, width: 1),
+          // Three destinations at a large text scale can be wider than a
+          // narrow phone, so the pill never grows past the screen less a
+          // margin, and each destination shrinks inside it instead.
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width - 2 * _sideMargin,
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(_pillPadding),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var i = 0; i < destinations.length; i++) ...[
-                    if (i > 0) const SizedBox(width: _gap),
-                    _Destination(
-                      destination: destinations[i],
-                      selected: i == currentIndex,
-                      onTap: () => onDestinationSelected(i),
-                    ),
+            child: DecoratedBox(
+              key: pillKey,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLowest,
+                borderRadius: AppRadius.pillBorder,
+                border: Border.all(color: colorScheme.outlineVariant, width: 1),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(_pillPadding),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < destinations.length; i++) ...[
+                      if (i > 0) const SizedBox(width: _gap),
+                      Flexible(
+                        child: _Destination(
+                          destination: destinations[i],
+                          selected: i == currentIndex,
+                          onTap: () => onDestinationSelected(i),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -184,6 +195,9 @@ class _Destination extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       destination.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       textScaler: MediaQuery.textScalerOf(
                         context,
                       ).clamp(maxScaleFactor: _labelScaleCap),

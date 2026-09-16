@@ -633,7 +633,7 @@ void main() {
     });
   });
 
-  testWidgets('routines not due today wait under Other days', (tester) async {
+  testWidgets('routines not due today stay off home', (tester) async {
     final now = _fixedNow();
     final tomorrow = _dayOfWeek(now.add(const Duration(days: 1)));
     final adapter = await _adapterWithRoutine(
@@ -646,13 +646,8 @@ void main() {
     await tester.pumpWidget(_wrap(adapter, now: now));
     await tester.pumpAndSettle();
 
-    final l10n = _l10n(tester);
     expect(find.byKey(const Key('timeline')), findsNothing);
     expect(find.text('Long run'), findsNothing);
-
-    await tester.tap(find.textContaining(l10n.homeOtherDays));
-    await tester.pumpAndSettle();
-    expect(find.text('Long run'), findsOneWidget);
 
     await _disposeCleanly(tester);
   });
