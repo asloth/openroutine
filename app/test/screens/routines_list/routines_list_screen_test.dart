@@ -146,7 +146,6 @@ Future<void> _addRoutine(
     Routine(
       id: id,
       name: name,
-      triggerId: null,
       schedule: Schedule(mode: mode, days: days, startTime: startTime),
       stepIds: [for (final step in steps) step.id],
       createdAt: now,

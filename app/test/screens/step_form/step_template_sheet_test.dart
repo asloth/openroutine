@@ -126,7 +126,6 @@ void main() {
       Routine(
         id: 'r1',
         name: 'Morning',
-        triggerId: null,
         schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
         stepIds: const ['s1'],
         createdAt: _now,

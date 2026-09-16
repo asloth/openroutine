@@ -7,7 +7,7 @@ You (or any AI agent you've given Drive access to, like Claude or Codex) can rea
 ## Files
 
 - **`meta.json`** — schema version, last-writer client ID, last sync timestamp.
-- **`routines.json`** — all your routines, steps, and triggers: `{ "routines": [...], "steps": [...], "triggers": [...] }`.
+- **`routines.json`** — all your routines and steps: `{ "routines": [...], "steps": [...] }`.
 - **`completions/YYYY-MM.ndjson`** — one completion log per line, split by month. Append-only.
 
 ## Schema

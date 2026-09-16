@@ -9,20 +9,19 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(
-  tables: [Routines, RoutineSteps, Triggers, CompletionLogs, SyncState],
-)
+@DriftDatabase(tables: [Routines, RoutineSteps, CompletionLogs, SyncState])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   /// v2 (M3) added [CompletionLogs]; v3 (M4) added [SyncState]; v4 adds
   /// the additive Low Mode core-step marker; v5 records Low Mode run evidence;
-  /// v6 adds the additive per-step mid-step reminder opt-in.
+  /// v6 adds the additive per-step mid-step reminder opt-in; v7 removes
+  /// moments, dropping `routines.trigger_id` and the `triggers` table.
   /// Bump this and
   /// add an `onUpgrade` branch for every schema change — installs from M2
   /// carry real user routines, so dropping and recreating is not an option.
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -43,6 +42,18 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await m.addColumn(routineSteps, routineSteps.remindDuring);
+      }
+      if (from < 7) {
+        // Rebuilding routines is the only way to drop a column SQLite holds a
+        // foreign key on. Child tables point at routines by id, which the
+        // rebuild keeps, so foreign keys are off only while it runs.
+        await customStatement('PRAGMA foreign_keys = OFF');
+        // TableMigration is drift's documented way to drop a column; its
+        // experimental tag covers the API shape, not the SQL it runs.
+        // ignore: experimental_member_use
+        await m.alterTable(TableMigration(routines));
+        await m.deleteTable('triggers');
+        await customStatement('PRAGMA foreign_keys = ON');
       }
     },
   );

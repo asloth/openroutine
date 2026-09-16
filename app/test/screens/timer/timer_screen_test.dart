@@ -132,7 +132,6 @@ Future<LocalAdapter> _seed({required List<RoutineStep> steps}) async {
     Routine(
       id: 'r1',
       name: 'Morning',
-      triggerId: null,
       schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
       stepIds: steps.map((s) => s.id).toList(),
       createdAt: now,

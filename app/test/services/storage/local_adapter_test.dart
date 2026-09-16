@@ -8,7 +8,6 @@ import 'package:openroutine/models/export_bundle.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
-import 'package:openroutine/models/trigger.dart';
 import 'package:openroutine/services/import_export/schema_validator.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
@@ -20,7 +19,6 @@ ExportBundle _bundleWithRoutine(Routine routine) {
     exportedAt: DateTime.utc(2026, 1, 1),
     routines: [routine],
     steps: const [],
-    triggers: const [],
   );
 }
 
@@ -34,7 +32,6 @@ Routine _routine({
   return Routine(
     id: id,
     name: name,
-    triggerId: null,
     schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
     stepIds: stepIds,
     createdAt: now,
@@ -146,20 +143,6 @@ void main() {
         expect(result?.stepIds, ['s1', 's2']);
       },
     );
-
-    test('saveTrigger then getTriggers round-trips', () async {
-      final trigger = Trigger(
-        id: 't1',
-        name: 'Waking up',
-        kind: TriggerKind.manual,
-        createdAt: DateTime.utc(2026, 1, 1),
-        updatedAt: DateTime.utc(2026, 1, 1),
-      );
-      await adapter.saveTrigger(trigger);
-      final triggers = await adapter.getTriggers();
-      expect(triggers, hasLength(1));
-      expect(triggers.single.name, 'Waking up');
-    });
   });
 
   group('step reordering', () {
@@ -551,7 +534,6 @@ void main() {
         Routine(
           id: uuid,
           name: 'morning',
-          triggerId: null,
           schedule: const Schedule(
             mode: ScheduleMode.scheduled,
             days: [DayOfWeek.mon, DayOfWeek.tue],

@@ -222,10 +222,6 @@
     "description": "Label for an hour bucket.",
     "placeholders": {"hour": {"type": "String"}}
   },
-  "routinesNoTrigger": "No moment",
-  "@routinesNoTrigger": {
-    "description": "Section header for routines with no trigger_id set. User-facing term is \"moment\"; the stored field is trigger_id and does not change."
-  },
 
 
   "routinesEmptyScheduled": "No scheduled routines yet. Tap + to create one.",
@@ -269,22 +265,6 @@
   "routineFormEditTitle": "Edit routine",
   "routineFormNameLabel": "Name",
   "routineFormNameRequired": "Name is required",
-  "routineFormTriggerLabel": "Moment",
-  "@routineFormTriggerLabel": {
-    "description": "Label for the control assigning a routine to a moment of the day. User-facing term is \"moment\"; the stored field is trigger_id and does not change."
-  },
-  "routineFormNewTriggerTitle": "New moment",
-  "@routineFormNewTriggerTitle": {
-    "description": "Title of the dialog for creating a moment, e.g. \"After waking up\"."
-  },
-  "routineFormTriggerName": "Moment name",
-  "@routineFormTriggerName": {
-    "description": "Text field label for the name of a new moment."
-  },
-  "routineFormMomentHelper": "Groups your routines and appears in their reminders.",
-  "@routineFormMomentHelper": {
-    "description": "Supporting text under the moment control. States both effects, because both happen on other screens and the control otherwise reads as doing nothing."
-  },
   "routineFormStartTimeLabel": "Start time",
   "routineFormStartTimeUnset": "Not set",
   "routineFormDaysRequired": "Pick at least one day",
@@ -496,10 +476,6 @@
   "@importPreviewSteps": {
     "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
   },
-  "importPreviewTriggers": "Triggers: {newCount} new, {updatedCount} updated",
-  "@importPreviewTriggers": {
-    "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
-  },
   "importConfirm": "Confirm import",
 
   "settingsStorageSection": "Storage",
@@ -636,18 +612,6 @@
     "placeholders": {
       "minutes": {
         "type": "int"
-      }
-    }
-  },
-  "reminderBodyWithTrigger": "{trigger} \u00b7 {detail}",
-  "@reminderBodyWithTrigger": {
-    "description": "Prefixes a reminder body with the routine's trigger name.",
-    "placeholders": {
-      "trigger": {
-        "type": "String"
-      },
-      "detail": {
-        "type": "String"
       }
     }
   },

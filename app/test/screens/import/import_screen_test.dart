@@ -20,7 +20,6 @@ final _now = DateTime.utc(2026, 8, 27);
 Routine _routine(String name) => Routine(
   id: 'r1',
   name: name,
-  triggerId: null,
   schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
   stepIds: const [],
   createdAt: _now,
@@ -37,7 +36,6 @@ class _NewerBundleImportService implements ImportService {
     exportedAt: _now,
     routines: [_routine('Imported routine')],
     steps: const [],
-    triggers: const [],
   );
 
   @override

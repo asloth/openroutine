@@ -3,7 +3,6 @@ import '../../../models/export_bundle.dart';
 import '../../../models/import_preview.dart';
 import '../../../models/routine.dart';
 import '../../../models/step.dart';
-import '../../../models/trigger.dart';
 import '../local_adapter.dart';
 import '../storage_adapter.dart';
 import 'drive_layout.dart';
@@ -50,9 +49,6 @@ class DriveAdapter implements StorageAdapter {
       _local.getSteps(routineId);
 
   @override
-  Future<List<Trigger>> getTriggers() => _local.getTriggers();
-
-  @override
   Future<List<CompletionLog>> getCompletions(
     String routineId, {
     DateTime? since,
@@ -81,10 +77,6 @@ class DriveAdapter implements StorageAdapter {
   @override
   Future<void> saveStep(RoutineStep step) =>
       _mutate(() => _local.saveStep(step));
-
-  @override
-  Future<void> saveTrigger(Trigger trigger) =>
-      _mutate(() => _local.saveTrigger(trigger));
 
   @override
   Future<void> reorderSteps(

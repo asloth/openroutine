@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/routine.dart';
 import '../models/step.dart';
-import '../models/trigger.dart';
 import 'storage_provider.dart';
 
 part 'routines_provider.g.dart';
@@ -10,11 +9,6 @@ part 'routines_provider.g.dart';
 @riverpod
 Stream<List<Routine>> routines(Ref ref) {
   return ref.watch(storageAdapterProvider).watchRoutines();
-}
-
-@riverpod
-Future<List<Trigger>> triggers(Ref ref) {
-  return ref.watch(storageAdapterProvider).getTriggers();
 }
 
 @riverpod

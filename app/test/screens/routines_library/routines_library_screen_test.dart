@@ -66,7 +66,6 @@ Future<void> _add(
     Routine(
       id: id,
       name: name,
-      triggerId: null,
       schedule: Schedule(mode: mode, days: days, startTime: startTime),
       stepIds: ['$id-s'],
       createdAt: t0,

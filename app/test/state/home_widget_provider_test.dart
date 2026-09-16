@@ -27,7 +27,6 @@ Routine _routine(String name) {
   return Routine(
     id: name,
     name: name,
-    triggerId: null,
     schedule: const Schedule(mode: ScheduleMode.flexible),
     stepIds: const [],
     createdAt: now,

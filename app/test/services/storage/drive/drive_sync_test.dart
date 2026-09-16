@@ -34,7 +34,6 @@ Routine _routine({
 }) => Routine(
   id: id,
   name: name,
-  triggerId: null,
   schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
   stepIds: const [],
   createdAt: _t0,
@@ -49,7 +48,6 @@ String _remoteBundle(List<Routine> routines, {String schemaVersion = '1.0.0'}) {
       exportedAt: _t0,
       routines: routines,
       steps: const [],
-      triggers: const [],
     ).toJson(),
   );
 }

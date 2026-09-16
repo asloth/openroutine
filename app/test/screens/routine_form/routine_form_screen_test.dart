@@ -118,7 +118,7 @@ void main() {
     },
   );
 
-  testWidgets('the moment control states what it does', (tester) async {
+  testWidgets('the form asks for no moment', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     final adapter = LocalAdapter(db);
@@ -131,10 +131,10 @@ void main() {
       tester.element(find.byType(Scaffold).first),
     )!;
 
-    // Every effect of choosing a moment happens on another screen, so the
-    // form has to say so or the control reads as inert.
-    expect(find.text(l10n.routineFormMomentHelper), findsOneWidget);
-    expect(find.text(l10n.routineFormTriggerLabel), findsWidgets);
+    // Moments are gone: a routine is reached through its schedule alone.
+    expect(find.text(l10n.routineFormNameLabel), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<String?>), findsNothing);
+    expect(find.textContaining('oment'), findsNothing);
   });
 
   group('start time', () {
@@ -146,7 +146,6 @@ void main() {
           Routine(
             id: 'r1',
             name: 'Morning',
-            triggerId: null,
             schedule: const Schedule(
               mode: ScheduleMode.scheduled,
               days: [DayOfWeek.mon],
@@ -185,7 +184,6 @@ void main() {
           Routine(
             id: 'r1',
             name: 'Morning',
-            triggerId: null,
             schedule: const Schedule(
               mode: ScheduleMode.scheduled,
               days: [DayOfWeek.mon],
@@ -218,7 +216,6 @@ void main() {
           Routine(
             id: 'r1',
             name: 'Morning',
-            triggerId: null,
             schedule: const Schedule(
               mode: ScheduleMode.scheduled,
               days: [DayOfWeek.mon],
@@ -253,7 +250,6 @@ void main() {
           Routine(
             id: 'r1',
             name: 'Morning',
-            triggerId: null,
             schedule: const Schedule(
               mode: ScheduleMode.scheduled,
               days: [],
@@ -294,7 +290,6 @@ void main() {
           Routine(
             id: 'r1',
             name: 'Morning',
-            triggerId: null,
             schedule: const Schedule(
               mode: ScheduleMode.scheduled,
               days: [DayOfWeek.mon],
@@ -333,7 +328,6 @@ void main() {
         Routine(
           id: 'r1',
           name: 'Morning',
-          triggerId: null,
           schedule: const Schedule(
             mode: ScheduleMode.scheduled,
             days: [],

@@ -44,7 +44,6 @@ Future<LocalAdapter> _seed(
     Routine(
       id: 'r1',
       name: 'Morning',
-      triggerId: null,
       schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
       stepIds: const [],
       createdAt: _createdAt,
@@ -493,8 +492,10 @@ void main() {
     });
   });
 
-  group('moment chip and summary card', () {
-    testWidgets('both fill with the accent color', (tester) async {
+  group('summary card', () {
+    testWidgets('fills with the accent color and shows no moment', (
+      tester,
+    ) async {
       final db = AppDatabase(NativeDatabase.memory());
       addTearDown(db.close);
       final adapter = await _seed(db, [_step('s1', 0)]);
@@ -502,22 +503,8 @@ void main() {
       await tester.pumpAndSettle();
       final routineCardColors = AppTheme.light()
           .extension<RoutineCardColors>()!;
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(RoutineDetailScreen)),
-      )!;
-
-      final chip = tester.widget<Container>(
-        find.byKey(const Key('routineDetailMomentChip')),
-      );
-      final chipDecoration = chip.decoration! as BoxDecoration;
-      expect(chipDecoration.color, routineCardColors.fill);
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('routineDetailMomentChip')),
-          matching: find.text(l10n.routinesNoTrigger),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('routineDetailMomentChip')), findsNothing);
+      expect(find.textContaining('oment'), findsNothing);
 
       final card = tester.widget<TintedCard>(find.byType(TintedCard));
       expect(card.color, routineCardColors.fill);

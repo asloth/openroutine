@@ -86,6 +86,37 @@ void main() {
     expect(bundle.routines, isEmpty);
   });
 
+  test('a 1.2.0 export with moments imports and drops them', () {
+    const withMoments = '''
+    {
+      "schema_version": "1.2.0",
+      "exported_at": "2026-01-01T00:00:00Z",
+      "routines": [{
+        "id": "019c0000-0000-7000-8000-000000000001",
+        "name": "Morning",
+        "trigger_id": "019c0000-0000-7000-8000-000000000009",
+        "schedule": {"mode": "scheduled", "days": ["mon"], "start_time": "07:00"},
+        "step_ids": [],
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }],
+      "steps": [],
+      "triggers": [{
+        "id": "019c0000-0000-7000-8000-000000000009",
+        "name": "Waking up",
+        "kind": "manual",
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }]
+    }
+    ''';
+
+    final bundle = service.validateJsonString(withMoments);
+    expect(bundle.routines.single.name, 'Morning');
+    expect(bundle.toJson().containsKey('triggers'), isFalse);
+    expect(bundle.routines.single.toJson().containsKey('trigger_id'), isFalse);
+  });
+
   test('legacy 1.0 data defaults every additive ADHD-supportive field', () {
     const legacyExport = '''
     {

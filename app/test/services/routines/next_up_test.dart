@@ -28,7 +28,6 @@ Routine _routine({
   return Routine(
     id: id,
     name: name,
-    triggerId: null,
     schedule: Schedule(
       mode: mode,
       days: days ?? const [],

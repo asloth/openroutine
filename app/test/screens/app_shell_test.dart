@@ -38,7 +38,6 @@ Future<void> _disposeCleanly(WidgetTester tester) async {
 Routine _routine(String id, String name, ScheduleMode mode) => Routine(
   id: id,
   name: name,
-  triggerId: null,
   schedule: Schedule(mode: mode, days: const []),
   stepIds: const [],
   createdAt: _now,

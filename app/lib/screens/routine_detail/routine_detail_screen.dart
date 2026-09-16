@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/step.dart';
 import '../../models/completion_log.dart';
-import '../../models/trigger.dart';
 import '../../services/routines/estimate.dart';
 import '../../services/storage/storage_adapter.dart';
 import '../../state/import_export_provider.dart';
@@ -45,7 +44,6 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
     final l10n = AppLocalizations.of(context)!;
     final routineAsync = ref.watch(routineProvider(routineId));
     final stepsAsync = ref.watch(routineStepsProvider(routineId));
-    final triggersAsync = ref.watch(triggersProvider);
     final theme = Theme.of(context);
 
     // The AppBar used to set the status-bar icon contrast for free; without
@@ -153,10 +151,6 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                     if (stepsAsync.hasError && _displaySteps == null) {
                       return Center(child: Text(l10n.commonLoadError));
                     }
-                    final trigger = triggersAsync.value
-                        ?.where((t) => t.id == routine.triggerId)
-                        .cast<Trigger?>()
-                        .firstOrNull;
                     final steps = _displaySteps ?? stepsAsync.requireValue;
 
                     return ListView(
@@ -167,27 +161,6 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                           child: Text(
                             routine.name,
                             style: AppTypography.pageTitle,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          key: const Key('routineDetailMomentChip'),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 5,
-                            horizontal: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.routineCardColors.fill,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            trigger?.name ?? l10n.routinesNoTrigger,
-                            style: TextStyle(
-                              fontFamily: AppTypography.display,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: context.routineCardColors.onFill,
-                            ),
                           ),
                         ),
                         const SizedBox(height: 20),

@@ -12,8 +12,6 @@ abstract class ImportPreview with _$ImportPreview {
     required int updatedRoutines,
     required int newSteps,
     required int updatedSteps,
-    required int newTriggers,
-    required int updatedTriggers,
   }) = _ImportPreview;
 
   const ImportPreview._();
@@ -22,7 +20,5 @@ abstract class ImportPreview with _$ImportPreview {
       newRoutines == 0 &&
       updatedRoutines == 0 &&
       newSteps == 0 &&
-      updatedSteps == 0 &&
-      newTriggers == 0 &&
-      updatedTriggers == 0;
+      updatedSteps == 0;
 }
