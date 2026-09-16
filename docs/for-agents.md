@@ -22,7 +22,7 @@ shape as `routines.json` and can be imported back into the app.
 
 | File | Purpose | Write model |
 |---|---|---|
-| `routines.json` | Routines, steps, and triggers | Full JSON document |
+| `routines.json` | Routines and steps | Full JSON document |
 | `meta.json` | Schema version and sync diagnostics | App-managed; do not edit |
 | `completions/YYYY-MM.ndjson` | Timer runs for one UTC month | Append-only, one JSON object per line |
 
@@ -33,7 +33,6 @@ The files in [`schemas/`](../schemas/) are the public contract:
 - [`export.schema.json`](../schemas/export.schema.json): `routines.json` and imports
 - [`routine.schema.json`](../schemas/routine.schema.json): routines and schedules
 - [`step.schema.json`](../schemas/step.schema.json): routine steps
-- [`trigger.schema.json`](../schemas/trigger.schema.json): triggers
 - [`completion.schema.json`](../schemas/completion.schema.json): completion lines
 
 Use UUIDv7 for every new `id`. Use ISO-8601 UTC for timestamps, for example
@@ -46,7 +45,6 @@ Use UUIDv7 for every new `id`. Use ISO-8601 UTC for timestamps, for example
 | `schedule.mode` | `scheduled`, `flexible` |
 | `schedule.days[]` | `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun` |
 | `schedule.start_time` | Local 24-hour `HH:MM`, or `null`; use `null` for flexible routines |
-| `trigger.kind` | `manual` in schema v1 |
 | `step.name` | 1-50 characters |
 | `step.duration_seconds` | Positive integer, or `null` when `no_explicit_time` is `true` |
 | `completion.outcome` | `completed`, `abandoned` |
@@ -57,7 +55,7 @@ must agree with its position in the routine's ordered `step_ids` list.
 
 ## Merge rules
 
-OpenRoutine merges routines, steps, and triggers independently by `id` using
+OpenRoutine merges routines and steps independently by `id` using
 last-writer-wins (LWW):
 
 1. A new ID is added.
@@ -78,9 +76,6 @@ To delete a routine or step:
 1. Set `deleted_at` to the current UTC timestamp.
 2. Set `updated_at` to the same timestamp.
 3. Keep the full object in its array so the tombstone reaches other clients.
-
-Triggers don't have `deleted_at` in schema v1. Don't invent one or delete a
-trigger automatically; ask the user how references should be reassigned.
 
 ## Completion rules
 
