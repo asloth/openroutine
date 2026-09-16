@@ -1,7 +1,7 @@
 ## 1. Schema and versioning
 
-- [ ] 1.1 Update schema_version, validator, and Drive/local/import tests for 2.0.0 (reading 1.x still works; 2.0.1+ is newer), and verify they fail
-- [ ] 1.2 Delete trigger.schema.json, drop trigger_id and triggers, move $ids to v2 in both schema copies, add `SchemaVersion.v2_0`, and verify 1.1 passes
+- [x] 1.1 Update schema_version, validator, and Drive/local/import tests for 2.0.0 (reading 1.x still works; 2.0.1+ is newer), and verify they fail
+- [x] 1.2 Delete trigger.schema.json, drop trigger_id and triggers, move $ids to v2 in both schema copies, add `SchemaVersion.v2_0`, and verify 1.1 passes
 
 ## 2. Model and storage
 

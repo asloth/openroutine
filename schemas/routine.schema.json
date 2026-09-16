@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://openroutine.app/schemas/v1/routine.schema.json",
+  "$id": "https://openroutine.app/schemas/v2/routine.schema.json",
   "title": "Routine",
-  "description": "A user-defined routine: an ordered list of steps, optionally attached to a trigger and a day/time schedule. See docs/SPEC.md §4.",
+  "description": "A user-defined routine: an ordered list of steps, with an optional day/time schedule. See docs/SPEC.md §4.",
   "type": "object",
   "additionalProperties": true,
   "properties": {
@@ -12,9 +12,6 @@
       "minLength": 1,
       "maxLength": 100,
       "description": "Not explicitly bounded in docs/SPEC.md §4; capped here as a sanity limit (Step.name is the spec-mandated ≤50)."
-    },
-    "trigger_id": {
-      "oneOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }]
     },
     "schedule": {
       "type": "object",
@@ -33,7 +30,7 @@
             { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
             { "type": "null" }
           ],
-          "description": "24-hour local time, HH:MM. Null for flexible routines, which have no start time — same treatment as the nullable trigger_id and deleted_at above."
+          "description": "24-hour local time, HH:MM. Null for flexible routines, which have no start time — same treatment as the nullable deleted_at."
         }
       },
       "required": ["mode"]
@@ -57,7 +54,6 @@
   "required": [
     "id",
     "name",
-    "trigger_id",
     "schedule",
     "step_ids",
     "created_at",

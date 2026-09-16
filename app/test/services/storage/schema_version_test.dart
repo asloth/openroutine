@@ -3,14 +3,27 @@ import 'package:openroutine/services/schema_version.dart';
 
 void main() {
   group('SchemaVersion', () {
-    test('accepts legacy 1.0 and 1.1 exports and the current 1.2 export', () {
+    test('accepts every 1.x export and the current 2.0 export', () {
       expect(SchemaVersion.parseSupported('1.0.0'), SchemaVersion.v1_0);
       expect(SchemaVersion.parseSupported('1.0.9'), SchemaVersion.v1_0);
       expect(SchemaVersion.parseSupported('1.1.0'), SchemaVersion.v1_1);
-      expect(SchemaVersion.parseSupported('1.2.0'), SchemaVersion.current);
+      expect(SchemaVersion.parseSupported('1.2.0'), SchemaVersion.v1_2);
+      expect(SchemaVersion.parseSupported('2.0.0'), SchemaVersion.current);
     });
 
-    for (final version in ['1.1.1', '1.2.1', '1.3.0', '2.0.0']) {
+    test('2.0.0 is the version this build writes', () {
+      expect(SchemaVersion.current, SchemaVersion.v2_0);
+      expect(SchemaVersion.currentValue, '2.0.0');
+    });
+
+    for (final version in [
+      '1.1.1',
+      '1.2.1',
+      '1.3.0',
+      '2.0.1',
+      '2.1.0',
+      '3.0.0',
+    ]) {
       test('classifies unsupported newer version $version for import UI', () {
         expect(
           () => SchemaVersion.parseSupported(version),

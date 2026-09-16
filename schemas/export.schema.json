@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://openroutine.app/schemas/v1/export.schema.json",
+  "$id": "https://openroutine.app/schemas/v2/export.schema.json",
   "title": "Export",
-  "description": "Top-level shape for both routines.json (Drive sync) and Import/Export files (docs/SPEC.md §10). A single-routine export uses the same shape with one entry in 'routines' plus its referenced steps and trigger. One format everywhere: whatever Export produces, Import accepts.",
+  "description": "Top-level shape for both routines.json (Drive sync) and Import/Export files (docs/SPEC.md §10). A single-routine export uses the same shape with one entry in 'routines' plus its referenced steps. One format everywhere: whatever Export produces, Import accepts.",
   "type": "object",
   "additionalProperties": true,
   "properties": {
@@ -19,11 +19,7 @@
     "steps": {
       "type": "array",
       "items": { "$ref": "step.schema.json" }
-    },
-    "triggers": {
-      "type": "array",
-      "items": { "$ref": "trigger.schema.json" }
     }
   },
-  "required": ["schema_version", "exported_at", "routines", "steps", "triggers"]
+  "required": ["schema_version", "exported_at", "routines", "steps"]
 }

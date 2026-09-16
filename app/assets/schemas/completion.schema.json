@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://openroutine.app/schemas/v1/completion.schema.json",
+  "$id": "https://openroutine.app/schemas/v2/completion.schema.json",
   "title": "CompletionLog",
   "description": "An append-only record of a single Timer Mode run through a routine. Written to completions/YYYY-MM.ndjson, one JSON object per line. See docs/SPEC.md §4 and §5.",
   "type": "object",

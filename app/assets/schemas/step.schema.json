@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://openroutine.app/schemas/v1/step.schema.json",
+  "$id": "https://openroutine.app/schemas/v2/step.schema.json",
   "title": "Step",
   "description": "A single step within a routine. See docs/SPEC.md §4.",
   "type": "object",

@@ -5,7 +5,7 @@ import 'package:json_schema/json_schema.dart';
 
 /// Validates decoded JSON against schemas/export.schema.json (docs/SPEC.md
 /// §13: "Validate all JSON reads against schemas/*.json and log (don't
-/// crash) on drift"). The five schema files are bundled as Flutter assets
+/// crash) on drift"). The four schema files are bundled as Flutter assets
 /// under assets/schemas/ — a committed copy of the repo-root schemas/
 /// directory (see schema_validator_test.dart's sibling test verifying the two
 /// stay byte-identical, since drift between them would silently break the
@@ -25,20 +25,18 @@ class SchemaValidator {
   final JsonSchema _exportSchema;
 
   static const _schemaAssets = {
-    'https://openroutine.app/schemas/v1/routine.schema.json':
+    'https://openroutine.app/schemas/v2/routine.schema.json':
         'assets/schemas/routine.schema.json',
-    'https://openroutine.app/schemas/v1/step.schema.json':
+    'https://openroutine.app/schemas/v2/step.schema.json':
         'assets/schemas/step.schema.json',
-    'https://openroutine.app/schemas/v1/trigger.schema.json':
-        'assets/schemas/trigger.schema.json',
-    'https://openroutine.app/schemas/v1/completion.schema.json':
+    'https://openroutine.app/schemas/v2/completion.schema.json':
         'assets/schemas/completion.schema.json',
-    'https://openroutine.app/schemas/v1/export.schema.json':
+    'https://openroutine.app/schemas/v2/export.schema.json':
         'assets/schemas/export.schema.json',
   };
 
   static const _exportSchemaId =
-      'https://openroutine.app/schemas/v1/export.schema.json';
+      'https://openroutine.app/schemas/v2/export.schema.json';
 
   static Future<SchemaValidator> load() async {
     final schemasById = <String, Map<String, dynamic>>{};

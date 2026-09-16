@@ -445,7 +445,7 @@ void main() {
       await adapter.saveRoutine(_routine(name: 'Local routine'));
       final newer = _bundleWithRoutine(
         _routine(name: 'Remote routine'),
-      ).copyWith(schemaVersion: '1.3.0');
+      ).copyWith(schemaVersion: '2.1.0');
 
       await expectLater(adapter.confirmImport(newer), throwsFormatException);
 
