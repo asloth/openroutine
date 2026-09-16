@@ -14,9 +14,35 @@ const _destinations = [
     label: 'Routines',
   ),
   FloatingNavDestination(
+    icon: Icons.today_outlined,
+    selectedIcon: Icons.today,
+    label: 'Today',
+  ),
+  FloatingNavDestination(
+    icon: Icons.local_fire_department_outlined,
+    selectedIcon: Icons.local_fire_department,
+    label: 'Streaks',
+  ),
+];
+
+/// Three deliberately long labels, well past any real one, so the test
+/// proves the bar holds three destinations on a narrow phone however the
+/// copy changes.
+const _longDestinations = [
+  FloatingNavDestination(
+    icon: Icons.today_outlined,
+    selectedIcon: Icons.today,
+    label: 'Estadísticas',
+  ),
+  FloatingNavDestination(
+    icon: Icons.checklist_outlined,
+    selectedIcon: Icons.checklist,
+    label: 'Estadísticas',
+  ),
+  FloatingNavDestination(
     icon: Icons.insights_outlined,
     selectedIcon: Icons.insights,
-    label: 'Statistics',
+    label: 'Estadísticas',
   ),
 ];
 
@@ -26,14 +52,19 @@ const _destinations = [
 /// full localization delegate.
 const _spanishDestinations = [
   FloatingNavDestination(
+    icon: Icons.today_outlined,
+    selectedIcon: Icons.today,
+    label: 'Hoy',
+  ),
+  FloatingNavDestination(
     icon: Icons.checklist_outlined,
     selectedIcon: Icons.checklist,
     label: 'Rutinas',
   ),
   FloatingNavDestination(
-    icon: Icons.insights_outlined,
-    selectedIcon: Icons.insights,
-    label: 'Estadísticas',
+    icon: Icons.local_fire_department_outlined,
+    selectedIcon: Icons.local_fire_department,
+    label: 'Rachas',
   ),
 ];
 
@@ -93,23 +124,31 @@ void main() {
     );
   }
 
-  testWidgets('the bar fits a 360dp phone at 1.6x with the Spanish labels', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(360, 780);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    tester.platformDispatcher.textScaleFactorTestValue = 1.6;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  for (final (name, destinations) in [
+    ('Spanish', _spanishDestinations),
+    ('long', _longDestinations),
+  ]) {
+    for (final scale in [1.6, 2.0]) {
+      testWidgets(
+        'three destinations fit a 360dp phone at ${scale}x with $name labels',
+        (tester) async {
+          tester.view.physicalSize = const Size(360, 780);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          tester.platformDispatcher.textScaleFactorTestValue = scale;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    await _pump(tester, _spanishDestinations);
-    await tester.pumpAndSettle();
+          await _pump(tester, destinations);
+          await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
+          expect(tester.takeException(), isNull);
 
-    final pill = tester.getRect(find.byKey(FloatingNavBar.pillKey));
-    expect(pill.left, greaterThanOrEqualTo(0));
-    expect(pill.right, lessThanOrEqualTo(360));
-  });
+          final pill = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+          expect(pill.left, greaterThanOrEqualTo(0));
+          expect(pill.right, lessThanOrEqualTo(360));
+        },
+      );
+    }
+  }
 }
