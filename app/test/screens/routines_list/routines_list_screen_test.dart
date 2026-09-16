@@ -268,6 +268,29 @@ void main() {
       await _disposeCleanly(tester);
     });
 
+    testWidgets('the greeting gets the full width on a narrow phone', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 780);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final today = DateTime.now();
+      final afternoon = DateTime(today.year, today.month, today.day, 15);
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      await tester.pumpWidget(_wrap(adapter, now: afternoon));
+      await tester.pumpAndSettle();
+
+      final greeting = find.text(_l10n(tester).homeGreetingAfternoon);
+      final gear = find.byTooltip(_l10n(tester).settingsTitle);
+      expect(
+        tester.getTopLeft(greeting).dy,
+        greaterThanOrEqualTo(tester.getBottomLeft(gear).dy),
+        reason: 'the header actions sit above the greeting, not beside it',
+      );
+
+      await _disposeCleanly(tester);
+    });
+
     testWidgets('greets the evening from 6 PM', (tester) async {
       final today = DateTime.now();
       final evening = DateTime(today.year, today.month, today.day, 19);

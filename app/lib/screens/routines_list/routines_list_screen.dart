@@ -97,15 +97,23 @@ class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
                 Center(child: Text(l10n.routinesLoadError)),
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => context.push('/routines/new'),
-          backgroundColor: HomeInk.of(context).action,
-          foregroundColor: HomeInk.of(context).onAction,
-          shape: const StadiumBorder(),
-          icon: const Icon(Icons.add),
-          label: Text(
-            l10n.homeAddRoutine,
-            style: HomeInk.title.copyWith(fontSize: 15),
+        // The shell's nav pill floats over the body and reports itself as
+        // bottom padding, which the Scaffold doesn't lift a button for. The
+        // pill is wide enough to collide with this one, so it clears it here.
+        floatingActionButton: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.paddingOf(context).bottom,
+          ),
+          child: FloatingActionButton.extended(
+            onPressed: () => context.push('/routines/new'),
+            backgroundColor: HomeInk.of(context).action,
+            foregroundColor: HomeInk.of(context).onAction,
+            shape: const StadiumBorder(),
+            icon: const Icon(Icons.add),
+            label: Text(
+              l10n.homeAddRoutine,
+              style: HomeInk.title.copyWith(fontSize: 15),
+            ),
           ),
         ),
       ),

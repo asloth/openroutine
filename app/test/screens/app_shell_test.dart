@@ -251,6 +251,28 @@ void main() {
     await _disposeCleanly(tester);
   });
 
+  testWidgets('Add a routine sits above the pill, not under it', (
+    tester,
+  ) async {
+    final l10n = await pumpApp(tester);
+
+    final pill = tester.getRect(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.byKey(FloatingNavBar.pillKey),
+      ),
+    );
+    final add = tester.getRect(
+      find.ancestor(
+        of: find.text(l10n.homeAddRoutine),
+        matching: find.byType(FloatingActionButton),
+      ),
+    );
+
+    expect(add.bottom, lessThanOrEqualTo(pill.top));
+    await _disposeCleanly(tester);
+  });
+
   // Two destinations rather than three is what keeps these labels readable at
   // the text scale this app is actually used at. See step_template_card_test
   // for what a label looks like when its container does not grow with it.

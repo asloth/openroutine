@@ -33,33 +33,34 @@ class HomeHeader extends StatelessWidget {
       _ => l10n.homeGreetingEvening,
     };
 
-    return Row(
+    // The actions share the date's line rather than the greeting's, so a
+    // long greeting keeps the full width instead of wrapping beside them.
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+        Row(
+          children: [
+            Expanded(
+              child: Text(
                 DateFormat.MMMMEEEEd(locale).format(now).toUpperCase(),
                 style: HomeInk.label.copyWith(
                   letterSpacing: 0.9,
                   color: ink.muted(0.42),
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(greeting, style: _greetingStyle.copyWith(color: ink.ink)),
-            ],
-          ),
+            ),
+            const SizedBox(width: 12),
+            _StreakPill(days: streakDays),
+            const SizedBox(width: 8),
+            SoftCircleButton(
+              icon: Icons.settings_outlined,
+              tooltip: l10n.settingsTitle,
+              onPressed: () => context.push('/settings'),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        _StreakPill(days: streakDays),
-        const SizedBox(width: 8),
-        SoftCircleButton(
-          icon: Icons.settings_outlined,
-          tooltip: l10n.settingsTitle,
-          onPressed: () => context.push('/settings'),
-        ),
+        const SizedBox(height: 6),
+        Text(greeting, style: _greetingStyle.copyWith(color: ink.ink)),
       ],
     );
   }
