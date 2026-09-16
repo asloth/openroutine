@@ -16,6 +16,7 @@ import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/main.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
+import 'package:openroutine/screens/routines_library/routines_library_screen.dart';
 import 'package:openroutine/screens/shell/floating_nav_bar.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
@@ -82,14 +83,17 @@ void main() {
     matching: find.text(label),
   );
 
-  testWidgets('both destinations are visible without opening a menu', (
+  testWidgets('Today, Routines, and Streaks are all in the bar', (
     tester,
   ) async {
     final l10n = await pumpApp(tester);
 
     expect(find.byType(FloatingNavBar), findsOneWidget);
-    expect(destinationLabel(l10n.navRoutines), findsOneWidget);
-    expect(destinationLabel(l10n.navStats), findsOneWidget);
+    final today = tester.getCenter(destinationLabel(l10n.navToday));
+    final routines = tester.getCenter(destinationLabel(l10n.navRoutines));
+    final streaks = tester.getCenter(destinationLabel(l10n.navStats));
+    expect(today.dx, lessThan(routines.dx));
+    expect(routines.dx, lessThan(streaks.dx));
     await _disposeCleanly(tester);
   });
 
@@ -104,6 +108,18 @@ void main() {
     await pumpApp(tester);
 
     expect(find.byType(PopupMenuButton<Object?>), findsNothing);
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('selecting Routines lists every routine', (tester) async {
+    final l10n = await pumpApp(tester);
+
+    await tester.tap(destinationLabel(l10n.navRoutines));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RoutinesLibraryScreen), findsOneWidget);
+    expect(find.text('Morning'), findsOneWidget);
+    expect(find.text('Stretch'), findsOneWidget);
     await _disposeCleanly(tester);
   });
 
@@ -132,7 +148,7 @@ void main() {
     await tester.tap(destinationLabel(l10n.navStats));
     await tester.pumpAndSettle();
 
-    await tester.tap(destinationLabel(l10n.navRoutines));
+    await tester.tap(destinationLabel(l10n.navToday));
     await tester.pumpAndSettle();
 
     expect(
@@ -220,15 +236,39 @@ void main() {
     await _disposeCleanly(tester);
   });
 
+  testWidgets('Add a routine on Routines also sits above the pill', (
+    tester,
+  ) async {
+    final l10n = await pumpApp(tester);
+    await tester.tap(destinationLabel(l10n.navRoutines));
+    await tester.pumpAndSettle();
+
+    final pill = tester.getRect(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.byKey(FloatingNavBar.pillKey),
+      ),
+    );
+    final add = tester.getRect(
+      find.descendant(
+        of: find.byType(RoutinesLibraryScreen),
+        matching: find.byType(FloatingActionButton),
+      ),
+    );
+
+    expect(add.bottom, lessThanOrEqualTo(pill.top));
+    await _disposeCleanly(tester);
+  });
+
   testWidgets('the selected destination reports selected semantics', (
     tester,
   ) async {
     final l10n = await pumpApp(tester);
 
-    final selected = tester.getSemantics(destinationLabel(l10n.navRoutines));
+    final selected = tester.getSemantics(destinationLabel(l10n.navToday));
     expect(selected.flagsCollection.isSelected, Tristate.isTrue);
 
-    final unselected = tester.getSemantics(destinationLabel(l10n.navStats));
+    final unselected = tester.getSemantics(destinationLabel(l10n.navRoutines));
     expect(unselected.flagsCollection.isSelected, isNot(Tristate.isTrue));
     await _disposeCleanly(tester);
   });
@@ -273,17 +313,13 @@ void main() {
     await _disposeCleanly(tester);
   });
 
-  // Two destinations rather than three is what keeps these labels readable at
-  // the text scale this app is actually used at. See step_template_card_test
-  // for what a label looks like when its container does not grow with it.
-  //
   // Unlike Material's `NavigationBar`, which clamps its own labels at 1.3x
   // regardless of what the caller asks for, this bar has no built-in ceiling
   // — so the test that matters here is that nothing overflows once a system
   // text scale actually gets large, on the narrowest phone width this app
   // supports.
   for (final scale in [1.5, 2.0]) {
-    testWidgets('neither destination overflows at ${scale}x on a 360px phone', (
+    testWidgets('no destination overflows at ${scale}x on a 360px phone', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(360, 780);
@@ -296,6 +332,7 @@ void main() {
       final l10n = await pumpApp(tester);
 
       expect(tester.takeException(), isNull);
+      expect(destinationLabel(l10n.navToday), findsOneWidget);
       expect(destinationLabel(l10n.navRoutines), findsOneWidget);
       expect(destinationLabel(l10n.navStats), findsOneWidget);
       await _disposeCleanly(tester);

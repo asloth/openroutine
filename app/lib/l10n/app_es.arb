@@ -56,8 +56,9 @@
   "routinesMenuImport": "Importar",
 
   "navRoutines": "Rutinas",
+  "navToday": "Hoy",
 
-  "navStats": "Estadísticas",
+  "navStats": "Rachas",
 
   "settingsTitle": "Configuración",
 
@@ -394,12 +395,12 @@
   "homeStartWhenYouWant": "empieza cuando quieras",
   "homeProgress": "{done} de {total}",
   "homeDone": "Hecha",
-  "homeOtherDays": "Otros días",
   "homeAddRoutine": "Añadir rutina",
   "timerStepOfTotal": "{current} de {total}",
   "timerSkip": "Saltar",
   "timerRestOfRun": "Lo que queda",
   "timerMinutesLeft": "Quedan {minutes} min",
   "timerStepMinutes": "{minutes} min",
-  "timerHalfway": "Vas por la mitad de {step}, quedan {minutes} min."
+  "timerHalfway": "Vas por la mitad de {step}, quedan {minutes} min.",
+  "routinesAnytime": "Cuando quieras"
 }

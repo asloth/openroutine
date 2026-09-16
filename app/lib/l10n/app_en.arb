@@ -136,14 +136,18 @@
     "description": "Row in the Settings data section, opens the Import screen."
   },
 
+  "navToday": "Today",
+  "@navToday": {
+    "description": "Bottom navigation bar label for home, today's routines."
+  },
   "navRoutines": "Routines",
   "@navRoutines": {
-    "description": "Bottom navigation bar label for the routines list."
+    "description": "Bottom navigation bar label for the list of every routine."
   },
 
-  "navStats": "Statistics",
+  "navStats": "Streaks",
   "@navStats": {
-    "description": "Bottom navigation bar label for the statistics screen."
+    "description": "Bottom navigation bar label for the streaks and statistics screen."
   },
 
   "settingsTitle": "Settings",
@@ -732,8 +736,6 @@
   },
   "homeDone": "Done",
   "@homeDone": {"description": "Badge on a home routine card once it's been finished today."},
-  "homeOtherDays": "Other days",
-  "@homeOtherDays": {"description": "Collapsed home section for scheduled routines that aren't due today."},
   "homeAddRoutine": "Add a routine",
   "@homeAddRoutine": {"description": "Home's floating button for creating a routine."},
   "timerStepOfTotal": "{current} of {total}",
@@ -759,5 +761,7 @@
   "@timerHalfway": {
     "description": "Banner shown from the middle of a step that opted into mid-step reminders.",
     "placeholders": {"step": {"type": "String"}, "minutes": {"type": "int"}}
-  }
+  },
+  "routinesAnytime": "Anytime",
+  "@routinesAnytime": {"description": "Where a flexible routine's start time would be, in the Routines list."}
 }

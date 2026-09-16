@@ -15,6 +15,7 @@ import 'screens/stats/stats_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/routine_detail/routine_detail_screen.dart';
 import 'screens/routine_form/routine_form_screen.dart';
+import 'screens/routines_library/routines_library_screen.dart';
 import 'screens/routines_list/routines_list_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/shell/app_shell.dart';
@@ -69,7 +70,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           child: const OnboardingScreen(),
         ),
       ),
-      // The two top-level destinations. Each branch keeps its own Navigator,
+      // The three top-level destinations: Today, Routines, and Streaks. Each
+      // branch keeps its own Navigator,
       // so switching away and back restores where the user was rather than
       // rebuilding from the branch root.
       StatefulShellRoute.indexedStack(
@@ -84,6 +86,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   context,
                   key: state.pageKey,
                   child: const RoutinesListScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/library',
+                pageBuilder: (context, state) => appPage(
+                  context,
+                  key: state.pageKey,
+                  child: const RoutinesLibraryScreen(),
                 ),
               ),
             ],
