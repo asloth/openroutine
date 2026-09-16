@@ -20,7 +20,6 @@ final _now = DateTime.utc(2026, 8, 27);
 Routine _routine(String name) => Routine(
   id: 'r1',
   name: name,
-  triggerId: null,
   schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
   stepIds: const [],
   createdAt: _now,
@@ -33,11 +32,10 @@ class _NewerBundleImportService implements ImportService {
   final LocalAdapter adapter;
 
   ExportBundle get bundle => ExportBundle(
-    schemaVersion: '1.3.0',
+    schemaVersion: '2.1.0',
     exportedAt: _now,
     routines: [_routine('Imported routine')],
     steps: const [],
-    triggers: const [],
   );
 
   @override

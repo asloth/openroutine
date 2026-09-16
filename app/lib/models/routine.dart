@@ -14,7 +14,6 @@ abstract class Routine with _$Routine {
   const factory Routine({
     required String id,
     required String name,
-    required String? triggerId,
     required Schedule schedule,
     required List<String> stepIds,
     @UtcDateTimeConverter() required DateTime createdAt,

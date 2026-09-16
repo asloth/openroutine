@@ -71,7 +71,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       final importService = await ref.read(importServiceProvider.future);
       await importService.confirm(bundle);
       ref.invalidate(routinesProvider);
-      ref.invalidate(triggersProvider);
       setState(() {
         _busy = false;
         _done = true;
@@ -171,12 +170,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                         l10n.importPreviewSteps(
                           _preview!.newSteps,
                           _preview!.updatedSteps,
-                        ),
-                      ),
-                      Text(
-                        l10n.importPreviewTriggers(
-                          _preview!.newTriggers,
-                          _preview!.updatedTriggers,
                         ),
                       ),
                     ],

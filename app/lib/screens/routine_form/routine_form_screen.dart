@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
-import '../../models/trigger.dart';
-import '../../theme/spacing.dart';
 import '../../services/id_generator.dart';
 import '../../services/storage/storage_adapter.dart';
 import '../../state/routines_provider.dart';
@@ -14,7 +12,7 @@ import '../../state/storage_provider.dart';
 
 /// docs/SPEC.md §7 screen 4. Only routine-level fields — steps are added
 /// afterward from Routine Detail, since this screen's field list (name,
-/// trigger, days, mode, start time) never mentions steps.
+/// days, mode, start time) never mentions steps.
 class RoutineFormScreen extends ConsumerStatefulWidget {
   const RoutineFormScreen({super.key, this.routineId});
 
@@ -28,7 +26,6 @@ class RoutineFormScreen extends ConsumerStatefulWidget {
 class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  String? _triggerId;
   ScheduleMode _mode = ScheduleMode.flexible;
   final Set<DayOfWeek> _days = {};
   String? _startTime;
@@ -49,51 +46,11 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
     if (_loaded) return;
     _loaded = true;
     _nameController.text = routine.name;
-    _triggerId = routine.triggerId;
     _mode = routine.schedule.mode;
     _days
       ..clear()
       ..addAll(routine.schedule.days);
     _startTime = routine.schedule.startTime;
-  }
-
-  Future<void> _addTrigger(StorageAdapter storage) async {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.routineFormNewTriggerTitle),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: l10n.routineFormTriggerName),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(l10n.commonAdd),
-          ),
-        ],
-      ),
-    );
-    if (name == null || name.isEmpty) return;
-
-    final now = nowUtc();
-    final trigger = Trigger(
-      id: newId(),
-      name: name,
-      kind: TriggerKind.manual,
-      createdAt: now,
-      updatedAt: now,
-    );
-    await storage.saveTrigger(trigger);
-    ref.invalidate(triggersProvider);
-    setState(() => _triggerId = trigger.id);
   }
 
   Future<void> _pickStartTime() async {
@@ -158,7 +115,6 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
       );
       final updated = existing!.copyWith(
         name: _nameController.text.trim(),
-        triggerId: _triggerId,
         schedule: schedule,
         updatedAt: now,
       );
@@ -168,7 +124,6 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
       final routine = Routine(
         id: newId(),
         name: _nameController.text.trim(),
-        triggerId: _triggerId,
         schedule: schedule,
         stepIds: const [],
         createdAt: now,
@@ -198,8 +153,6 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final storage = ref.watch(storageAdapterProvider);
-    final triggersAsync = ref.watch(triggersProvider);
 
     final routineAsync = _isEditing
         ? ref.watch(routineProvider(widget.routineId!))
@@ -257,56 +210,6 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
               validator: (value) => (value == null || value.trim().isEmpty)
                   ? l10n.routineFormNameRequired
                   : null,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: triggersAsync.when(
-                    data: (triggers) => DropdownButtonFormField<String?>(
-                      initialValue: _triggerId,
-                      decoration: InputDecoration(
-                        labelText: l10n.routineFormTriggerLabel,
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: null,
-                          child: Text(l10n.routinesNoTrigger),
-                        ),
-                        for (final trigger in triggers)
-                          DropdownMenuItem(
-                            value: trigger.id,
-                            child: Text(trigger.name),
-                          ),
-                      ],
-                      onChanged: (value) => setState(() => _triggerId = value),
-                    ),
-                    loading: () => const LinearProgressIndicator(),
-                    error: (_, _) => Text(l10n.routinesLoadError),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => _addTrigger(storage),
-                  icon: const Icon(Icons.add_circle_outline),
-                  tooltip: l10n.routineFormNewTriggerTitle,
-                ),
-              ],
-            ),
-            // Every effect of choosing a moment shows up on another screen —
-            // the list groups by it, reminders lead with it — so without this
-            // the control reads as doing nothing at all.
-            Padding(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.base,
-                left: AppSpacing.base,
-              ),
-              child: Text(
-                l10n.routineFormMomentHelper,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
             ),
             const SizedBox(height: 16),
             SegmentedButton<ScheduleMode>(

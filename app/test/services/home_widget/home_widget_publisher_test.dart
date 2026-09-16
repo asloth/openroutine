@@ -45,7 +45,6 @@ Routine _routine({
   return Routine(
     id: id,
     name: name,
-    triggerId: null,
     schedule: Schedule(mode: mode, startTime: startTime),
     stepIds: List.generate(stepCount, (i) => '$id-step-$i'),
     createdAt: now,

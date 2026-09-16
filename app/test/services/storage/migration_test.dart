@@ -121,6 +121,21 @@ sqlite.Database _seedV1Database() {
   return db;
 }
 
+/// Moments are gone after v7: no `triggers` table, and routines carry no
+/// `trigger_id`.
+void _expectNoMoments(sqlite.Database raw) {
+  final tables = raw
+      .select("SELECT name FROM sqlite_master WHERE type = 'table'")
+      .map((row) => row['name'])
+      .toList();
+  expect(tables, isNot(contains('triggers')));
+  final columns = raw
+      .select('PRAGMA table_info(routines)')
+      .map((column) => column['name'])
+      .toList();
+  expect(columns, isNot(contains('trigger_id')));
+}
+
 void main() {
   late sqlite.Database raw;
   late AppDatabase db;
@@ -153,7 +168,6 @@ void main() {
 
     expect(routine, isNotNull);
     expect(routine!.name, 'morning');
-    expect(routine.triggerId, 't1');
     expect(routine.schedule.startTime, '07:20');
     expect(routine.schedule.days.map((d) => d.name), ['mon', 'tue', 'wed']);
     // stepIds are derived from routine_steps, so this also proves the child
@@ -172,11 +186,9 @@ void main() {
     expect(steps.first.emoji, '🪥');
   });
 
-  test('triggers survive the upgrade intact', () async {
-    final triggers = await adapter.getTriggers();
-
-    expect(triggers, hasLength(1));
-    expect(triggers.single.name, 'alarm');
+  test('the upgrade drops moments', () async {
+    await adapter.getRoutine('r1');
+    _expectNoMoments(raw);
   });
 
   test('the completion_logs table the upgrade adds is usable', () async {
@@ -210,7 +222,6 @@ void main() {
 
     expect(bundle.routines, hasLength(1));
     expect(bundle.steps, hasLength(2));
-    expect(bundle.triggers, hasLength(1));
   });
 
   // The v1 fixture above runs every onUpgrade branch at once, which is not the
@@ -303,7 +314,7 @@ void main() {
     test('preserves steps and defaults every additive column', () async {
       final steps = await adapterV3.getSteps('r1');
 
-      expect(rawV3.userVersion, 6);
+      expect(rawV3.userVersion, dbV3.schemaVersion);
       expect(steps.map((step) => step.id), ['s1', 's2']);
       expect(steps.every((step) => step.isCore == false), isTrue);
       expect(steps.every((step) => step.remindDuring == false), isTrue);
@@ -312,6 +323,80 @@ void main() {
           .map((column) => column['name'])
           .toList();
       expect(columns, containsAll(['mode', 'planned_step_ids_json']));
+    });
+  });
+
+  // Every device before remove-moments sits on v6, so this is the upgrade the
+  // Pixel actually runs: one routine linked to a moment, with history.
+  group('a v6 install upgrading to v7', () {
+    late sqlite.Database rawV6;
+    late AppDatabase dbV6;
+    late LocalAdapter adapterV6;
+
+    setUp(() {
+      rawV6 = _seedV1Database();
+      rawV6.execute(
+        'ALTER TABLE routine_steps ADD COLUMN is_core INTEGER NOT NULL DEFAULT 0',
+      );
+      rawV6.execute(
+        'ALTER TABLE routine_steps ADD COLUMN remind_during INTEGER NOT NULL '
+        'DEFAULT 0',
+      );
+      rawV6.execute('''
+        CREATE TABLE completion_logs (
+          id TEXT NOT NULL, routine_id TEXT NOT NULL REFERENCES routines (id),
+          started_at INTEGER NOT NULL, ended_at INTEGER NOT NULL,
+          outcome TEXT NOT NULL, steps_json TEXT NOT NULL,
+          mode TEXT NOT NULL DEFAULT 'full',
+          planned_step_ids_json TEXT NOT NULL DEFAULT '[]', PRIMARY KEY (id)
+        )''');
+      rawV6.execute('''
+        CREATE TABLE sync_state (
+          id INTEGER NOT NULL, routines_dirty INTEGER NOT NULL DEFAULT 0,
+          dirty_completion_months TEXT NOT NULL DEFAULT '', last_sync_at INTEGER,
+          last_error TEXT, PRIMARY KEY (id)
+        )''');
+      rawV6.execute(
+        'INSERT INTO completion_logs (id, routine_id, started_at, ended_at, '
+        'outcome, steps_json) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          'c1',
+          'r1',
+          _epoch(_createdAt),
+          _epoch(_createdAt.add(const Duration(minutes: 8))),
+          'completed',
+          '[]',
+        ],
+      );
+      rawV6.execute('PRAGMA user_version = 6');
+      dbV6 = AppDatabase(NativeDatabase.opened(rawV6));
+      adapterV6 = LocalAdapter(dbV6);
+    });
+
+    tearDown(() => dbV6.close());
+
+    test('keeps the routine, its steps, and its history', () async {
+      final routine = await adapterV6.getRoutine('r1');
+
+      expect(rawV6.userVersion, dbV6.schemaVersion);
+      expect(routine!.name, 'morning');
+      expect(routine.schedule.startTime, '07:20');
+      expect(routine.stepIds, ['s1', 's2']);
+      expect((await adapterV6.getCompletions('r1')).single.id, 'c1');
+    });
+
+    test('drops the moment and its link', () async {
+      await adapterV6.getRoutine('r1');
+      _expectNoMoments(rawV6);
+    });
+
+    test('still saves and exports routines afterwards', () async {
+      final routine = (await adapterV6.getRoutine('r1'))!;
+      await adapterV6.saveRoutine(routine.copyWith(name: 'renamed'));
+
+      final bundle = await adapterV6.exportAll();
+      expect(bundle.routines.single.name, 'renamed');
+      expect(bundle.steps, hasLength(2));
     });
   });
 }

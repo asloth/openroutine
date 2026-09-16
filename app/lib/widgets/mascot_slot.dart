@@ -26,6 +26,33 @@ enum MascotMood {
   cheering,
 }
 
+/// A one-time move the pet plays in response to something the user just did.
+enum MascotReaction {
+  /// A mini cheer: a small hop with one arm up. A step was marked done.
+  stepDone('stepDone'),
+
+  /// An okay nod. A step was skipped, and that's fine.
+  skip('skip'),
+
+  /// A wave. A step was put off until the end of the run.
+  wave('wave');
+
+  const MascotReaction(this.trigger);
+
+  /// The trigger on the Rive file's `Mascot` view model.
+  final String trigger;
+}
+
+/// One request to play a [MascotReaction].
+///
+/// Compared by identity, not value: doing the same thing twice in a row is two
+/// cues, and the pet should react to both. Build a new one per event.
+class MascotCue {
+  MascotCue(this.reaction);
+
+  final MascotReaction reaction;
+}
+
 /// The mascot's spot on screen, with a hand-drawn stand-in until the Rive pet
 /// is ready.
 ///
@@ -51,9 +78,13 @@ class MascotSlot extends StatefulWidget {
     this.mood = MascotMood.idle,
     this.size = 120,
     this.semanticLabel,
+    this.cue,
   });
 
   final MascotMood mood;
+
+  /// Plays once each time a new cue arrives. Null means nothing to react to.
+  final MascotCue? cue;
   final double size;
   final String? semanticLabel;
 
@@ -71,6 +102,13 @@ class _MascotSlotState extends State<MascotSlot> {
   /// `rive_native` library lands in [_load]'s catch instead of escaping as an
   /// unhandled async error on any platform where the runtime is unavailable.
   late final Future<File?> _file = _load();
+
+  /// Made once per file and reused. `RiveWidgetBuilder` compares loaders by
+  /// identity, so a fresh one on every build reloads the artboard from
+  /// scratch: a new state machine and view model each time. The running
+  /// timer rebuilds every second, which kept resetting the pet to the start
+  /// of idle and threw away every reaction fired at the old instance.
+  FileLoader? _loader;
 
   RiveWidgetController? _controller;
   ViewModelInstance? _mascot;
@@ -139,8 +177,7 @@ class _MascotSlotState extends State<MascotSlot> {
     if (mascot == null) return;
 
     final colours =
-        Theme.of(context).extension<MascotPalette>() ??
-        Palette.inkIris.mascot;
+        Theme.of(context).extension<MascotPalette>() ?? Palette.inkIris.mascot;
     mascot.color('bodyColor')?.value = colours.body;
     mascot.color('inkColor')?.value = colours.ink;
     // Thought dots and Z's float outside the pet, so they contrast with the
@@ -156,6 +193,12 @@ class _MascotSlotState extends State<MascotSlot> {
   @override
   void didUpdateWidget(MascotSlot oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final cue = widget.cue;
+    if (cue != null && !identical(cue, oldWidget.cue)) {
+      // A settled pet isn't advancing, so wake it or the trigger never plays.
+      _wake();
+      _mascot?.trigger(cue.reaction.trigger)?.trigger();
+    }
     if (oldWidget.mood == widget.mood) return;
     _apply();
     // A mood change is worth moving for, even if the pet had already settled.
@@ -188,7 +231,10 @@ class _MascotSlotState extends State<MascotSlot> {
               return _MascotPlaceholder(mood: widget.mood, size: widget.size);
             }
             return RiveWidgetBuilder(
-              fileLoader: FileLoader.fromFile(file, riveFactory: Factory.rive),
+              fileLoader: _loader ??= FileLoader.fromFile(
+                file,
+                riveFactory: Factory.rive,
+              ),
               dataBind: DataBind.auto(),
               onLoaded: _onLoaded,
               builder: (context, state) => switch (state) {
@@ -225,8 +271,7 @@ class _MascotPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colours =
-        Theme.of(context).extension<MascotPalette>() ??
-        Palette.inkIris.mascot;
+        Theme.of(context).extension<MascotPalette>() ?? Palette.inkIris.mascot;
     return CustomPaint(
       size: Size(size, size),
       painter: _MascotPainter(

@@ -81,7 +81,6 @@
   "statsSkippedCount": "{count, plural, =1{saltado una vez} other{saltado {count} veces}}",
   "statsTimeTitle": "Cuándo empiezas",
   "statsTimeHour": "{hour}:00",
-  "routinesNoTrigger": "Sin momento",
 
   "routinesEmptyScheduled": "Aún no hay rutinas programadas. Toca + para crear una.",
 
@@ -117,10 +116,6 @@
   "routineFormEditTitle": "Editar rutina",
   "routineFormNameLabel": "Nombre",
   "routineFormNameRequired": "El nombre es obligatorio",
-  "routineFormTriggerLabel": "Momento",
-  "routineFormNewTriggerTitle": "Nuevo momento",
-  "routineFormTriggerName": "Nombre del momento",
-  "routineFormMomentHelper": "Agrupa tus rutinas y aparece en sus recordatorios.",
   "routineFormStartTimeLabel": "Hora de inicio",
   "routineFormStartTimeUnset": "Sin definir",
   "routineFormDaysRequired": "Elige al menos un día",
@@ -305,10 +300,6 @@
   "@importPreviewSteps": {
     "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
   },
-  "importPreviewTriggers": "Disparadores: {newCount} nuevos, {updatedCount} actualizados",
-  "@importPreviewTriggers": {
-    "placeholders": { "newCount": { "type": "int" }, "updatedCount": { "type": "int" } }
-  },
   "importConfirm": "Confirmar importación",
 
   "settingsStorageSection": "Almacenamiento",
@@ -365,7 +356,6 @@
   "reminderChannelDescription": "Un aviso poco antes de que empiece una rutina programada.",
   "reminderBodyNow": "Empieza ahora",
   "reminderBodyLead": "Empieza en {minutes} min",
-  "reminderBodyWithTrigger": "{trigger} \u00b7 {detail}",
   "widgetTitle": "OpenRoutine",
   "widgetEmpty": "Todav\u00eda no hay rutinas",
   "widgetOpenApp": "Abrir OpenRoutine",

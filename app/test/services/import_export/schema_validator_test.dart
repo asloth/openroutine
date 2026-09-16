@@ -4,13 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/services/import_export/schema_validator.dart';
 
 Map<String, dynamic> _validBundle() => {
-  'schema_version': '1.0.0',
+  'schema_version': '2.0.0',
   'exported_at': '2026-01-01T00:00:00Z',
   'routines': [
     {
       'id': '018f1a2b-3c4d-7e5f-89ab-1234567890ab',
       'name': 'Morning Routine',
-      'trigger_id': null,
       'schedule': {
         'mode': 'scheduled',
         'days': ['mon', 'tue'],
@@ -36,8 +35,24 @@ Map<String, dynamic> _validBundle() => {
       'deleted_at': null,
     },
   ],
-  'triggers': <Map<String, dynamic>>[],
 };
+
+/// A 1.2.0 export as older builds wrote it, moments and all.
+Map<String, dynamic> _legacyBundleWithMoments() {
+  final bundle = _validBundle()..['schema_version'] = '1.2.0';
+  (bundle['routines'] as List).first['trigger_id'] =
+      '018f1a2b-3c4d-7e5f-89ab-1234567890ad';
+  bundle['triggers'] = [
+    {
+      'id': '018f1a2b-3c4d-7e5f-89ab-1234567890ad',
+      'name': 'Waking up',
+      'kind': 'manual',
+      'created_at': '2026-01-01T00:00:00Z',
+      'updated_at': '2026-01-01T00:00:00Z',
+    },
+  ];
+  return bundle;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +68,25 @@ void main() {
       () => validator.validateExportBundle(_validBundle()),
       returnsNormally,
     );
+  });
+
+  test('a 1.2.0 export that still carries moments passes', () {
+    expect(
+      () => validator.validateExportBundle(_legacyBundleWithMoments()),
+      returnsNormally,
+    );
+  });
+
+  test('the public schemas no longer describe moments', () {
+    expect(File('../schemas/trigger.schema.json').existsSync(), isFalse);
+    expect(File('assets/schemas/trigger.schema.json').existsSync(), isFalse);
+    final routine = File('../schemas/routine.schema.json').readAsStringSync();
+    final export = File('../schemas/export.schema.json').readAsStringSync();
+    expect(routine, isNot(contains('trigger')));
+    expect(export, isNot(contains('trigger')));
+    for (final schema in [routine, export]) {
+      expect(schema, contains('https://openroutine.app/schemas/v2/'));
+    }
   });
 
   test(
@@ -101,7 +135,6 @@ void main() {
       const fileNames = [
         'routine.schema.json',
         'step.schema.json',
-        'trigger.schema.json',
         'completion.schema.json',
         'export.schema.json',
       ];

@@ -14,7 +14,6 @@ Routine _routine({
   return Routine(
     id: id,
     name: name,
-    triggerId: null,
     schedule: Schedule(mode: mode, days: days, startTime: startTime),
     stepIds: const [],
     createdAt: now,
@@ -111,10 +110,7 @@ void main() {
       // on every day in the window — that is the property that a repeating
       // UTC-anchored alarm would break.
       final result = ReminderSchedule.occurrences(
-        _routine(
-          days: DayOfWeek.values,
-          startTime: '07:00',
-        ),
+        _routine(days: DayOfWeek.values, startTime: '07:00'),
         now: DateTime(2026, 3, 27, 6),
       );
 
@@ -183,7 +179,9 @@ void main() {
 
     test('carries the routine id so a tap can open the right routine', () {
       final requests = ReminderSchedule.build(
-        routines: [_routine(id: 'abc', days: const [DayOfWeek.mon])],
+        routines: [
+          _routine(id: 'abc', days: const [DayOfWeek.mon]),
+        ],
         now: monday,
         lead: Duration.zero,
         title: (r) => r.name,

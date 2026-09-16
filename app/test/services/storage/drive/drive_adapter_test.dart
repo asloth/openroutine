@@ -15,7 +15,6 @@ final _createdAt = DateTime.utc(2026, 8, 1);
 Routine _routine() => Routine(
   id: 'r1',
   name: 'Morning',
-  triggerId: null,
   schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
   stepIds: const [],
   createdAt: _createdAt,
@@ -113,5 +112,4 @@ void main() {
     );
     expect((await adapter.completionsInRange(from, to)).single.id, 'c1');
   });
-
 }

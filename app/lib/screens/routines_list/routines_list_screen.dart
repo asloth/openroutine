@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
-import '../../models/trigger.dart';
 import '../../services/routines/estimate.dart';
 import '../../services/routines/next_up.dart';
 import '../../services/routines/schedule_time.dart';
@@ -49,7 +48,6 @@ class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
     final l10n = AppLocalizations.of(context)!;
     final brightness = Theme.of(context).brightness;
     final routinesAsync = ref.watch(routinesProvider);
-    final triggersAsync = ref.watch(triggersProvider);
     final now = ref.watch(clockProvider);
     final streak =
         ref.watch(statisticsProvider).value?.completion.currentStreakDays ?? 0;
@@ -74,11 +72,7 @@ class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
           bottom: false,
           child: routinesAsync.when(
             data: (routines) {
-              final triggersById = {
-                for (final t in triggersAsync.value ?? const <Trigger>[])
-                  t.id: t,
-              };
-              _armReminders(context, ref, routines, triggersById);
+              _armReminders(context, ref, routines);
               if (routines.isEmpty) {
                 return Column(
                   children: [
@@ -242,7 +236,6 @@ void _armReminders(
   BuildContext context,
   WidgetRef ref,
   List<Routine> routines,
-  Map<String, Trigger> triggersById,
 ) {
   final l10n = AppLocalizations.of(context)!;
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -252,18 +245,9 @@ void _armReminders(
           routines,
           ReminderCopy(
             title: (routine) => routine.name,
-            body: (routine, lead) {
-              final detail = lead == Duration.zero
-                  ? l10n.reminderBodyNow
-                  : l10n.reminderBodyLead(lead.inMinutes);
-              final trigger = triggersById[routine.triggerId];
-              // The trigger is the human name for the moment the routine
-              // belongs to ("After waking up"), so it earns the front of the
-              // line when there is one.
-              return trigger == null
-                  ? detail
-                  : l10n.reminderBodyWithTrigger(trigger.name, detail);
-            },
+            body: (routine, lead) => lead == Duration.zero
+                ? l10n.reminderBodyNow
+                : l10n.reminderBodyLead(lead.inMinutes),
             channelName: l10n.reminderChannelName,
             channelDescription: l10n.reminderChannelDescription,
           ),

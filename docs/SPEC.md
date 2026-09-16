@@ -23,7 +23,7 @@ An open-source, local-first routine app. Your routines live in your Google Drive
 ## 2. Scope (v1)
 
 ### In scope
-- Flutter mobile app (iOS + Android) with core CRUD for routines, steps, triggers, day scheduling
+- Flutter mobile app (iOS + Android) with core CRUD for routines, steps, day scheduling
 - Timer Mode (playlist-style guided execution)
 - Google Drive storage adapter — files stored in a visible `/OpenRoutine/` folder in the user's Drive
 - Local-only storage adapter (fallback / offline / opt-out of cloud)
@@ -78,7 +78,6 @@ All IDs are UUIDv7 (time-sortable). All timestamps are ISO-8601 UTC. Full JSON s
 {
   "id": "uuid",
   "name": "Morning Routine",
-  "trigger_id": "uuid | null",
   "schedule": {
     "mode": "scheduled | flexible",
     "days": ["mon","tue","wed","thu","fri"],
@@ -108,18 +107,6 @@ All IDs are UUIDv7 (time-sortable). All timestamps are ISO-8601 UTC. Full JSON s
 ```
 Constraints: `name` ≤ 50 chars, `emoji` single grapheme, `duration_seconds` null iff `no_explicit_time = true`.
 
-### Trigger
-```json
-{
-  "id": "uuid",
-  "name": "Waking up",
-  "kind": "manual",
-  "created_at": "...",
-  "updated_at": "..."
-}
-```
-`kind` is `"manual"` in v1. Enum reserved for `"time"`, `"location"`, `"calendar_event"` in v2.
-
 ### CompletionLog (append-only)
 ```json
 {
@@ -138,6 +125,8 @@ Constraints: `name` ≤ 50 chars, `emoji` single grapheme, `duration_seconds` nu
 
 `meta.json` contains a `schema_version` string (semver). Bumps follow standard semver rules: additive changes bump the minor version, and breaking changes bump the major version. A client on an older schema still needs to read newer files gracefully — ignoring fields it doesn't recognize — and refuse to write to them.
 
+Schema **2.0.0** removed moments (triggers): routines no longer carry `trigger_id` and exports no longer carry `triggers`. A routine is reached through its schedule and reminders alone. The app still reads every 1.x file and ignores those fields. See `openspec/changes/remove-moments/`.
+
 ---
 
 ## 5. Storage layout & sync
@@ -147,7 +136,7 @@ Constraints: `name` ≤ 50 chars, `emoji` single grapheme, `duration_seconds` nu
 My Drive/
   OpenRoutine/                    ← visible folder in the user's Drive
     meta.json                     # schema_version, last_writer_client_id, last_sync_at
-    routines.json                 # { routines: [...], steps: [...], triggers: [...] }
+    routines.json                 # { routines: [...], steps: [...] }
     completions/
       2026-07.ndjson              # one CompletionLog per line
       2026-08.ndjson
@@ -191,9 +180,9 @@ Use **Riverpod** for state, **go_router** for navigation, **drift** for local pe
 | # | Screen | Notes |
 |---|--------|-------|
 | 1 | **Onboarding** | 3 slides + storage choice screen. Local-only is the default; Drive is opt-in. |
-| 2 | **Routines list** | Tabs: Scheduled / Flexible. Sections by trigger. FAB for new routine. Overflow menu: Import, Settings. |
-| 3 | **Routine detail / preview** | Estimated finish window, last 7-day dots, trigger, ordered steps, Start Timer button. Share button in header (exports single routine). |
-| 4 | **Create/Edit routine** | Name, trigger picker, day toggles (Mon–Sun), scheduled/flexible switch, start time. |
+| 2 | **Routines list** | Today: the next routine's nudge, anytime routines, and today's timeline. Routines and Streaks are the other two tabs. Settings is a gear. |
+| 3 | **Routine detail / preview** | Estimated finish window, last 7-day dots, ordered steps, Start Timer button. Share button in header (exports single routine). |
+| 4 | **Create/Edit routine** | Name, day toggles (Mon–Sun), scheduled/flexible switch, start time. |
 | 5 | **Add step** | Custom step OR template picker (Morning / Evening / Study / Selfcare — hardcoded seed list in `assets/step_templates.json`). |
 | 6 | **Edit step** | Name (≤50), duration presets (n-1, n, n+1) + "no explicit time" toggle, emoji picker (curated ~60-emoji set from `assets/emojis.json`, grouped by category), delete. |
 | 7 | **Timer Mode** | Full-screen playlist runner. See §8. |
@@ -292,7 +281,7 @@ Because sync happens on the Drive side, the phone picks up the agent's changes t
 ## 10. Import / Export
 
 ### Export
-- **Single routine**: Share button on routine detail → produces `routine-<name>-<date>.json` containing that routine + its steps + any referenced trigger. OS share sheet.
+- **Single routine**: Share button on routine detail → produces `routine-<name>-<date>.json` containing that routine + its steps. OS share sheet.
 - **All data**: Settings → "Export all" → produces `openroutine-export-<date>.json` with everything. Useful for backup and for handing to an agent in one shot.
 
 ### Import
@@ -320,7 +309,6 @@ openroutine/
 ├── schemas/                       # JSON schemas — the public API
 │   ├── routine.schema.json
 │   ├── step.schema.json
-│   ├── trigger.schema.json
 │   ├── completion.schema.json
 │   └── export.schema.json         # top-level shape for import/export files
 ├── app/                           # Flutter

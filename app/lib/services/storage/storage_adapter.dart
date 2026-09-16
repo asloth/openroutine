@@ -3,7 +3,6 @@ import '../../models/export_bundle.dart';
 import '../../models/import_preview.dart';
 import '../../models/routine.dart';
 import '../../models/step.dart';
-import '../../models/trigger.dart';
 
 /// Pure domain-facing storage interface — no Drift or Drive types in this
 /// signature (docs/SPEC.md §13). LocalAdapter is the only implementation in
@@ -20,11 +19,9 @@ abstract class StorageAdapter {
   Stream<List<Routine>> watchRoutines();
   Future<Routine?> getRoutine(String id);
   Future<List<RoutineStep>> getSteps(String routineId);
-  Future<List<Trigger>> getTriggers();
 
   Future<void> saveRoutine(Routine routine);
   Future<void> saveStep(RoutineStep step);
-  Future<void> saveTrigger(Trigger trigger);
 
   Future<void> reorderSteps(
     String routineId,

@@ -28,7 +28,6 @@ class DayListConverter extends TypeConverter<List<DayOfWeek>, String> {
 class Routines extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().withLength(min: 1, max: 100)();
-  TextColumn get triggerId => text().nullable().references(Triggers, #id)();
   TextColumn get scheduleMode => textEnum<ScheduleMode>()();
   TextColumn get scheduleDays =>
       text().map(const DayListConverter()).withDefault(const Constant(''))();
@@ -83,18 +82,6 @@ class CompletionLogs extends Table {
       textEnum<RunMode>().withDefault(const Constant('full'))();
   TextColumn get plannedStepIdsJson =>
       text().withDefault(const Constant('[]'))();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-/// Matches schemas/trigger.schema.json.
-class Triggers extends Table {
-  TextColumn get id => text()();
-  TextColumn get name => text().withLength(min: 1, max: 100)();
-  TextColumn get kind => text()();
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
 
   @override
   Set<Column> get primaryKey => {id};

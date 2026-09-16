@@ -125,7 +125,6 @@ flutter:
     - assets/drive_folder_readme.md
     - assets/schemas/routine.schema.json
     - assets/schemas/step.schema.json
-    - assets/schemas/trigger.schema.json
     - assets/schemas/completion.schema.json
     - assets/schemas/export.schema.json
 

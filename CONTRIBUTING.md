@@ -40,7 +40,7 @@ These come from [`docs/SPEC.md`](docs/SPEC.md) §13 and apply to every contribut
 - **Validate, don't crash.** Validate all JSON reads against `schemas/*.json`. On a mismatch, log the problem and degrade gracefully — never crash, and never write a file that violates its schema.
 - **Never call it "sign in."** Frame Google Drive connection as "Connect Google Drive" / "Connected" in all UI copy — never "Sign in with Google." See §15.3 for why this matters for App Store review.
 - **Every user-facing string goes through i18n.** No hardcoded English in `screens/` or `widgets/`. Add keys to `app/lib/l10n/app_en.arb` and `app_es.arb` together.
-- **Schema changes are API changes.** If you change the shape of a Routine, Step, Trigger, or CompletionLog, bump the version in the relevant `schemas/*.json` file and update it in the same PR. The schemas are the public contract for agent integrations — treat them like a public API, because they are one.
+- **Schema changes are API changes.** If you change the shape of a Routine, Step, or CompletionLog, bump the version in the relevant `schemas/*.json` file and update it in the same PR. The schemas are the public contract for agent integrations — treat them like a public API, because they are one.
 - **This repo is public.** Never commit API keys, OAuth client secrets, signing keys, `.env` files, or personal identifiers. Use `.gitignore` and GitHub Actions secrets. Write commit messages as if a stranger will read them, because they will.
 
 ## Commit messages

@@ -1,9 +1,6 @@
-// `Trigger` is hidden: drift's core query_builder library exports its own
-// `Trigger` class (for SQL triggers), which collides with our domain model
-// of the same name — unrelated to the db.Trigger row-class collision below.
 import 'dart:convert';
 
-import 'package:drift/drift.dart' hide Trigger;
+import 'package:drift/drift.dart';
 
 import '../../models/completion_log.dart';
 import '../../models/export_bundle.dart';
@@ -11,7 +8,6 @@ import '../../models/import_preview.dart';
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
 import '../../models/step.dart';
-import '../../models/trigger.dart';
 import '../schema_version.dart';
 import 'drift/app_database.dart' as db;
 import 'storage_adapter.dart';
@@ -19,7 +15,7 @@ import 'storage_adapter.dart';
 const _schemaVersion = SchemaVersion.currentValue;
 
 /// Drift-backed StorageAdapter — the only adapter in M2. Drift's generated
-/// row classes (`db.Routine`, `db.RoutineStep`, `db.Trigger`) collide by
+/// row classes (`db.Routine`, `db.RoutineStep`) collide by
 /// name with our freezed domain models, so the drift import is aliased to
 /// `db` and only used inside this file's private mapping helpers; the
 /// public API surface exposes only the domain models.
@@ -60,12 +56,6 @@ class LocalAdapter implements StorageAdapter {
   }
 
   @override
-  Future<List<Trigger>> getTriggers() async {
-    final rows = await _db.select(_db.triggers).get();
-    return rows.map(_triggerFromRow).toList();
-  }
-
-  @override
   Future<void> saveRoutine(Routine routine) {
     return _db
         .into(_db.routines)
@@ -73,7 +63,6 @@ class LocalAdapter implements StorageAdapter {
           db.RoutinesCompanion.insert(
             id: routine.id,
             name: routine.name,
-            triggerId: Value(routine.triggerId),
             scheduleMode: routine.schedule.mode,
             scheduleDays: Value(routine.schedule.days),
             scheduleStartTime: Value(routine.schedule.startTime),
@@ -102,21 +91,6 @@ class LocalAdapter implements StorageAdapter {
             createdAt: step.createdAt,
             updatedAt: step.updatedAt,
             deletedAt: Value(step.deletedAt),
-          ),
-        );
-  }
-
-  @override
-  Future<void> saveTrigger(Trigger trigger) {
-    return _db
-        .into(_db.triggers)
-        .insertOnConflictUpdate(
-          db.TriggersCompanion.insert(
-            id: trigger.id,
-            name: trigger.name,
-            kind: trigger.kind.name,
-            createdAt: trigger.createdAt,
-            updatedAt: trigger.updatedAt,
           ),
         );
   }
@@ -282,13 +256,11 @@ class LocalAdapter implements StorageAdapter {
     for (final routine in routines) {
       steps.addAll(await getSteps(routine.id));
     }
-    final triggers = await getTriggers();
     return ExportBundle(
       schemaVersion: _schemaVersion,
       exportedAt: nowUtc(),
       routines: routines,
       steps: steps,
-      triggers: triggers,
     );
   }
 
@@ -312,7 +284,6 @@ class LocalAdapter implements StorageAdapter {
       exportedAt: nowUtc(),
       routines: routines,
       steps: stepRows.map(_stepFromRow).toList(),
-      triggers: await getTriggers(),
     );
   }
 
@@ -325,21 +296,14 @@ class LocalAdapter implements StorageAdapter {
         exportedAt: nowUtc(),
         routines: const [],
         steps: const [],
-        triggers: const [],
       );
     }
     final steps = await getSteps(id);
-    final triggers = <Trigger>[];
-    if (routine.triggerId != null) {
-      final row = await _rawTriggerRow(routine.triggerId!);
-      if (row != null) triggers.add(_triggerFromRow(row));
-    }
     return ExportBundle(
       schemaVersion: _schemaVersion,
       exportedAt: nowUtc(),
       routines: [routine],
       steps: steps,
-      triggers: triggers,
     );
   }
 
@@ -352,11 +316,7 @@ class LocalAdapter implements StorageAdapter {
   @override
   Future<void> confirmImport(ExportBundle bundle) async {
     final plan = await _planImport(bundle);
-    // Triggers and routines before steps, so steps' routine_id FK always
-    // resolves; triggers before routines for the same reason.
-    for (final trigger in plan.triggersToWrite) {
-      await saveTrigger(trigger);
-    }
+    // Routines before steps, so steps' routine_id FK always resolves.
     for (final routine in plan.routinesToWrite) {
       await saveRoutine(routine);
     }
@@ -399,31 +359,14 @@ class LocalAdapter implements StorageAdapter {
       }
     }
 
-    final triggersToWrite = <Trigger>[];
-    var newTriggers = 0;
-    var updatedTriggers = 0;
-    for (final trigger in bundle.triggers) {
-      final existing = await _rawTriggerRow(trigger.id);
-      if (existing == null) {
-        triggersToWrite.add(trigger);
-        newTriggers++;
-      } else if (trigger.updatedAt.isAfter(existing.updatedAt)) {
-        triggersToWrite.add(trigger);
-        updatedTriggers++;
-      }
-    }
-
     return _ImportPlan(
       routinesToWrite: routinesToWrite,
       stepsToWrite: stepsToWrite,
-      triggersToWrite: triggersToWrite,
       preview: ImportPreview(
         newRoutines: newRoutines,
         updatedRoutines: updatedRoutines,
         newSteps: newSteps,
         updatedSteps: updatedSteps,
-        newTriggers: newTriggers,
-        updatedTriggers: updatedTriggers,
       ),
     );
   }
@@ -450,15 +393,10 @@ class LocalAdapter implements StorageAdapter {
     _db.routineSteps,
   )..where((s) => s.id.equals(id))).getSingleOrNull();
 
-  Future<db.Trigger?> _rawTriggerRow(String id) => (_db.select(
-    _db.triggers,
-  )..where((t) => t.id.equals(id))).getSingleOrNull();
-
   Routine _routineFromRow(db.Routine row, List<String> stepIds) {
     return Routine(
       id: row.id,
       name: row.name,
-      triggerId: row.triggerId,
       schedule: Schedule(
         mode: row.scheduleMode,
         days: row.scheduleDays,
@@ -508,28 +446,16 @@ class LocalAdapter implements StorageAdapter {
           .cast<String>(),
     );
   }
-
-  Trigger _triggerFromRow(db.Trigger row) {
-    return Trigger(
-      id: row.id,
-      name: row.name,
-      kind: TriggerKind.values.byName(row.kind),
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    );
-  }
 }
 
 class _ImportPlan {
   _ImportPlan({
     required this.routinesToWrite,
     required this.stepsToWrite,
-    required this.triggersToWrite,
     required this.preview,
   });
 
   final List<Routine> routinesToWrite;
   final List<RoutineStep> stepsToWrite;
-  final List<Trigger> triggersToWrite;
   final ImportPreview preview;
 }
