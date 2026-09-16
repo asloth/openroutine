@@ -14,9 +14,10 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/services/timer/timer_machine.dart';
+import 'package:openroutine/state/stats_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
-import 'package:openroutine/theme/theme.dart';
+import 'package:openroutine/widgets/mascot_slot.dart';
 import 'package:openroutine/widgets/tinted/tinted.dart';
 
 /// The real service would reach for platform channels that don't exist under
@@ -113,6 +114,12 @@ Widget _clock(RoutineStep step, Duration elapsed) => MaterialApp(
 /// Mirrors the helper in the other screen tests: forces the widget tree — and
 /// the drift stream subscriptions under it — to dispose while we can still
 /// pump the resulting timers.
+/// The step being run, as opposed to the same name in Rest of the run.
+Finder _currentStep(String name) => find.descendant(
+  of: find.byKey(const Key('currentStep')),
+  matching: find.text(name),
+);
+
 Future<void> _disposeCleanly(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox());
   await tester.pump(Duration.zero);
@@ -178,9 +185,19 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
-    expect(find.text('Brush my teeth'), findsOneWidget);
-    expect(find.text(l10n.timerStepCounter(1, 2)), findsOneWidget);
+    expect(_currentStep('Brush my teeth'), findsOneWidget);
+    expect(find.text('Morning'), findsOneWidget);
+    expect(find.text(l10n.timerStepOfTotal(1, 2)), findsOneWidget);
+    // The short "1 of 2" is read aloud as the full "Step 1 of 2".
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is Semantics && w.properties.label == l10n.timerStepCounter(1, 2),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('0:00'), findsOneWidget);
+    expect(find.byType(MascotSlot), findsOneWidget);
 
     await _disposeCleanly(tester);
   });
@@ -211,17 +228,16 @@ void main() {
 
     expect(find.bySemanticsLabel('2:00'), findsOneWidget);
     Text clock() => tester.widget(find.text('2:00'));
-    CircularProgressIndicator ring() =>
-        tester.widget(find.byType(CircularProgressIndicator));
+    StepProgressBar bar() => tester.widget(find.byType(StepProgressBar));
     expect(clock().style?.color, tertiary);
-    expect(ring().color, tertiary);
-    expect(ring().value, 1.0);
+    expect(bar().color, tertiary);
+    expect(bar().value, 1.0);
 
     await tester.pumpWidget(_clock(step, const Duration(seconds: 121)));
     expect(find.bySemanticsLabel('2:01'), findsOneWidget);
     expect(tester.widget<Text>(find.text('2:01')).style?.color, tertiary);
-    expect(ring().color, tertiary);
-    expect(ring().value, 1.0);
+    expect(bar().color, tertiary);
+    expect(bar().value, 1.0);
     expect(
       find.bySemanticsLabel(RegExp(r'(\+|over(time)?)', caseSensitive: false)),
       findsNothing,
@@ -249,8 +265,8 @@ void main() {
     await tester.tap(find.text(l10n.timerDone));
     await tester.pumpAndSettle();
 
-    expect(find.text('Shower'), findsOneWidget);
-    expect(find.text(l10n.timerStepCounter(2, 2)), findsOneWidget);
+    expect(_currentStep('Shower'), findsOneWidget);
+    expect(find.text(l10n.timerStepOfTotal(2, 2)), findsOneWidget);
     expect(find.text('0:00'), findsOneWidget);
 
     await _disposeCleanly(tester);
@@ -282,10 +298,45 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.timerCompleteTitle), findsOneWidget);
+    expect(find.text(l10n.timerCloseSummary), findsOneWidget);
+    expect(find.byType(MascotSlot), findsOneWidget);
 
     final logs = await adapter.getCompletions('r1');
     expect(logs, hasLength(1));
     expect(logs.single.steps.single.stepId, 's1');
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('finishing a run refreshes the streak home is showing', (
+    tester,
+  ) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    // Home watches statistics for its streak pill, which keeps the value
+    // cached; listening here does the same.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TimerScreen)),
+    );
+    final subscription = container.listen(statisticsProvider, (_, _) {});
+    addTearDown(subscription.close);
+    await tester.runAsync(() => container.read(statisticsProvider.future));
+    expect(
+      container.read(statisticsProvider).value?.completion.currentStreakDays,
+      0,
+    );
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    await tester.tap(find.text(l10n.timerFinish));
+    await tester.pumpAndSettle();
+
+    final stats = await tester.runAsync(
+      () => container.read(statisticsProvider.future),
+    );
+    expect(stats!.completion.currentStreakDays, 1);
 
     await _disposeCleanly(tester);
   });
@@ -388,9 +439,9 @@ void main() {
     await tester.pumpWidget(_wrap(adapter));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 121));
-    await tester.tap(find.text('Done'));
+    await tester.tap(find.text('Done — next step'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.close));
+    await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Stop'));
     await tester.pumpAndSettle();
@@ -411,7 +462,7 @@ void main() {
     expect(await adapter.getCompletions('r1'), isEmpty);
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
-    await tester.tap(find.byIcon(Icons.close));
+    await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.timerAbandonConfirmAction));
     await tester.pumpAndSettle();
@@ -438,8 +489,8 @@ void main() {
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
     expect(find.text('00:00'), findsOneWidget);
     expect(find.text(l10n.timerNoSetTime), findsOneWidget);
-    // No target means no ring to fill.
-    expect(find.byType(CircularProgressIndicator), findsNothing);
+    // No target means no bar to fill.
+    expect(find.byType(StepProgressBar), findsNothing);
     expect(notifications.scheduledCount, 0);
 
     await _disposeCleanly(tester);
@@ -495,7 +546,9 @@ void main() {
     await _disposeCleanly(tester);
   });
 
-  testWidgets('the transport row offers no step arrows', (tester) async {
+  testWidgets('offers Skip and Do it last, and Pause but no Restart step', (
+    tester,
+  ) async {
     final adapter = await _seed(
       steps: [_step('s1', order: 0), _step('s2', order: 1)],
     );
@@ -503,113 +556,35 @@ void main() {
     await tester.pumpWidget(_wrap(adapter));
     await tester.pumpAndSettle();
 
-    // Moving between steps belongs to Done and Do later; arrows next to the
-    // pause control only invited mis-taps. Stepping back and skipping still
-    // exist on the machine and stay covered by timer_machine_test.dart.
-    expect(find.byIcon(Icons.skip_previous), findsNothing);
-    expect(find.byIcon(Icons.skip_next), findsNothing);
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    expect(find.text(l10n.timerSkip), findsOneWidget);
+    expect(find.text(l10n.timerDoLater), findsOneWidget);
     expect(find.byIcon(Icons.pause), findsOneWidget);
-    expect(find.byIcon(Icons.restart_alt), findsOneWidget);
-    // Close, pause, and restart are all `SoftCircleButton`s now; none of them
-    // is the neumorphic control the tinted-paper redesign replaces.
-    expect(find.byType(SoftCircleButton), findsNWidgets(3));
-    expect(find.byType(NeumorphicCircleButton), findsNothing);
+    expect(find.byIcon(Icons.restart_alt), findsNothing);
+    expect(find.byType(SegmentedProgress), findsNothing);
 
     await _disposeCleanly(tester);
   });
 
-  testWidgets('close is a neutral 48px SoftCircleButton', (tester) async {
+  testWidgets('back is a neutral 48px SoftCircleButton', (tester) async {
     final adapter = await _seed(steps: [_step('s1', order: 0)]);
 
     await tester.pumpWidget(_wrap(adapter));
     await tester.pumpAndSettle();
 
-    final close = tester.widget<SoftCircleButton>(
-      find.widgetWithIcon(SoftCircleButton, Icons.close),
+    final back = tester.widget<SoftCircleButton>(
+      find.widgetWithIcon(SoftCircleButton, Icons.chevron_left),
     );
-    expect(close.size, 48);
-    expect(close.style, SoftCircleButtonStyle.neutral);
+    expect(back.size, 48);
+    expect(back.style, SoftCircleButtonStyle.neutral);
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
-    expect(close.tooltip, l10n.timerAbandonConfirmAction);
+    expect(back.tooltip, l10n.timerAbandonConfirmAction);
 
     await _disposeCleanly(tester);
   });
 
-  testWidgets('pause/resume and restart step are accent SoftCircleButtons', (
-    tester,
-  ) async {
-    final adapter = await _seed(steps: [_step('s1', order: 0)]);
-
-    await tester.pumpWidget(_wrap(adapter));
-    await tester.pumpAndSettle();
-
-    final pause = tester.widget<SoftCircleButton>(
-      find.widgetWithIcon(SoftCircleButton, Icons.pause),
-    );
-    expect(pause.size, 64);
-    expect(pause.style, SoftCircleButtonStyle.accent);
-
-    final restart = tester.widget<SoftCircleButton>(
-      find.widgetWithIcon(SoftCircleButton, Icons.restart_alt),
-    );
-    expect(restart.size, 64);
-    expect(restart.style, SoftCircleButtonStyle.accent);
-
-    await _disposeCleanly(tester);
-  });
-
-  testWidgets('the running screen sits on the timer ground color', (
-    tester,
-  ) async {
-    final adapter = await _seed(steps: [_step('s1', order: 0)]);
-
-    await tester.pumpWidget(_wrap(adapter));
-    await tester.pumpAndSettle();
-
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-    final context = tester.element(find.byType(Scaffold));
-    expect(scaffold.backgroundColor, context.routineCardColors.timerGround);
-
-    await _disposeCleanly(tester);
-  });
-
-  testWidgets(
-    'shows a segmented step progress instead of a linear bar, and it advances',
-    (tester) async {
-      final adapter = await _seed(
-        steps: [
-          _step('s1', order: 0),
-          _step('s2', order: 1),
-          _step('s3', order: 2),
-          _step('s4', order: 3),
-        ],
-      );
-
-      await tester.pumpWidget(_wrap(adapter));
-      await tester.pumpAndSettle();
-
-      final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
-      expect(find.byType(LinearProgressIndicator), findsNothing);
-
-      SegmentedProgress progress() =>
-          tester.widget<SegmentedProgress>(find.byType(SegmentedProgress));
-
-      expect(progress().count, 4);
-      expect(progress().filled, 1);
-      expect(progress().semanticsLabel, l10n.timerStepCounter(1, 4));
-
-      await tester.tap(find.text(l10n.timerDone));
-      await tester.pumpAndSettle();
-
-      expect(progress().filled, 2);
-      expect(progress().semanticsLabel, l10n.timerStepCounter(2, 4));
-
-      await _disposeCleanly(tester);
-    },
-  );
-
-  testWidgets('Do later renders in onSurface rather than the accent', (
+  testWidgets('Skip records the step as skipped and starts the next one', (
     tester,
   ) async {
     final adapter = await _seed(
@@ -623,18 +598,119 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
-    final button = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, l10n.timerDoLater),
+    await tester.tap(find.text(l10n.timerSkip));
+    await tester.pumpAndSettle();
+
+    expect(_currentStep('Shower'), findsOneWidget);
+    final skipped = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const Key('restOfRun')),
+        matching: find.text('Brush my teeth'),
+      ),
     );
-    final colorScheme = Theme.of(
-      tester.element(find.byType(Scaffold)),
-    ).colorScheme;
-    expect(
-      button.style?.foregroundColor?.resolve(<WidgetState>{}),
-      colorScheme.onSurface,
-    );
+    expect(skipped.style?.decoration, TextDecoration.lineThrough);
 
     await _disposeCleanly(tester);
+  });
+
+  testWidgets('Rest of the run lists every step with minutes left', (
+    tester,
+  ) async {
+    final adapter = await _seed(
+      steps: [
+        _step('s1', order: 0, name: 'Stretch', durationSeconds: 600),
+        _step('s2', order: 1, name: 'Water', durationSeconds: 60),
+        _step('s3', order: 2, name: 'Skincare', durationSeconds: 300),
+      ],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    final list = find.byKey(const Key('restOfRun'));
+    for (final name in ['Stretch', 'Water', 'Skincare']) {
+      expect(
+        find.descendant(of: list, matching: find.text(name)),
+        findsOneWidget,
+      );
+    }
+    expect(find.text(l10n.timerStepMinutes(10)), findsOneWidget);
+    expect(find.text(l10n.timerMinutesLeft(16)), findsOneWidget);
+
+    await _disposeCleanly(tester);
+  });
+
+  group('minutesLeftInRun', () {
+    final steps = [
+      _step('a', order: 0, durationSeconds: 600),
+      _step('b', order: 1, noExplicitTime: true),
+      _step('c', order: 2, durationSeconds: 300),
+    ];
+
+    test('counts the current step and the ones after it', () {
+      expect(minutesLeftInRun(steps, 0, Duration.zero), 15);
+      expect(minutesLeftInRun(steps, 2, Duration.zero), 5);
+    });
+
+    test('takes off the time spent on the current step, rounding up', () {
+      expect(minutesLeftInRun(steps, 0, const Duration(seconds: 90)), 14);
+    });
+
+    test('never goes below zero', () {
+      expect(minutesLeftInRun(steps, 2, const Duration(hours: 1)), 0);
+    });
+  });
+
+  group('halfwayMinutesLeft', () {
+    test('is null before the midpoint and after the estimate', () {
+      final step = _step(
+        'a',
+        order: 0,
+        durationSeconds: 600,
+        remindDuring: true,
+      );
+      expect(halfwayMinutesLeft(step, const Duration(seconds: 299)), isNull);
+      expect(halfwayMinutesLeft(step, const Duration(seconds: 600)), isNull);
+    });
+
+    test('counts the minutes to go from the midpoint', () {
+      final step = _step(
+        'a',
+        order: 0,
+        durationSeconds: 600,
+        remindDuring: true,
+      );
+      expect(halfwayMinutesLeft(step, const Duration(seconds: 300)), 5);
+      expect(halfwayMinutesLeft(step, const Duration(seconds: 500)), 2);
+    });
+
+    test('is null for a step that did not opt in', () {
+      final step = _step('a', order: 0, durationSeconds: 600);
+      expect(halfwayMinutesLeft(step, const Duration(seconds: 300)), isNull);
+    });
+  });
+
+  testWidgets('the halfway banner names the step', (tester) async {
+    final step = _step(
+      's1',
+      order: 0,
+      name: 'Stretch',
+      durationSeconds: 600,
+      remindDuring: true,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: HalfwayBanner(step: step, elapsed: const Duration(minutes: 5)),
+        ),
+      ),
+    );
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    expect(find.text(l10n.timerHalfway('Stretch', 5)), findsOneWidget);
   });
 
   testWidgets('no overflow running screen at 1.5x text scale', (tester) async {
@@ -716,15 +792,15 @@ void main() {
 
     // The next step is promoted into the current slot. The counter still reads
     // 1 of 2 because nothing was completed — the queue only reordered.
-    expect(find.text('Shower'), findsOneWidget);
-    expect(find.text(l10n.timerStepCounter(1, 2)), findsOneWidget);
+    expect(_currentStep('Shower'), findsOneWidget);
+    expect(find.text(l10n.timerStepOfTotal(1, 2)), findsOneWidget);
 
     await tester.tap(find.text(l10n.timerDone));
     await tester.pumpAndSettle();
 
     // The deferred step comes back last, and can't be deferred again.
-    expect(find.text('Brush my teeth'), findsOneWidget);
-    expect(find.text(l10n.timerStepCounter(2, 2)), findsOneWidget);
+    expect(_currentStep('Brush my teeth'), findsOneWidget);
+    expect(find.text(l10n.timerStepOfTotal(2, 2)), findsOneWidget);
     expect(find.text(l10n.timerDoLater), findsNothing);
 
     await tester.tap(find.text(l10n.timerFinish));
@@ -748,15 +824,10 @@ void main() {
     await tester.pumpWidget(_wrap(adapter));
     await tester.pumpAndSettle();
 
-    // No skip button remains on the screen, so drive the notifier the way the
-    // notification action does and check the run is still logged correctly.
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(TimerScreen)),
-    );
-    final notifier = container.read(routineTimerProvider('r1').notifier);
-    notifier.skip();
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    await tester.tap(find.text(l10n.timerSkip));
     await tester.pumpAndSettle();
-    notifier.skip();
+    await tester.tap(find.text(l10n.timerSkip));
     await tester.pumpAndSettle();
 
     final logs = await adapter.getCompletions('r1');
