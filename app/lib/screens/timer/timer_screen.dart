@@ -43,11 +43,32 @@ class TimerScreen extends ConsumerStatefulWidget {
 class _TimerScreenState extends ConsumerState<TimerScreen> {
   bool _started = false;
 
+  /// The latest thing the mascot should react to. Kept here rather than in
+  /// the running view, which rebuilds every second and would otherwise lose it.
+  MascotCue? _cue;
+
+  /// Reads what just happened off the change in timer state: a new outcome is
+  /// a step done or skipped, and a newly put-off step is a wave. The last
+  /// step's outcome ends the run, and the finished screen celebrates instead.
+  void _react(TimerState? previous, TimerState next) {
+    if (previous == null || next.phase == TimerPhase.complete) return;
+    MascotReaction? reaction;
+    if (next.outcomes.length > previous.outcomes.length) {
+      reaction = next.outcomes.last.state == CompletionStepState.skipped
+          ? MascotReaction.skip
+          : MascotReaction.stepDone;
+    } else if (next.postponedIds.length > previous.postponedIds.length) {
+      reaction = MascotReaction.wave;
+    }
+    if (reaction != null) setState(() => _cue = MascotCue(reaction!));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final stepsAsync = ref.watch(routineStepsProvider(widget.routineId));
     final timer = ref.watch(routineTimerProvider(widget.routineId));
+    ref.listen(routineTimerProvider(widget.routineId), _react);
 
     // Feed the steps in and auto-start once they've loaded: arriving here is
     // itself the user's "start" gesture, so a second tap would be ceremony.
@@ -113,7 +134,11 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                       child: CircularProgressIndicator(),
                     ),
                     TimerPhase.complete => _Summary(state: timer),
-                    _ => _Running(state: timer, routineId: widget.routineId),
+                    _ => _Running(
+                      state: timer,
+                      routineId: widget.routineId,
+                      cue: _cue,
+                    ),
                   },
           ),
         ),
@@ -147,10 +172,15 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
 }
 
 class _Running extends ConsumerWidget {
-  const _Running({required this.state, required this.routineId});
+  const _Running({
+    required this.state,
+    required this.routineId,
+    required this.cue,
+  });
 
   final TimerState state;
   final String routineId;
+  final MascotCue? cue;
 
   static const _stepNameStyle = TextStyle(
     fontFamily: AppTypography.display,
@@ -232,11 +262,19 @@ class _Running extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 28),
         // Resting rather than thinking: stillness while a step runs is what
-        // makes the pet feel like it's working alongside you.
-        const Center(child: MascotSlot(size: 96)),
-        const SizedBox(height: 22),
+        // makes the pet feel like it's working alongside you. Big enough to
+        // be company, not an icon. It reacts once to Done, Skip, and Do it
+        // last, and dozes while the run is paused.
+        Center(
+          child: MascotSlot(
+            size: 168,
+            mood: paused ? MascotMood.resting : MascotMood.idle,
+            cue: cue,
+          ),
+        ),
+        const SizedBox(height: 28),
         KeyedSubtree(
           key: const Key('currentStep'),
           child: Text(

@@ -201,6 +201,111 @@ void main() {
     await _disposeCleanly(tester);
   });
 
+  testWidgets('the mascot gets real room on the running screen', (
+    tester,
+  ) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final mascot = tester.widget<MascotSlot>(find.byType(MascotSlot));
+    expect(mascot.size, greaterThanOrEqualTo(160));
+
+    await _disposeCleanly(tester);
+  });
+
+  group('the mascot reacts to the run', () {
+    MascotSlot mascot(WidgetTester tester) =>
+        tester.widget<MascotSlot>(find.byType(MascotSlot));
+
+    Future<AppLocalizations> start(WidgetTester tester) async {
+      final adapter = await _seed(
+        steps: [
+          _step('s1', order: 0),
+          _step('s2', order: 1),
+          _step('s3', order: 2),
+        ],
+      );
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      return AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    }
+
+    testWidgets('rests calmly with no cue when the run starts', (tester) async {
+      await start(tester);
+
+      expect(mascot(tester).mood, MascotMood.idle);
+      expect(mascot(tester).cue, isNull);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('cheers a little when a step is done', (tester) async {
+      final l10n = await start(tester);
+
+      await tester.tap(find.text(l10n.timerDone));
+      await tester.pumpAndSettle();
+
+      expect(mascot(tester).cue?.reaction, MascotReaction.stepDone);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('nods on skip', (tester) async {
+      final l10n = await start(tester);
+
+      await tester.tap(find.text(l10n.timerSkip));
+      await tester.pumpAndSettle();
+
+      expect(mascot(tester).cue?.reaction, MascotReaction.skip);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('waves a step off when it is put off', (tester) async {
+      final l10n = await start(tester);
+
+      await tester.tap(find.text(l10n.timerDoLater));
+      await tester.pumpAndSettle();
+
+      expect(mascot(tester).cue?.reaction, MascotReaction.wave);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('each action is a new cue, even the same one twice', (
+      tester,
+    ) async {
+      final l10n = await start(tester);
+
+      await tester.tap(find.text(l10n.timerDone));
+      await tester.pumpAndSettle();
+      final first = mascot(tester).cue;
+      await tester.tap(find.text(l10n.timerDone));
+      await tester.pumpAndSettle();
+
+      expect(mascot(tester).cue?.reaction, MascotReaction.stepDone);
+      expect(identical(mascot(tester).cue, first), isFalse);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('dozes while paused and wakes on resume', (tester) async {
+      await start(tester);
+
+      await tester.tap(find.byIcon(Icons.pause));
+      await tester.pumpAndSettle();
+      expect(mascot(tester).mood, MascotMood.resting);
+
+      await tester.tap(find.byIcon(Icons.play_arrow));
+      await tester.pumpAndSettle();
+      expect(mascot(tester).mood, MascotMood.idle);
+
+      await _disposeCleanly(tester);
+    });
+  });
+
   testWidgets('shows one continuous timed count-up through the estimate', (
     tester,
   ) async {
