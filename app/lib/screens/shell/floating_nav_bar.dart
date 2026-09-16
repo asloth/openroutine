@@ -108,7 +108,7 @@ class _Destination extends StatelessWidget {
 
   /// Horizontal breathing room between the highlight's edge and the icon or
   /// label it holds. Without this, the highlight hugs the label exactly —
-  /// at 12px Lexend, "Routines" comes out about as wide as the whole
+  /// at 12px in the display face, "Routines" comes out about as wide as the whole
   /// destination is tall, so [AppRadius.pillBorder] rounds it into a near
   /// circle that the label pokes out of at both bottom corners.
   static const _horizontalPadding = 14.0;

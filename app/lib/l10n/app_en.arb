@@ -151,10 +151,6 @@
     "description": "Title of the Settings screen, and the tooltip on the routines list icon that opens it."
   },
 
-  "routinesNewRoutine": "New routine",
-  "@routinesNewRoutine": {
-    "description": "Tooltip/label for the FAB that creates a new routine."
-  },
 
   "statsTitle": "Statistics",
   "@statsTitle": {
@@ -227,20 +223,12 @@
     "description": "Section header for routines with no trigger_id set. User-facing term is \"moment\"; the stored field is trigger_id and does not change."
   },
 
-  "routinesNextUp": "Next up",
-  "@routinesNextUp": {
-    "description": "Section label above the hero card for the next routine occurring today, on the Scheduled tab."
-  },
 
   "routinesEmptyScheduled": "No scheduled routines yet. Tap + to create one.",
   "@routinesEmptyScheduled": {
     "description": "Empty state for the Scheduled tab."
   },
 
-  "routinesEmptyFlexible": "No flexible routines yet. Tap + to create one.",
-  "@routinesEmptyFlexible": {
-    "description": "Empty state for the Flexible tab."
-  },
 
   "routinesLoadError": "Couldn't load your routines. Try restarting the app.",
   "@routinesLoadError": {
@@ -257,17 +245,6 @@
     }
   },
 
-  "routinesUpcomingIn": "in {minutes} min",
-  "@routinesUpcomingIn": {
-    "description": "Appended to a routine card's step-count line when the routine is coming up soon, counting down to its start.",
-    "placeholders": {
-      "minutes": { "type": "int" }
-    }
-  },
-  "routinesUpcomingNow": "Now",
-  "@routinesUpcomingNow": {
-    "description": "Appended to a routine card's step-count line once the routine has started and is still inside its estimated window."
-  },
 
   "commonCancel": "Cancel",
   "commonAdd": "Add",
@@ -707,5 +684,57 @@
   "widgetOpenApp": "Open OpenRoutine",
   "@widgetOpenApp": {
     "description": "Accessible label for tapping the empty home screen widget, which opens the app."
-  }
+  },
+  "homeGreetingMorning": "Good morning",
+  "@homeGreetingMorning": {"description": "Home title before noon."},
+  "homeGreetingAfternoon": "Good afternoon",
+  "@homeGreetingAfternoon": {"description": "Home title from noon until 6 PM."},
+  "homeGreetingEvening": "Good evening",
+  "@homeGreetingEvening": {"description": "Home title from 6 PM."},
+  "homeStreakPill": "{days, plural, =1{1-day streak, open statistics} other{{days}-day streak, open statistics}}",
+  "@homeStreakPill": {
+    "description": "Screen reader label for the streak pill in the home header, which shows only the number.",
+    "placeholders": {"days": {"type": "int"}}
+  },
+  "homeNudgeStartsIn": "{routine} starts in {minutes} min.",
+  "@homeNudgeStartsIn": {
+    "description": "Mascot nudge card on home, before the next routine starts.",
+    "placeholders": {"routine": {"type": "String"}, "minutes": {"type": "int"}}
+  },
+  "homeNudgeOnNow": "{routine} is on now.",
+  "@homeNudgeOnNow": {
+    "description": "Mascot nudge card on home, once the routine's start time has passed.",
+    "placeholders": {"routine": {"type": "String"}}
+  },
+  "homeNudgeCompanion": "I'll count the steps with you.",
+  "@homeNudgeCompanion": {"description": "The mascot's second line on the nudge card."},
+  "homeStart": "Start",
+  "@homeStart": {"description": "Starts a routine's timer from home."},
+  "homeAnytimeToday": "Anytime today",
+  "@homeAnytimeToday": {"description": "Home section for flexible routines, which have no start time."},
+  "homeAnytimeHide": "Hide",
+  "@homeAnytimeHide": {"description": "Collapses the Anytime today section."},
+  "homeAnytimeReady": "{count} ready",
+  "@homeAnytimeReady": {
+    "description": "Shown on the collapsed Anytime today section; selecting it expands the section.",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "homeStepsAndMinutes": "{steps, plural, =1{1 step} other{{steps} steps}} · {minutes} min",
+  "@homeStepsAndMinutes": {
+    "description": "Summary line on a home routine card.",
+    "placeholders": {"steps": {"type": "int"}, "minutes": {"type": "int"}}
+  },
+  "homeStartWhenYouWant": "start when you want",
+  "@homeStartWhenYouWant": {"description": "Appended to a flexible routine's summary line on home."},
+  "homeProgress": "{done} of {total}",
+  "@homeProgress": {
+    "description": "Badge on a home routine card when today's run stopped partway.",
+    "placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}
+  },
+  "homeDone": "Done",
+  "@homeDone": {"description": "Badge on a home routine card once it's been finished today."},
+  "homeOtherDays": "Other days",
+  "@homeOtherDays": {"description": "Collapsed home section for scheduled routines that aren't due today."},
+  "homeAddRoutine": "Add a routine",
+  "@homeAddRoutine": {"description": "Home's floating button for creating a routine."}
 }

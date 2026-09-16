@@ -134,24 +134,26 @@ flutter:
   # whose first principle is local-first and offline (docs/SPEC.md §1).
   # Both families are SIL OFL 1.1 — licence text sits beside the files.
   fonts:
-    - family: Lexend
+    - family: Bricolage Grotesque
       fonts:
-        - asset: assets/fonts/Lexend-400.ttf
+        - asset: assets/fonts/BricolageGrotesque-400.ttf
           weight: 400
-        - asset: assets/fonts/Lexend-500.ttf
+        - asset: assets/fonts/BricolageGrotesque-500.ttf
           weight: 500
-        - asset: assets/fonts/Lexend-600.ttf
+        - asset: assets/fonts/BricolageGrotesque-600.ttf
           weight: 600
-        - asset: assets/fonts/Lexend-700.ttf
+        - asset: assets/fonts/BricolageGrotesque-700.ttf
           weight: 700
-    - family: Inter
+    - family: Plus Jakarta Sans
       fonts:
-        - asset: assets/fonts/Inter-400.ttf
+        - asset: assets/fonts/PlusJakartaSans-400.ttf
           weight: 400
-        - asset: assets/fonts/Inter-500.ttf
+        - asset: assets/fonts/PlusJakartaSans-500.ttf
           weight: 500
-        - asset: assets/fonts/Inter-600.ttf
+        - asset: assets/fonts/PlusJakartaSans-600.ttf
           weight: 600
+        - asset: assets/fonts/PlusJakartaSans-700.ttf
+          weight: 700
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

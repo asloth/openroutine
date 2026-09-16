@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/motion.dart';
 import '../../theme/spacing.dart';
+import '../../theme/typography.dart';
 
 /// A pill-shaped segmented control driven by a `TabController` — the
 /// tinted-paper stand-in for a `TabBar`. Following the controller's
@@ -137,7 +138,7 @@ class _SegmentState extends State<_Segment> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final style = TextStyle(
-      fontFamily: 'Lexend',
+      fontFamily: AppTypography.display,
       fontSize: 15,
       fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,
       color: widget.selected

@@ -215,23 +215,35 @@ Future<List<CompletionLogView>> routineCompletions(
             log.startedAt.toLocal().month,
             log.startedAt.toLocal().day,
           ),
+          startedAt: log.startedAt.toLocal(),
           completed: log.outcome == CompletionOutcome.completed,
           mode: log.mode,
+          stepsDone: log.steps.length,
         ),
       )
       .toList();
 }
 
-/// A completion reduced to what the dots actually need: which local calendar
-/// day it happened on, and whether it finished.
+/// A completion reduced to what the detail dots and the home card need: which
+/// local calendar day it happened on, whether it finished, and how many steps
+/// it got through.
 class CompletionLogView {
   const CompletionLogView({
     required this.localDay,
+    required this.startedAt,
     required this.completed,
     required this.mode,
+    required this.stepsDone,
   });
 
   final DateTime localDay;
+
+  /// Local time.
+  final DateTime startedAt;
   final bool completed;
   final RunMode mode;
+
+  /// Steps the run recorded, skipped ones included: a skipped step is still
+  /// one you got past.
+  final int stepsDone;
 }

@@ -124,9 +124,10 @@ void main() {
   ) async {
     final l10n = await pumpApp(tester);
 
-    await tester.tap(find.text(l10n.routinesTabFlexible));
-    await tester.pumpAndSettle();
     expect(find.text('Stretch'), findsOneWidget);
+    await tester.tap(find.text(l10n.homeAnytimeHide));
+    await tester.pumpAndSettle();
+    expect(find.text('Stretch'), findsNothing);
 
     await tester.tap(destinationLabel(l10n.navStats));
     await tester.pumpAndSettle();
@@ -136,8 +137,8 @@ void main() {
 
     expect(
       find.text('Stretch'),
-      findsOneWidget,
-      reason: 'the Flexible tab was open when the list was left',
+      findsNothing,
+      reason: 'Anytime today was collapsed when home was left',
     );
     await _disposeCleanly(tester);
   });
@@ -243,10 +244,32 @@ void main() {
         matching: find.byKey(FloatingNavBar.pillKey),
       ),
     );
-    final bodyElement = tester.element(find.text('Morning'));
+    final bodyElement = tester.element(find.text('Stretch'));
     final bodyBottomPadding = MediaQuery.paddingOf(bodyElement).bottom;
 
     expect(bodyBottomPadding, greaterThanOrEqualTo(pill.height));
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('Add a routine sits above the pill, not under it', (
+    tester,
+  ) async {
+    final l10n = await pumpApp(tester);
+
+    final pill = tester.getRect(
+      find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.byKey(FloatingNavBar.pillKey),
+      ),
+    );
+    final add = tester.getRect(
+      find.ancestor(
+        of: find.text(l10n.homeAddRoutine),
+        matching: find.byType(FloatingActionButton),
+      ),
+    );
+
+    expect(add.bottom, lessThanOrEqualTo(pill.top));
     await _disposeCleanly(tester);
   });
 

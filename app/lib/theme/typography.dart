@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 /// Type tokens from the Stitch design pass, mapped onto Material 3's text
 /// roles so that stock widgets pick them up without per-screen overrides.
 ///
-/// Two families, with a clear division of labour: **Lexend** carries anything
-/// structural or actionable — headings, numbers, button labels — and **Inter**
-/// carries prose. Both are bundled (see pubspec.yaml) rather than fetched at
+/// Two families, with a clear division of labour: **Bricolage Grotesque**
+/// carries anything structural or actionable — headings, numbers, button
+/// labels — and **Plus Jakarta Sans** carries prose. Both are bundled (see pubspec.yaml) rather than fetched at
 /// runtime, so typography works offline like the rest of the app.
 abstract final class AppTypography {
-  static const display = 'Lexend';
-  static const body = 'Inter';
+  static const display = 'Bricolage Grotesque';
+  static const body = 'Plus Jakarta Sans';
 
   /// The timer's countdown and other hero numbers. Tight tracking keeps a
   /// four-digit clock from sprawling.
