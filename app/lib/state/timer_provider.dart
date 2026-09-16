@@ -7,6 +7,7 @@ import '../models/step.dart';
 import '../services/id_generator.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/timer/timer_machine.dart';
+import 'stats_provider.dart';
 import 'storage_provider.dart';
 
 part 'timer_provider.g.dart';
@@ -186,6 +187,9 @@ class RoutineTimer extends _$RoutineTimer {
     if (log == null) return;
     await ref.read(storageAdapterProvider).appendCompletion(log);
     ref.invalidate(routineCompletionsProvider(finished.routineId));
+    // Home's streak pill watches statistics, which would otherwise keep
+    // showing the streak from before this run.
+    ref.invalidate(statisticsProvider);
   }
 }
 

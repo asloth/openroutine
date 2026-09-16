@@ -14,6 +14,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/services/timer/timer_machine.dart';
+import 'package:openroutine/state/stats_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
 import 'package:openroutine/widgets/mascot_slot.dart';
@@ -303,6 +304,39 @@ void main() {
     final logs = await adapter.getCompletions('r1');
     expect(logs, hasLength(1));
     expect(logs.single.steps.single.stepId, 's1');
+
+    await _disposeCleanly(tester);
+  });
+
+  testWidgets('finishing a run refreshes the streak home is showing', (
+    tester,
+  ) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    // Home watches statistics for its streak pill, which keeps the value
+    // cached; listening here does the same.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TimerScreen)),
+    );
+    final subscription = container.listen(statisticsProvider, (_, _) {});
+    addTearDown(subscription.close);
+    await tester.runAsync(() => container.read(statisticsProvider.future));
+    expect(
+      container.read(statisticsProvider).value?.completion.currentStreakDays,
+      0,
+    );
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    await tester.tap(find.text(l10n.timerFinish));
+    await tester.pumpAndSettle();
+
+    final stats = await tester.runAsync(
+      () => container.read(statisticsProvider.future),
+    );
+    expect(stats!.completion.currentStreakDays, 1);
 
     await _disposeCleanly(tester);
   });
