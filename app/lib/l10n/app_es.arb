@@ -61,7 +61,6 @@
 
   "settingsTitle": "Configuración",
 
-  "routinesNewRoutine": "Nueva rutina",
 
   "statsTitle": "Estadísticas",
   "statsEmptyTitle": "Todavía no hay nada que mostrar",
@@ -82,11 +81,9 @@
   "statsTimeTitle": "Cuándo empiezas",
   "statsTimeHour": "{hour}:00",
   "routinesNoTrigger": "Sin momento",
-  "routinesNextUp": "Lo siguiente",
 
   "routinesEmptyScheduled": "Aún no hay rutinas programadas. Toca + para crear una.",
 
-  "routinesEmptyFlexible": "Aún no hay rutinas flexibles. Toca + para crear una.",
 
   "routinesLoadError": "No se pudieron cargar tus rutinas. Intenta reiniciar la app.",
 
@@ -99,13 +96,6 @@
     }
   },
 
-  "routinesUpcomingIn": "en {minutes} min",
-  "@routinesUpcomingIn": {
-    "placeholders": {
-      "minutes": { "type": "int" }
-    }
-  },
-  "routinesUpcomingNow": "Ahora",
 
   "commonCancel": "Cancelar",
   "commonAdd": "Añadir",
@@ -389,5 +379,22 @@
   "reminderBodyWithTrigger": "{trigger} \u00b7 {detail}",
   "widgetTitle": "OpenRoutine",
   "widgetEmpty": "Todav\u00eda no hay rutinas",
-  "widgetOpenApp": "Abrir OpenRoutine"
+  "widgetOpenApp": "Abrir OpenRoutine",
+  "homeGreetingMorning": "Buenos días",
+  "homeGreetingAfternoon": "Buenas tardes",
+  "homeGreetingEvening": "Buenas noches",
+  "homeStreakPill": "{days, plural, =1{Racha de 1 día, abrir estadísticas} other{Racha de {days} días, abrir estadísticas}}",
+  "homeNudgeStartsIn": "{routine} empieza en {minutes} min.",
+  "homeNudgeOnNow": "{routine} ya está en marcha.",
+  "homeNudgeCompanion": "Cuento los pasos contigo.",
+  "homeStart": "Empezar",
+  "homeAnytimeToday": "Cuando quieras hoy",
+  "homeAnytimeHide": "Ocultar",
+  "homeAnytimeReady": "{count, plural, =1{1 lista} other{{count} listas}}",
+  "homeStepsAndMinutes": "{steps, plural, =1{1 paso} other{{steps} pasos}} · {minutes} min",
+  "homeStartWhenYouWant": "empieza cuando quieras",
+  "homeProgress": "{done} de {total}",
+  "homeDone": "Hecha",
+  "homeOtherDays": "Otros días",
+  "homeAddRoutine": "Añadir rutina"
 }
