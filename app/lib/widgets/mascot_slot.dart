@@ -9,6 +9,37 @@ import 'package:rive/rive.dart' hide PaintingStyle;
 
 import '../theme/palette.dart';
 
+/// What a [MascotSlot] should paint at a given point in loading the Rive
+/// file, or the state machine inside it: nothing yet while a step is still in
+/// flight, the hand-drawn stand-in when there's no pet to show at all, or the
+/// real thing once it's ready.
+@visibleForTesting
+enum MascotSlotVisual { empty, placeholder, rive }
+
+/// Maps a [FutureBuilder]'s snapshot of the shared Rive file onto what to
+/// show while it's in flight. Staying empty while it loads is what keeps the
+/// old placeholder from flashing on screen before the real pet takes over;
+/// landing on `null` — because Rive is unavailable, or the file failed to
+/// decode — falls back to the placeholder.
+@visibleForTesting
+MascotSlotVisual mascotLoadVisual<T>(AsyncSnapshot<T?> snapshot) {
+  if (snapshot.connectionState != ConnectionState.done) {
+    return MascotSlotVisual.empty;
+  }
+  return snapshot.data == null
+      ? MascotSlotVisual.placeholder
+      : MascotSlotVisual.rive;
+}
+
+/// The same idea for the state machine's own loading stage, once the file
+/// itself is ready.
+@visibleForTesting
+MascotSlotVisual mascotRiveVisual(RiveState state) => switch (state) {
+  RiveLoading() => MascotSlotVisual.empty,
+  RiveFailed() => MascotSlotVisual.placeholder,
+  RiveLoaded() => MascotSlotVisual.rive,
+};
+
 /// What the mascot is reacting to. Screens pass a mood, never a frame or an
 /// animation name — so the day the Rive file lands, the swap happens inside
 /// this widget and no call site changes.
@@ -101,6 +132,18 @@ class MascotSlot extends StatefulWidget {
   final double size;
   final String? semanticLabel;
 
+  /// Test-only: swaps out the loader behind the shared, once-per-run Rive
+  /// file future, and clears whatever's already cached, so a widget test can
+  /// hold the "still loading" state open (with a [Completer] that never
+  /// completes), force a resolved-with-no-file outcome, or count how many
+  /// times the loader itself actually runs. Pass `null` to restore the real
+  /// loader.
+  @visibleForTesting
+  static set debugFileLoader(Future<File?> Function()? loader) {
+    _MascotSlotState._debugFileLoader = loader;
+    _MascotSlotState._sharedFile = null;
+  }
+
   @override
   State<MascotSlot> createState() => _MascotSlotState();
 }
@@ -111,10 +154,20 @@ class _MascotSlotState extends State<MascotSlot> {
   /// stimulus this app exists to remove — see the note on [MascotSlot].
   static const _warmUp = Duration(seconds: 11);
 
-  /// Loaded here rather than by `RiveWidgetBuilder` so a missing
-  /// `rive_native` library lands in [_load]'s catch instead of escaping as an
-  /// unhandled async error on any platform where the runtime is unavailable.
-  late final Future<File?> _file = _load();
+  /// The decoded Rive file, loaded at most once per app run and shared by
+  /// every slot. Decoding the `.riv` is slow enough to see on a phone, so
+  /// only the first slot built pays that cost; every slot after — including
+  /// the one on the very next screen — reuses the same result instead of
+  /// repeating the delay. Loaded here rather than by `RiveWidgetBuilder` so a
+  /// missing `rive_native` library lands in [_load]'s catch instead of
+  /// escaping as an unhandled async error on any platform where the runtime
+  /// is unavailable.
+  static Future<File?>? _sharedFile;
+
+  /// Test-only substitute for [_load]. See [MascotSlot.debugFileLoader].
+  static Future<File?> Function()? _debugFileLoader;
+
+  Future<File?> get _file => _sharedFile ??= (_debugFileLoader ?? _load)();
 
   /// Made once per file and reused. `RiveWidgetBuilder` compares loaders by
   /// identity, so a fresh one on every build reloads the artboard from
@@ -134,7 +187,7 @@ class _MascotSlotState extends State<MascotSlot> {
     'FLUTTER_TEST',
   );
 
-  Future<File?> _load() async {
+  static Future<File?> _load() async {
     if (!_riveAvailable) return null;
     try {
       return await File.asset('assets/mascot.riv', riveFactory: Factory.rive);
@@ -146,7 +199,8 @@ class _MascotSlotState extends State<MascotSlot> {
   @override
   void dispose() {
     _settle?.cancel();
-    _file.then((file) => file?.dispose());
+    // The file is shared across every slot in the app, so disposing it here
+    // would pull it out from under every other slot still using it.
     super.dispose();
   }
 
@@ -227,6 +281,22 @@ class _MascotSlotState extends State<MascotSlot> {
     _restAfterWarmUp();
   }
 
+  /// Renders an empty box or the placeholder for any [MascotSlotVisual] other
+  /// than `rive`, which the caller builds for itself since it needs data
+  /// (the loaded file, or the live controller) this widget doesn't have.
+  Widget _visual(MascotSlotVisual visual, Widget Function() rive) =>
+      switch (visual) {
+        MascotSlotVisual.empty => SizedBox(
+          width: widget.size,
+          height: widget.size,
+        ),
+        MascotSlotVisual.placeholder => _MascotPlaceholder(
+          mood: widget.mood,
+          size: widget.size,
+        ),
+        MascotSlotVisual.rive => rive(),
+      };
+
   @override
   Widget build(BuildContext context) {
     final pet = RepaintBoundary(
@@ -235,33 +305,29 @@ class _MascotSlotState extends State<MascotSlot> {
         height: widget.size,
         child: FutureBuilder<File?>(
           future: _file,
-          builder: (context, snapshot) {
-            final file = snapshot.data;
-            // Until the file is ready — and if it never loads — the
-            // hand-drawn stand-in keeps the slot filled rather than punching
-            // a hole in the layout.
-            if (file == null) {
-              return _MascotPlaceholder(mood: widget.mood, size: widget.size);
-            }
-            return RiveWidgetBuilder(
+          builder: (context, snapshot) => _visual(
+            mascotLoadVisual(snapshot),
+            () => RiveWidgetBuilder(
               fileLoader: _loader ??= FileLoader.fromFile(
-                file,
+                snapshot.data!,
                 riveFactory: Factory.rive,
               ),
               dataBind: DataBind.auto(),
               onLoaded: _onLoaded,
-              builder: (context, state) => switch (state) {
-                RiveLoaded(:final controller) => Listener(
-                  // The artboard's own listener fires `tap`, but a settled pet
-                  // is not advancing and so never sees it. Waking it here is
-                  // what makes a poke work at any moment.
+              builder: (context, state) => _visual(
+                mascotRiveVisual(state),
+                () => Listener(
+                  // The artboard's own listener fires `tap`, but a settled
+                  // pet is not advancing and so never sees it. Waking it
+                  // here is what makes a poke work at any moment.
                   onPointerDown: (_) => _wake(),
-                  child: RiveWidget(controller: controller),
+                  child: RiveWidget(
+                    controller: (state as RiveLoaded).controller,
+                  ),
                 ),
-                _ => _MascotPlaceholder(mood: widget.mood, size: widget.size),
-              },
-            );
-          },
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -273,8 +339,11 @@ class _MascotSlotState extends State<MascotSlot> {
   }
 }
 
-/// The pre-Rive drawing, kept as the fallback for the moments before the file
-/// loads and for any platform where it cannot.
+/// The pre-Rive drawing, kept as the fallback for when there's no pet to show
+/// at all: no renderer under `flutter test`, or the file failed to decode.
+/// While the shared file — or the state machine inside it — is still
+/// loading, the slot stays empty instead, so the placeholder never flashes
+/// in front of the real pet.
 class _MascotPlaceholder extends StatelessWidget {
   const _MascotPlaceholder({required this.mood, required this.size});
 
