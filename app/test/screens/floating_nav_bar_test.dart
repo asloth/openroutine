@@ -70,12 +70,13 @@ const _spanishDestinations = [
 
 Future<void> _pump(
   WidgetTester tester,
-  List<FloatingNavDestination> destinations,
-) => tester.pumpWidget(
+  List<FloatingNavDestination> destinations, {
+  int currentIndex = 0,
+}) => tester.pumpWidget(
   MaterialApp(
     home: Scaffold(
       bottomNavigationBar: FloatingNavBar(
-        currentIndex: 0,
+        currentIndex: currentIndex,
         destinations: destinations,
         onDestinationSelected: (_) {},
       ),
@@ -123,6 +124,46 @@ void main() {
       },
     );
   }
+
+  testWidgets('every destination gets the same slot width at 1.0x', (
+    tester,
+  ) async {
+    await _pump(tester, _destinations);
+    await tester.pumpAndSettle();
+
+    final widths = [
+      for (final destination in _destinations)
+        tester.getRect(_highlightFor(destination.label)).width,
+    ];
+
+    expect(
+      widths.every((width) => (width - widths.first).abs() < 0.01),
+      isTrue,
+      reason:
+          'every destination should be as wide as the widest one, so the '
+          'bar reads as even; got $widths',
+    );
+  });
+
+  testWidgets(
+    'the selected highlight is a wide pill even for the shortest label',
+    (tester) async {
+      // "Today" is the shortest label. Before this fix, its slot (and so its
+      // highlight) was only as wide as its own content, which came out close
+      // to a circle. With equal slot widths, it should be a pill like any
+      // other selected destination.
+      await _pump(tester, _destinations, currentIndex: 1);
+      await tester.pumpAndSettle();
+
+      final highlight = tester.getRect(_highlightFor('Today'));
+
+      expect(
+        highlight.width,
+        greaterThan(highlight.height),
+        reason: 'the highlight should read as a pill, not a circle',
+      );
+    },
+  );
 
   for (final (name, destinations) in [
     ('Spanish', _spanishDestinations),

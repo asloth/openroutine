@@ -80,20 +80,29 @@ class FloatingNavBar extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(_pillPadding),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (var i = 0; i < destinations.length; i++) ...[
-                      if (i > 0) const SizedBox(width: _gap),
-                      Flexible(
-                        child: _Destination(
-                          destination: destinations[i],
-                          selected: i == currentIndex,
-                          onTap: () => onDestinationSelected(i),
+                // `IntrinsicWidth` gives every `Expanded` child in the `Row`
+                // below the same width: the width of the widest one. Without
+                // it, each destination would only be as wide as its own icon
+                // or label, so "Routines" (the longest one) ends up wider
+                // than "Today", and "Today"'s highlight comes out closer to
+                // a circle than a pill. This costs an extra intrinsic-size
+                // pass, which is fine at three destinations.
+                child: IntrinsicWidth(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < destinations.length; i++) ...[
+                        if (i > 0) const SizedBox(width: _gap),
+                        Expanded(
+                          child: _Destination(
+                            destination: destinations[i],
+                            selected: i == currentIndex,
+                            onTap: () => onDestinationSelected(i),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -118,10 +127,11 @@ class _Destination extends StatelessWidget {
   static const _iconSize = 22.0;
 
   /// Horizontal breathing room between the highlight's edge and the icon or
-  /// label it holds. Without this, the highlight hugs the label exactly —
-  /// at 12px in the display face, "Routines" comes out about as wide as the whole
-  /// destination is tall, so [AppRadius.pillBorder] rounds it into a near
-  /// circle that the label pokes out of at both bottom corners.
+  /// label it holds. Without this, the highlight would hug the label
+  /// exactly, so each destination's own preferred width — the width
+  /// `FloatingNavBar`'s `IntrinsicWidth` compares across all three
+  /// destinations to find the widest — would come out too tight around the
+  /// content.
   static const _horizontalPadding = 14.0;
 
   /// The label never grows past this scale, even at a large system text
@@ -157,10 +167,13 @@ class _Destination extends StatelessWidget {
         // trade `PageHeader` makes for its title at a large text scale. It
         // has to clear the widest single-line case: "Estadísticas" at the
         // 1.6x cap measures about 114dp on its own, and [_horizontalPadding]
-        // adds 28dp around it, for about 142dp — 150 leaves a little room
-        // to spare without letting the bar get close to a 360dp screen's
-        // edge (two destinations this wide, plus the gap between them and
-        // the outer pill's own padding, still land well under 360dp).
+        // adds 28dp around it, for about 142dp — 150 leaves a little room to
+        // spare without letting the bar get close to a 360dp screen's edge.
+        // Because `FloatingNavBar`'s `IntrinsicWidth` gives every
+        // destination the width of the widest one, this is also the ceiling
+        // on the shared slot width: three destinations this wide, plus the
+        // gaps between them and the outer pill's own padding, still land
+        // well under 360dp.
         constraints: const BoxConstraints(
           minWidth: AppSpacing.touchTargetMin,
           minHeight: AppSpacing.touchTargetMin,
