@@ -155,4 +155,30 @@ void main() {
 
     expect(find.text(l10n.onboardingHelloTitle), findsOneWidget);
   });
+
+  // Settings › Appearance › Theme overrides the phone's own brightness. A
+  // stored 'light' theme_mode has to win even when the platform reports dark
+  // — otherwise the setting would only ever match what the phone already
+  // does, which is no setting at all.
+  testWidgets(
+    'a stored light theme_mode wins over a dark platform brightness',
+    (WidgetTester tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      SharedPreferences.setMockInitialValues({'theme_mode': 'light'});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: const OpenRoutineApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(Scaffold).first);
+
+      expect(Theme.of(context).brightness, Brightness.light);
+    },
+  );
 }

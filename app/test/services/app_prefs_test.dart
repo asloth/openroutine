@@ -32,4 +32,45 @@ void main() {
 
     expect(prefs.accentId, isNull);
   });
+
+  group('themeMode', () {
+    test('reads as system until something is stored', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = AppPrefs(await SharedPreferences.getInstance());
+
+      expect(prefs.themeMode, 'system');
+    });
+
+    test('reads as system for a value this build does not recognize', () async {
+      SharedPreferences.setMockInitialValues({'theme_mode': 'sepia'});
+      final prefs = AppPrefs(await SharedPreferences.getInstance());
+
+      expect(prefs.themeMode, 'system');
+    });
+
+    test(
+      'setThemeMode(light) round-trips through shared_preferences',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final raw = await SharedPreferences.getInstance();
+        final prefs = AppPrefs(raw);
+
+        await prefs.setThemeMode('light');
+
+        expect(prefs.themeMode, 'light');
+        expect(raw.getString('theme_mode'), 'light');
+      },
+    );
+
+    test('setThemeMode(dark) round-trips through shared_preferences', () async {
+      SharedPreferences.setMockInitialValues({});
+      final raw = await SharedPreferences.getInstance();
+      final prefs = AppPrefs(raw);
+
+      await prefs.setThemeMode('dark');
+
+      expect(prefs.themeMode, 'dark');
+      expect(raw.getString('theme_mode'), 'dark');
+    });
+  });
 }

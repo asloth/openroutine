@@ -29,6 +29,7 @@ class AppPrefs {
   static const _storageModeKey = 'storage_mode';
   static const _localeOverrideKey = 'locale_override';
   static const _accentKey = 'accent_color';
+  static const _themeModeKey = 'theme_mode';
   static const _reminderLeadKey = 'reminder_lead_minutes';
   static const _installClientIdKey = 'install_client_id';
   static const _driveCutoverFolderIdKey = 'drive_cutover_folder_id';
@@ -115,6 +116,20 @@ class AppPrefs {
     if (id == null) return _prefs.remove(_accentKey);
     return _prefs.setString(_accentKey, id);
   }
+
+  /// One of `'system'`, `'light'`, or `'dark'`. Missing or unrecognized values
+  /// read as `'system'`, so the app follows the phone's brightness until
+  /// someone deliberately overrides it. Kept as a plain string rather than
+  /// Flutter's `ThemeMode` — this service has no Flutter dependency, matching
+  /// every other setting stored here — and mapped to `ThemeMode` in
+  /// `ThemeModeSetting`.
+  String get themeMode {
+    final raw = _prefs.getString(_themeModeKey);
+    return (raw == 'light' || raw == 'dark') ? raw! : 'system';
+  }
+
+  Future<void> setThemeMode(String mode) =>
+      _prefs.setString(_themeModeKey, mode);
 
   /// How far before a routine's start time its reminder fires. Five minutes by
   /// default: firing exactly on the hour tells you you are already late, where

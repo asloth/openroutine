@@ -606,6 +606,26 @@
     }
   },
 
+  "settingsTheme": "Theme",
+  "@settingsTheme": {
+    "description": "Title of the row in Settings › Appearance that opens the theme mode picker."
+  },
+
+  "settingsThemeSystem": "Match my phone",
+  "@settingsThemeSystem": {
+    "description": "Theme mode choice that follows the phone's own light/dark setting."
+  },
+
+  "settingsThemeLight": "Light",
+  "@settingsThemeLight": {
+    "description": "Theme mode choice that always uses the light theme."
+  },
+
+  "settingsThemeDark": "Dark",
+  "@settingsThemeDark": {
+    "description": "Theme mode choice that always uses the dark theme."
+  },
+
   "settingsAccentTitle": "Accent color",
   "@settingsAccentTitle": {
     "description": "Heading above the accent colour picker, under Settings › Appearance."
