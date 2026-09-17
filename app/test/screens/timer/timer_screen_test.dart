@@ -215,6 +215,29 @@ void main() {
     await _disposeCleanly(tester);
   });
 
+  testWidgets('the mascot keeps the same size on the finished screen', (
+    tester,
+  ) async {
+    final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final runningSize = tester.widget<MascotSlot>(find.byType(MascotSlot)).size;
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    await tester.tap(find.text(l10n.timerFinish));
+    await tester.pumpAndSettle();
+
+    final finishedSize = tester
+        .widget<MascotSlot>(find.byType(MascotSlot))
+        .size;
+    expect(finishedSize, greaterThanOrEqualTo(160));
+    expect(finishedSize, equals(runningSize));
+
+    await _disposeCleanly(tester);
+  });
+
   group('the mascot reacts to the run', () {
     MascotSlot mascot(WidgetTester tester) =>
         tester.widget<MascotSlot>(find.byType(MascotSlot));
@@ -402,6 +425,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.timerCompleteTitle), findsOneWidget);
+    // The bigger mascot (matching the running screen's size) pushes this
+    // past the summary ListView's lazily-built extent, so scroll it in.
+    await tester.scrollUntilVisible(find.text(l10n.timerCloseSummary), 200);
     expect(find.text(l10n.timerCloseSummary), findsOneWidget);
     expect(find.byType(MascotSlot), findsOneWidget);
 
