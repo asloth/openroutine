@@ -18,6 +18,12 @@ import 'run/run_parts.dart';
 export 'run/run_parts.dart'
     show StepProgressBar, HalfwayBanner, minutesLeftInRun, halfwayMinutesLeft;
 
+/// The mascot's size on both the running screen and the finished screen.
+/// One constant keeps them from drifting apart again — the pet should read
+/// as the same-sized companion whether it's working alongside you or
+/// celebrating with you.
+const _mascotSize = 168.0;
+
 /// docs/SPEC.md §7 screen 7 — the full-screen playlist runner.
 ///
 /// The screen reads the clock on every build rather than holding a countdown
@@ -269,7 +275,7 @@ class _Running extends ConsumerWidget {
         // last, and dozes while the run is paused.
         Center(
           child: MascotSlot(
-            size: 168,
+            size: _mascotSize,
             mood: paused ? MascotMood.resting : MascotMood.idle,
             cue: cue,
           ),
@@ -458,7 +464,7 @@ class _SummaryState extends ConsumerState<_Summary> {
         Center(
           child: MascotSlot(
             mood: abandoned ? MascotMood.resting : MascotMood.cheering,
-            size: 124,
+            size: _mascotSize,
           ),
         ),
         const SizedBox(height: 26),
