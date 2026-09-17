@@ -14,10 +14,14 @@ import '../../state/storage_provider.dart';
 /// afterward from Routine Detail, since this screen's field list (name,
 /// days, mode, start time) never mentions steps.
 class RoutineFormScreen extends ConsumerStatefulWidget {
-  const RoutineFormScreen({super.key, this.routineId});
+  const RoutineFormScreen({super.key, this.routineId, this.initialMode});
 
   /// Null means create; non-null means edit that routine.
   final String? routineId;
+
+  /// The schedule a new routine starts on. Onboarding passes the kind the
+  /// user picked. Editing ignores it and loads the routine's own schedule.
+  final ScheduleMode? initialMode;
 
   @override
   ConsumerState<RoutineFormScreen> createState() => _RoutineFormScreenState();
@@ -26,7 +30,7 @@ class RoutineFormScreen extends ConsumerStatefulWidget {
 class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  ScheduleMode _mode = ScheduleMode.flexible;
+  late ScheduleMode _mode = widget.initialMode ?? ScheduleMode.flexible;
   final Set<DayOfWeek> _days = {};
   String? _startTime;
   bool _loaded = false;

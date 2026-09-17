@@ -22,6 +22,7 @@ import 'screens/shell/app_shell.dart';
 import 'screens/step_form/step_form_screen.dart';
 import 'screens/timer/timer_screen.dart';
 import 'models/completion_log.dart';
+import 'models/schedule.dart';
 import 'state/app_prefs_provider.dart';
 import 'state/home_widget_provider.dart';
 import 'state/timer_provider.dart';
@@ -121,7 +122,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => appPage(
           context,
           key: state.pageKey,
-          child: const RoutineFormScreen(),
+          child: RoutineFormScreen(
+            initialMode: ScheduleMode.values
+                .asNameMap()[state.uri.queryParameters['mode']],
+          ),
         ),
       ),
       GoRoute(

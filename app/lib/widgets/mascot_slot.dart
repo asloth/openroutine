@@ -34,8 +34,21 @@ enum MascotReaction {
   /// An okay nod. A step was skipped, and that's fine.
   skip('skip'),
 
-  /// A wave. A step was put off until the end of the run.
-  wave('wave');
+  /// A wave. A step was put off until the end of the run, or a hello.
+  wave('wave'),
+
+  /// Feet out and a jogging stride on the spot. Move the slot to make it
+  /// travel.
+  run('run'),
+
+  /// A crouch and a leap with both arms up.
+  jump('jump'),
+
+  /// A few soft, content hops with the feet tucked.
+  bounce('bounce'),
+
+  /// Both arms up, feet out: something big just got done.
+  celebrate('celebrate');
 
   const MascotReaction(this.trigger);
 

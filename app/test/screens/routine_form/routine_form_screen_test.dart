@@ -18,14 +18,15 @@ import 'package:openroutine/state/storage_provider.dart';
 // GoRouter also throws ("nothing to pop") if the form screen is the only
 // stack entry, so the test navigates '/' -> '/form' itself to give pop()
 // somewhere to land.
-GoRouter _routerTo({String? routineId}) {
+GoRouter _routerTo({String? routineId, ScheduleMode? initialMode}) {
   return GoRouter(
     initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SizedBox()),
       GoRoute(
         path: '/form',
-        builder: (context, state) => RoutineFormScreen(routineId: routineId),
+        builder: (context, state) =>
+            RoutineFormScreen(routineId: routineId, initialMode: initialMode),
       ),
     ],
   );
@@ -90,6 +91,23 @@ void main() {
       expect(await db.select(db.routines).get(), isEmpty);
     },
   );
+
+  // Onboarding ends by opening the builder on the kind of routine the user
+  // picked, so the choice they just made isn't lost on arrival.
+  testWidgets('a new routine can start on Scheduled', (tester) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final router = _routerTo(initialMode: ScheduleMode.scheduled);
+    await tester.pumpWidget(_wrap(router, LocalAdapter(db)));
+    router.push('/form');
+    await tester.pumpAndSettle();
+
+    final segments = tester.widget<SegmentedButton<ScheduleMode>>(
+      find.byType(SegmentedButton<ScheduleMode>),
+    );
+    expect(segments.selected, {ScheduleMode.scheduled});
+    expect(find.byType(FilterChip), findsNWidgets(DayOfWeek.values.length));
+  });
 
   testWidgets(
     'submitting with a name persists a new routine via the storage adapter',

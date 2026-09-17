@@ -29,25 +29,51 @@
 
   "onboardingGetStarted": "Comenzar",
 
-  "onboardingSlide1Title": "Tus rutinas, tus datos",
+  "onboardingHelloTitle": "Routinas que se quedan, sin complicaciones.",
 
-  "onboardingSlide1Body": "Las rutinas se guardan como archivos JSON en tu propio Google Drive, o totalmente sin conexión en este dispositivo. No se necesita cuenta.",
+  "onboardingHelloBody": "Sin cuenta ni registro. Tus rutinas y rachas viven en este teléfono. Haz una copia en Drive cuando quieras.",
 
-  "onboardingSlide2Title": "Modo cronómetro",
+  "onboardingHelloFootnote": "Nada sale de tu dispositivo",
 
-  "onboardingSlide2Body": "Sigue tu rutina paso a paso, con un cronómetro para cada uno.",
+  "onboardingScheduledTitle": "Algunas rutinas tienen hora.",
 
-  "onboardingSlide3Title": "Cualquier agente de IA puede ayudar",
+  "onboardingScheduledBody": "Elige los días y una hora de inicio, y OpenRoutine te avisa antes de empezar.",
 
-  "onboardingSlide3Body": "Claude, Codex o cualquier agente con acceso a Drive puede leer tus rutinas y ayudarte a mejorarlas.",
+  "onboardingScheduledDemoName": "Mañana",
 
-  "onboardingStorageChoiceTitle": "¿Dónde deben vivir tus rutinas?",
+  "onboardingScheduledDemoWhen": "Lun–Vie · 7:00",
 
-  "onboardingStorageChoiceBody": "Puedes cambiar esto más tarde en Configuración.",
+  "onboardingScheduledDemoReminder": "Empieza en 5 min",
 
-  "onboardingStorageLocalDescription": "Funciona completamente sin conexión. No se necesita cuenta.",
+  "onboardingFlexibleTitle": "Otras caben cuando sea.",
 
-  "onboardingStorageDriveDescription": "Sincroniza tus rutinas con tu propio Google Drive.",
+  "onboardingFlexibleBody": "Sin reloj y sin presión. Hazlas a la hora del día que mejor te venga.",
+
+  "onboardingFlexibleDemoName": "Estirar",
+
+  "onboardingStepsTitle": "Paso a paso, a tu manera.",
+
+  "onboardingStepsBody": "Un cronómetro tranquilo te guía por cada paso. ¿Hoy no tienes ganas de uno? Sáltalo y sigue.",
+
+  "onboardingStepsDemo1": "Tomar agua",
+
+  "onboardingStepsDemo2": "Escribir en el diario",
+
+  "onboardingStepsDemo3": "Planear el día",
+
+  "onboardingStepsDone": "Hecho",
+
+  "onboardingStepsSkipped": "Omitido",
+
+  "onboardingStepsNow": "Ahora",
+
+  "onboardingCreateTitle": "Crea tu primera rutina.",
+
+  "onboardingCreateBody": "Empieza con una. Luego puedes añadir pasos, cambiar el horario o crear más.",
+
+  "onboardingCreateScheduled": "Una rutina con hora",
+
+  "onboardingCreateFlexible": "Una rutina flexible",
 
   "routinesTabScheduled": "Programadas",
 

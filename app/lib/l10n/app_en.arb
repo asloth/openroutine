@@ -58,67 +58,132 @@
 
   "onboardingSkip": "Skip",
   "@onboardingSkip": {
-    "description": "Button to skip the onboarding slides and go straight to the app."
+    "description": "Button to skip the onboarding story and go straight to the app."
   },
 
   "onboardingNext": "Next",
   "@onboardingNext": {
-    "description": "Button to advance to the next onboarding slide."
+    "description": "Button to advance to the next onboarding beat."
   },
 
   "onboardingGetStarted": "Get started",
   "@onboardingGetStarted": {
-    "description": "Button on the final onboarding page that completes onboarding and enters the app."
+    "description": "Button on the first onboarding beat that starts the story."
   },
 
-  "onboardingSlide1Title": "Your routines, your data",
-  "@onboardingSlide1Title": {
-    "description": "Onboarding slide 1 headline."
+  "onboardingHelloTitle": "Routines that stick, without the setup.",
+  "@onboardingHelloTitle": {
+    "description": "Headline on the first onboarding beat."
   },
 
-  "onboardingSlide1Body": "Routines live as plain JSON files in your own Google Drive — or fully offline on this device. No account required.",
-  "@onboardingSlide1Body": {
-    "description": "Onboarding slide 1 body text."
+  "onboardingHelloBody": "No account, no sign-up. Your routines and streaks live on this phone. Back them up to Drive whenever you feel like it.",
+  "@onboardingHelloBody": {
+    "description": "Body on the first onboarding beat."
   },
 
-  "onboardingSlide2Title": "Timer Mode",
-  "@onboardingSlide2Title": {
-    "description": "Onboarding slide 2 headline."
+  "onboardingHelloFootnote": "Nothing leaves your device",
+  "@onboardingHelloFootnote": {
+    "description": "Small note under Get started on the first onboarding beat."
   },
 
-  "onboardingSlide2Body": "Guide yourself through a routine one step at a time, with a timer for each one.",
-  "@onboardingSlide2Body": {
-    "description": "Onboarding slide 2 body text."
+  "onboardingScheduledTitle": "Some routines have a time.",
+  "@onboardingScheduledTitle": {
+    "description": "Headline on the onboarding beat about scheduled routines."
   },
 
-  "onboardingSlide3Title": "Any AI agent can help",
-  "@onboardingSlide3Title": {
-    "description": "Onboarding slide 3 headline."
+  "onboardingScheduledBody": "Pick the days and a start time, and OpenRoutine reminds you before it starts.",
+  "@onboardingScheduledBody": {
+    "description": "Body on the onboarding beat about scheduled routines."
   },
 
-  "onboardingSlide3Body": "Claude, Codex, or any agent with Drive access can read your routines and help you improve them.",
-  "@onboardingSlide3Body": {
-    "description": "Onboarding slide 3 body text."
+  "onboardingScheduledDemoName": "Morning",
+  "@onboardingScheduledDemoName": {
+    "description": "Name of the example scheduled routine shown in onboarding."
   },
 
-  "onboardingStorageChoiceTitle": "Where should your routines live?",
-  "@onboardingStorageChoiceTitle": {
-    "description": "Headline on the storage-choice onboarding page."
+  "onboardingScheduledDemoWhen": "Mon–Fri · 7:00",
+  "@onboardingScheduledDemoWhen": {
+    "description": "Days and start time of the example scheduled routine shown in onboarding."
   },
 
-  "onboardingStorageChoiceBody": "You can change this later in Settings.",
-  "@onboardingStorageChoiceBody": {
-    "description": "Body text on the storage-choice onboarding page."
+  "onboardingScheduledDemoReminder": "Starts in 5 min",
+  "@onboardingScheduledDemoReminder": {
+    "description": "The reminder the example scheduled routine rings with in onboarding."
   },
 
-  "onboardingStorageLocalDescription": "Works fully offline. No account needed.",
-  "@onboardingStorageLocalDescription": {
-    "description": "Subtitle explaining the Local only storage option."
+  "onboardingFlexibleTitle": "Others fit whenever.",
+  "@onboardingFlexibleTitle": {
+    "description": "Headline on the onboarding beat about flexible routines."
   },
 
-  "onboardingStorageDriveDescription": "Sync your routines to your own Google Drive.",
-  "@onboardingStorageDriveDescription": {
-    "description": "Subtitle explaining the Google Drive storage option."
+  "onboardingFlexibleBody": "No clock and no pressure. Do them any time of day that suits you.",
+  "@onboardingFlexibleBody": {
+    "description": "Body on the onboarding beat about flexible routines."
+  },
+
+  "onboardingFlexibleDemoName": "Stretch",
+  "@onboardingFlexibleDemoName": {
+    "description": "Name of the example flexible routine shown in onboarding."
+  },
+
+  "onboardingStepsTitle": "Go step by step, your way.",
+  "@onboardingStepsTitle": {
+    "description": "Headline on the onboarding beat about running a routine."
+  },
+
+  "onboardingStepsBody": "A calm timer walks you through each step. Not feeling one today? Skip it and keep going.",
+  "@onboardingStepsBody": {
+    "description": "Body on the onboarding beat about running a routine."
+  },
+
+  "onboardingStepsDemo1": "Drink water",
+  "@onboardingStepsDemo1": {
+    "description": "First step of the example routine in onboarding."
+  },
+
+  "onboardingStepsDemo2": "Journal",
+  "@onboardingStepsDemo2": {
+    "description": "Second step of the example routine in onboarding; it gets skipped."
+  },
+
+  "onboardingStepsDemo3": "Plan the day",
+  "@onboardingStepsDemo3": {
+    "description": "Third step of the example routine in onboarding."
+  },
+
+  "onboardingStepsDone": "Done",
+  "@onboardingStepsDone": {
+    "description": "Status of a finished step in the onboarding example."
+  },
+
+  "onboardingStepsSkipped": "Skipped",
+  "@onboardingStepsSkipped": {
+    "description": "Status of a skipped step in the onboarding example."
+  },
+
+  "onboardingStepsNow": "Now",
+  "@onboardingStepsNow": {
+    "description": "Status of the step in progress in the onboarding example."
+  },
+
+  "onboardingCreateTitle": "Make your first routine.",
+  "@onboardingCreateTitle": {
+    "description": "Headline on the last onboarding beat."
+  },
+
+  "onboardingCreateBody": "Start with one. You can add steps, change the schedule, or make more later.",
+  "@onboardingCreateBody": {
+    "description": "Body on the last onboarding beat."
+  },
+
+  "onboardingCreateScheduled": "A routine with a time",
+  "@onboardingCreateScheduled": {
+    "description": "Last onboarding beat: opens the routine builder with Scheduled selected."
+  },
+
+  "onboardingCreateFlexible": "A flexible routine",
+  "@onboardingCreateFlexible": {
+    "description": "Last onboarding beat: opens the routine builder with Flexible selected."
   },
 
   "routinesTabScheduled": "Scheduled",
