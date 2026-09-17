@@ -58,4 +58,38 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'the Theme row defaults to "Match my phone" and picking Light saves and '
+    'updates the subtitle',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 2000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await _pump(tester, prefs);
+
+      final context = tester.element(find.byType(SettingsScreen));
+      final l10n = AppLocalizations.of(context)!;
+
+      expect(find.text(l10n.settingsTheme), findsOneWidget);
+      expect(find.text(l10n.settingsThemeSystem), findsOneWidget);
+
+      await tester.tap(find.text(l10n.settingsTheme));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.settingsThemeLight), findsOneWidget);
+      expect(find.text(l10n.settingsThemeDark), findsOneWidget);
+
+      await tester.tap(find.text(l10n.settingsThemeLight));
+      await tester.pumpAndSettle();
+
+      expect(prefs.getString('theme_mode'), 'light');
+      expect(find.text(l10n.settingsThemeLight), findsOneWidget);
+      expect(find.text(l10n.settingsThemeSystem), findsNothing);
+    },
+  );
 }

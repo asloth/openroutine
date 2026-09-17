@@ -31,6 +31,7 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final storageMode = ref.watch(storageModeSettingProvider);
     final localeOverride = ref.watch(localeOverrideSettingProvider);
+    final themeMode = ref.watch(themeModeSettingProvider);
     final packageInfoAsync = ref.watch(packageInfoProvider);
     final driveAvailable = ref.watch(driveAvailableProvider);
     final reminderLead = ref.watch(reminderLeadSettingProvider);
@@ -127,6 +128,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           _SectionHeader(l10n.settingsAppearanceSection),
+          ListTile(
+            title: Text(l10n.settingsTheme),
+            subtitle: Text(_themeModeLabel(l10n, themeMode)),
+            onTap: () => _pickThemeMode(context, ref, l10n, themeMode),
+          ),
           const AccentPicker(),
           const Divider(),
           _SectionHeader(l10n.settingsLanguageSection),
@@ -207,6 +213,52 @@ class SettingsScreen extends ConsumerWidget {
       'es' => l10n.settingsLanguageSpanish,
       _ => l10n.settingsLanguageSystem,
     };
+  }
+
+  String _themeModeLabel(AppLocalizations l10n, ThemeMode mode) {
+    return switch (mode) {
+      ThemeMode.light => l10n.settingsThemeLight,
+      ThemeMode.dark => l10n.settingsThemeDark,
+      ThemeMode.system => l10n.settingsThemeSystem,
+    };
+  }
+
+  Future<void> _pickThemeMode(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ThemeMode current,
+  ) async {
+    final selected = await showDialog<ThemeMode>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.settingsTheme),
+        children: [
+          RadioGroup<ThemeMode>(
+            groupValue: current,
+            onChanged: (value) => Navigator.of(context).pop(value),
+            child: Column(
+              children: [
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.system,
+                  title: Text(l10n.settingsThemeSystem),
+                ),
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.light,
+                  title: Text(l10n.settingsThemeLight),
+                ),
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.dark,
+                  title: Text(l10n.settingsThemeDark),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    await ref.read(themeModeSettingProvider.notifier).setMode(selected);
   }
 
   Future<void> _pickLocale(

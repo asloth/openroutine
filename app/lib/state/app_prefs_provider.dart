@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -85,4 +86,31 @@ class AccentSetting extends _$AccentSetting {
   /// Repaints the app without touching disk, for a live preview whose commit
   /// happens once a gesture ends rather than on every frame of it.
   void preview(Palette accent) => state = accent;
+}
+
+/// Whether the app follows the phone's brightness or overrides it. Defaults
+/// to [ThemeMode.system] — the app's original behavior — so installs that
+/// predate this setting see no change until they deliberately pick Light or
+/// Dark in Settings › Appearance.
+@Riverpod(keepAlive: true)
+class ThemeModeSetting extends _$ThemeModeSetting {
+  @override
+  ThemeMode build() {
+    final raw = ref.watch(appPrefsProvider).themeMode;
+    return switch (raw) {
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      _ => ThemeMode.system,
+    };
+  }
+
+  Future<void> setMode(ThemeMode mode) async {
+    final raw = switch (mode) {
+      ThemeMode.light => 'light',
+      ThemeMode.dark => 'dark',
+      ThemeMode.system => 'system',
+    };
+    await ref.read(appPrefsProvider).setThemeMode(raw);
+    state = mode;
+  }
 }

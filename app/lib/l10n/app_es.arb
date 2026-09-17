@@ -363,6 +363,10 @@
 
   "settingsAppearanceSection": "Apariencia",
   "settingsThemeCurrent": "{name} seleccionado",
+  "settingsTheme": "Tema",
+  "settingsThemeSystem": "Igual que el teléfono",
+  "settingsThemeLight": "Claro",
+  "settingsThemeDark": "Oscuro",
   "settingsAccentTitle": "Color de acento",
   "settingsAccentHelper": "Colorea toda la app.",
   "accentColorTerracotta": "Terracota",
