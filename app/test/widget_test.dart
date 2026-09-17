@@ -1,6 +1,6 @@
 // M2 smoke test: the app boots with a mocked SharedPreferences, redirects a
 // fresh install to onboarding (onboardingComplete defaults to false), and
-// the onboarding screen renders its first slide. Per-screen behavior is
+// the onboarding screen renders its first beat. Per-screen behavior is
 // covered by the tests alongside each screen; this just proves the whole
 // app wires together — routing, redirect, localization, and Riverpod.
 
@@ -28,7 +28,7 @@ Future<void> _disposeCleanly(WidgetTester tester) async {
 
 void main() {
   testWidgets(
-    'a fresh install redirects to onboarding and shows the first slide',
+    'a fresh install redirects to onboarding and shows the first beat',
     (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
@@ -44,7 +44,7 @@ void main() {
       final context = tester.element(find.byType(Scaffold).first);
       final l10n = AppLocalizations.of(context)!;
 
-      expect(find.text(l10n.onboardingSlide1Title), findsOneWidget);
+      expect(find.text(l10n.onboardingHelloTitle), findsOneWidget);
     },
   );
 
@@ -80,7 +80,7 @@ void main() {
     await tester.tap(find.text(l10n.onboardingSkip));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.onboardingSlide1Title), findsNothing);
+    expect(find.text(l10n.onboardingHelloTitle), findsNothing);
     expect(find.text(l10n.homeAddRoutine), findsOneWidget);
     expect(prefs.getBool('onboarding_complete'), isTrue);
 
@@ -131,7 +131,7 @@ void main() {
 
   // A widget tap arrives as the platform's default route. Onboarding has to
   // win over it: someone who taps the widget before finishing setup should
-  // land on the first slide, not part-way into a routine they have not
+  // land on the first beat, not part-way into a routine they have not
   // configured yet.
   testWidgets('a widget tap before onboarding still lands on onboarding', (
     WidgetTester tester,
@@ -153,6 +153,6 @@ void main() {
     final context = tester.element(find.byType(Scaffold).first);
     final l10n = AppLocalizations.of(context)!;
 
-    expect(find.text(l10n.onboardingSlide1Title), findsOneWidget);
+    expect(find.text(l10n.onboardingHelloTitle), findsOneWidget);
   });
 }
