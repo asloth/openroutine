@@ -296,6 +296,50 @@ void main() {
       expect(find.text('\u22123m'), findsOneWidget);
     });
 
+    testWidgets('reads under in moss whatever the accent is', (tester) async {
+      await _pump(
+        tester,
+        const RoutineStatistics(
+          estimates: EstimateAccuracy(
+            estimated: Duration(minutes: 10),
+            actual: Duration(minutes: 7),
+            steps: [
+              StepEstimate(
+                stepId: 'a',
+                name: 'Water',
+                estimated: Duration(minutes: 10),
+                actual: Duration(minutes: 7),
+              ),
+            ],
+          ),
+          completion: CompletionRate(
+            finished: 1,
+            abandoned: 0,
+            currentStreakDays: 1,
+          ),
+          skipped: [],
+          startTimes: [],
+          hasData: true,
+        ),
+      );
+
+      // colorScheme.secondary sits at a fixed hue offset from the accent, so
+      // on a blue accent it comes out plum — which says nothing about a step
+      // running short. The diverging scale keeps its own colours.
+      final bar = tester.widget<SegmentedProgress>(
+        find.byType(SegmentedProgress),
+      );
+      expect(bar.color, AppColors.secondary);
+      expect(
+        bar.color,
+        isNot(
+          Theme.of(
+            tester.element(find.byType(StatsScreen)),
+          ).colorScheme.secondary,
+        ),
+      );
+    });
+
     testWidgets('labels start-time buckets by hour', (tester) async {
       await _pump(
         tester,

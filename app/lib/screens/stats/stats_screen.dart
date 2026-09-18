@@ -199,6 +199,21 @@ class _Card extends StatelessWidget {
   }
 }
 
+/// The two colours this screen reads data in, fixed rather than taken from
+/// the running scheme.
+///
+/// `colorScheme.secondary` and `tertiary` sit at fixed hue offsets from the
+/// accent — see `theme/palette.dart`, +121.6° and +18.5° — so on a blue
+/// accent they come out plum and navy, which say nothing about whether a step
+/// ran long or came in short. A diverging scale has to hold its meaning
+/// whatever the accent does, so these stay the palette's own moss and honey:
+/// green for under, warm for over. `theme/colors.dart` already describes
+/// honey as "the 'a little longer' end of the estimate zones".
+({Color under, Color over}) _dataColors(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+    ? (under: AppColors.darkSecondary, over: AppColors.darkTertiary)
+    : (under: AppColors.secondary, over: AppColors.tertiary);
+
 /// How many of `SegmentedProgress`'s segments to draw, and how many of those
 /// read as filled, for a `finished`-of-`total` completion rate.
 ///
@@ -232,7 +247,7 @@ class _FinishingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final ink = HomeInk.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final data = _dataColors(context);
     final (segments, filled) = _heroSegments(
       finished: rate.finished,
       total: rate.total,
@@ -290,7 +305,7 @@ class _FinishingCard extends StatelessWidget {
               SegmentedProgress(
                 count: segments,
                 filled: filled,
-                color: scheme.secondary,
+                color: data.under,
               ),
               const SizedBox(height: 14),
               // The legend is what makes the bar readable: without it the
@@ -301,11 +316,11 @@ class _FinishingCard extends StatelessWidget {
                 runSpacing: 6,
                 children: [
                   _Swatch(
-                    color: scheme.secondary.withValues(alpha: 0.7),
+                    color: data.under.withValues(alpha: 0.7),
                     label: l10n.statsCompletionFinishedLegend(rate.finished),
                   ),
                   _Swatch(
-                    color: scheme.secondary.withValues(alpha: 0.15),
+                    color: data.under.withValues(alpha: 0.15),
                     label: l10n.statsCompletionLeftEarly(rate.abandoned),
                   ),
                 ],
@@ -434,7 +449,7 @@ class _EstimateRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = HomeInk.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final data = _dataColors(context);
     final seconds = step.difference.inSeconds;
     final over = seconds > 0;
     final factor = widest == 0 ? 0.0 : seconds.abs() / widest;
@@ -456,8 +471,8 @@ class _EstimateRow extends StatelessWidget {
             child: _DivergingBar(
               factor: factor,
               over: over,
-              overColor: scheme.tertiary,
-              underColor: scheme.secondary,
+              overColor: data.over,
+              underColor: data.under,
             ),
           ),
           const SizedBox(width: 12),
@@ -535,7 +550,7 @@ class _SkippedBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final ink = HomeInk.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final data = _dataColors(context);
 
     if (skipped.isEmpty) {
       return Text(
@@ -567,7 +582,7 @@ class _SkippedBlock extends StatelessWidget {
                   width: 64,
                   child: _TrackBar(
                     factor: most == 0 ? 0 : steps[i].count / most,
-                    color: scheme.tertiary,
+                    color: data.over,
                     track: ink.muted(0.1),
                   ),
                 ),
@@ -630,7 +645,7 @@ class _StartTimesBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final ink = HomeInk.of(context);
-    final scheme = Theme.of(context).colorScheme;
+    final data = _dataColors(context);
     final busiest = buckets.fold(0, (m, b) => b.runs > m ? b.runs : m);
 
     return Column(
@@ -664,8 +679,8 @@ class _StartTimesBlock extends StatelessWidget {
                             // rest a wash of it: the shape already says which
                             // is longest, the tint says it is the answer.
                             color: bucket.runs == busiest
-                                ? scheme.secondary
-                                : scheme.secondary.withValues(alpha: 0.3),
+                                ? data.under
+                                : data.under.withValues(alpha: 0.3),
                             borderRadius: const BorderRadius.all(
                               Radius.circular(4.5),
                             ),
