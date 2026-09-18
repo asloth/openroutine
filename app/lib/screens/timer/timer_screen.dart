@@ -218,119 +218,128 @@ class _Running extends ConsumerWidget {
     final paused = state.phase == TimerPhase.paused;
     final halfway = halfwayMinutesLeft(step, elapsed) != null;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(22, 8, 22, 24),
+    return Column(
       children: [
-        Row(
-          children: [
-            SoftCircleButton(
-              icon: Icons.chevron_left,
-              tooltip: l10n.timerAbandonConfirmAction,
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                routineName,
-                style: TextStyle(
-                  fontFamily: AppTypography.body,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: scheme.onSurface,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
+          child: Row(
+            children: [
+              SoftCircleButton(
+                icon: Icons.chevron_left,
+                tooltip: l10n.timerAbandonConfirmAction,
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  routineName,
+                  style: TextStyle(
+                    fontFamily: AppTypography.body,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Semantics(
-              label: l10n.timerStepCounter(
-                state.currentIndex + 1,
-                state.steps.length,
-              ),
-              excludeSemantics: true,
-              child: Text(
-                l10n.timerStepOfTotal(
+              const SizedBox(width: 8),
+              Semantics(
+                label: l10n.timerStepCounter(
                   state.currentIndex + 1,
                   state.steps.length,
                 ),
-                style: TextStyle(
-                  fontFamily: AppTypography.body,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: scheme.onSurface.withValues(alpha: 0.5),
+                excludeSemantics: true,
+                child: Text(
+                  l10n.timerStepOfTotal(
+                    state.currentIndex + 1,
+                    state.steps.length,
+                  ),
+                  style: TextStyle(
+                    fontFamily: AppTypography.body,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            SoftCircleButton(
-              icon: paused ? Icons.play_arrow : Icons.pause,
-              tooltip: paused ? l10n.timerResume : l10n.timerPause,
-              onPressed: paused ? notifier.resume : notifier.pause,
-            ),
-          ],
-        ),
-        const SizedBox(height: 28),
-        // Resting rather than thinking: stillness while a step runs is what
-        // makes the pet feel like it's working alongside you. Big enough to
-        // be company, not an icon. It reacts once to Done, Skip, and Do it
-        // last, and dozes while the run is paused.
-        Center(
-          child: MascotSlot(
-            size: _mascotSize,
-            mood: paused ? MascotMood.resting : MascotMood.idle,
-            cue: cue,
-          ),
-        ),
-        const SizedBox(height: 28),
-        KeyedSubtree(
-          key: const Key('currentStep'),
-          child: Text(
-            step.name,
-            textAlign: TextAlign.center,
-            style: _stepNameStyle.copyWith(color: scheme.onSurface),
-          ),
-        ),
-        const SizedBox(height: 14),
-        TimerClock(
-          step: step,
-          elapsed: elapsed,
-          estimateZone: state.estimateZone(now),
-          paused: paused,
-        ),
-        if (halfway) ...[
-          const SizedBox(height: 16),
-          HalfwayBanner(step: step, elapsed: elapsed),
-        ],
-        const SizedBox(height: 20),
-        RunButton(
-          label: state.isLastStep ? l10n.timerFinish : l10n.timerDone,
-          onPressed: notifier.completeStep,
-          primary: true,
-        ),
-        const SizedBox(height: 9),
-        Row(
-          children: [
-            // Hidden rather than disabled on the last step and on a step
-            // already put off once: a permanently greyed control is noise.
-            if (state.canPostpone) ...[
-              Expanded(
-                child: RunButton(
-                  label: l10n.timerDoLater,
-                  onPressed: notifier.postpone,
-                ),
+              const SizedBox(width: 8),
+              SoftCircleButton(
+                icon: paused ? Icons.play_arrow : Icons.pause,
+                tooltip: paused ? l10n.timerResume : l10n.timerPause,
+                onPressed: paused ? notifier.resume : notifier.pause,
               ),
-              const SizedBox(width: 9),
             ],
-            Expanded(
-              child: RunButton(
-                label: l10n.timerSkip,
-                onPressed: notifier.skip,
-                muted: true,
-              ),
-            ),
-          ],
+          ),
         ),
-        const SizedBox(height: 28),
-        RestOfRun(state: state, elapsed: elapsed),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 28, 22, 24),
+            children: [
+              // Resting rather than thinking: stillness while a step runs is
+              // what makes the pet feel like it's working alongside you. Big
+              // enough to be company, not an icon. It reacts once to Done,
+              // Skip, and Do it last, and dozes while the run is paused.
+              Center(
+                child: MascotSlot(
+                  size: _mascotSize,
+                  mood: paused ? MascotMood.resting : MascotMood.idle,
+                  cue: cue,
+                ),
+              ),
+              const SizedBox(height: 28),
+              KeyedSubtree(
+                key: const Key('currentStep'),
+                child: Text(
+                  step.name,
+                  textAlign: TextAlign.center,
+                  style: _stepNameStyle.copyWith(color: scheme.onSurface),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TimerClock(
+                step: step,
+                elapsed: elapsed,
+                estimateZone: state.estimateZone(now),
+                paused: paused,
+              ),
+              if (halfway) ...[
+                const SizedBox(height: 16),
+                HalfwayBanner(step: step, elapsed: elapsed),
+              ],
+              const SizedBox(height: 20),
+              RunButton(
+                label: state.isLastStep ? l10n.timerFinish : l10n.timerDone,
+                onPressed: notifier.completeStep,
+                primary: true,
+              ),
+              const SizedBox(height: 9),
+              Row(
+                children: [
+                  // Hidden rather than disabled on the last step and on a
+                  // step already put off once: a permanently greyed control
+                  // is noise.
+                  if (state.canPostpone) ...[
+                    Expanded(
+                      child: RunButton(
+                        label: l10n.timerDoLater,
+                        onPressed: notifier.postpone,
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                  ],
+                  Expanded(
+                    child: RunButton(
+                      label: l10n.timerSkip,
+                      onPressed: notifier.skip,
+                      muted: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+              RestOfRun(state: state, elapsed: elapsed),
+            ],
+          ),
+        ),
       ],
     );
   }
