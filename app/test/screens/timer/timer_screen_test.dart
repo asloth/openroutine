@@ -215,6 +215,41 @@ void main() {
     await _disposeCleanly(tester);
   });
 
+  testWidgets('the header stays put when the rest of the run scrolls', (
+    tester,
+  ) async {
+    // Enough steps that "Rest of run" overflows the viewport and the list
+    // actually scrolls.
+    final adapter = await _seed(
+      steps: [
+        for (var i = 0; i < 20; i++) _step('s$i', order: i, name: 'Step $i'),
+      ],
+    );
+
+    await tester.pumpWidget(_wrap(adapter));
+    await tester.pumpAndSettle();
+
+    final backButton = find.byWidgetPredicate(
+      (w) => w is SoftCircleButton && w.icon == Icons.chevron_left,
+    );
+    final before = tester.getRect(backButton);
+
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
+
+    // The back button — and the rest of the header row — has to hold its
+    // position under the status bar rather than sliding up under it (or, if
+    // the list scrolls it far enough, disappearing from the tree entirely).
+    expect(backButton, findsOneWidget);
+    expect(tester.getRect(backButton), before);
+    expect(
+      find.ancestor(of: backButton, matching: find.byType(Scrollable)),
+      findsNothing,
+    );
+
+    await _disposeCleanly(tester);
+  });
+
   testWidgets('the mascot keeps the same size on the finished screen', (
     tester,
   ) async {
