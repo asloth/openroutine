@@ -40,3 +40,35 @@ reads as a dash in the text rather than a sign on the number.
 Most-skipped is the one section where each row is a thing you might act on —
 a step you keep skipping is a step to shorten or drop. Cards give each one its
 own edge; the other sections stay flat on the paper.
+
+## Findings, not figures
+
+The headline on each card is chosen from the data, so it has to hold up at
+every value, not just the flattering one. Finishing has three: most, more than
+half, and — below half — "You start more than you finish." Descriptive, the
+mirror of the good case, and not a reproach. That was a deliberate choice over
+a warmer deflection that would have dodged the number.
+
+## Ten dots, not one per run
+
+The rate now reads as a proportion out of ten rather than a segment per run,
+which is what lets the sentence under it say "8 out of every 10".
+
+Rounding is clamped at both ends. 39 of 40 rounds to ten, which would read as
+a clean sweep; 1 of 40 rounds to zero, which would read as finishing nothing.
+Neither is true, and the two errors are not symmetric in how they land, so the
+clamp only lets ten mean every run and zero mean none.
+
+## Where the small hours go
+
+`dayPartOf` puts 18:00 through 04:59 in the evening. A run at 01:00 is the
+tail of a night, not the start of a morning, and bucketing it as morning would
+put the wrong word in the headline.
+
+## Styling a value inside a sentence
+
+The estimate detail bolds the step name inside "Deep work block is the biggest
+one." Concatenating fragments would force English word order on every
+translation, so `_around` renders the whole message with a sentinel in place
+of the value and cuts at it. The translator keeps the word order; the value
+keeps its style.

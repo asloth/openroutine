@@ -24,14 +24,8 @@ class SegmentedProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Past eight segments the 6px gap starts crowding the segments
-    // themselves, so it narrows to 4px — and past two dozen, where there is
-    // one segment per run, 4px of gap would be wider than the run it
-    // separates, so it narrows again.
-    final gap = count > 24
-        ? 2.0
-        : count > 8
-        ? 4.0
-        : 6.0;
+    // themselves, so it narrows to 4px.
+    final gap = count > 8 ? 4.0 : 6.0;
 
     final children = <Widget>[];
     for (var i = 0; i < count; i++) {

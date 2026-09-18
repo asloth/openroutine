@@ -89,6 +89,30 @@ class HourBucket {
   final int runs;
 }
 
+/// The three parts of a day a run can land in.
+///
+/// Coarser than [HourBucket] on purpose: "you start in the mornings" is a
+/// thing you already know about yourself, where a bar at 07:00 is a fact you
+/// have to interpret. The hourly detail is still there behind it.
+enum DayPart { morning, afternoon, evening }
+
+class DayPartBucket {
+  const DayPartBucket({required this.part, required this.runs});
+
+  final DayPart part;
+  final int runs;
+}
+
+/// Which part of the day an hour belongs to.
+///
+/// Evening owns the small hours as well as the late ones: a run at 01:00 is
+/// the tail of a night, not the start of a morning.
+DayPart dayPartOf(int hour) {
+  if (hour >= 5 && hour < 12) return DayPart.morning;
+  if (hour >= 12 && hour < 18) return DayPart.afternoon;
+  return DayPart.evening;
+}
+
 class RoutineStatistics {
   const RoutineStatistics({
     required this.estimates,
@@ -108,6 +132,24 @@ class RoutineStatistics {
   /// will report once there is data rather than a page of zeros, because an
   /// empty chart reads as a score.
   final bool hasData;
+
+  /// [startTimes] folded into morning, afternoon and evening.
+  ///
+  /// Derived rather than stored: it is the same runs counted coarser, so
+  /// keeping a second field in step with the first would be work with no
+  /// payoff. Always three entries, in day order, including empty ones — the
+  /// three bars are read against each other, and a missing row would make
+  /// "you never start in the afternoon" invisible.
+  List<DayPartBucket> get dayParts {
+    final counts = {for (final part in DayPart.values) part: 0};
+    for (final bucket in startTimes) {
+      counts.update(dayPartOf(bucket.hour), (runs) => runs + bucket.runs);
+    }
+    return [
+      for (final part in DayPart.values)
+        DayPartBucket(part: part, runs: counts[part]!),
+    ];
+  }
 }
 
 /// Computes every reported figure from [logs].
@@ -191,9 +233,7 @@ EstimateAccuracy? _estimates(
   ]..sort((a, b) => b.difference.compareTo(a.difference));
 
   return EstimateAccuracy(
-    estimated: Duration(
-      seconds: estimated.values.fold(0, (a, b) => a + b),
-    ),
+    estimated: Duration(seconds: estimated.values.fold(0, (a, b) => a + b)),
     actual: Duration(seconds: actual.values.fold(0, (a, b) => a + b)),
     steps: steps,
   );

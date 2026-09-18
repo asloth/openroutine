@@ -6,8 +6,6 @@ import 'package:openroutine/screens/stats/stats_screen.dart';
 import 'package:openroutine/services/stats/routine_statistics.dart';
 import 'package:openroutine/state/stats_provider.dart';
 import 'package:openroutine/theme/theme.dart';
-import 'package:openroutine/widgets/tinted/segmented_progress.dart';
-import 'package:openroutine/widgets/tinted/tinted_card.dart';
 
 Future<AppLocalizations> _l10n([Locale locale = const Locale('en')]) =>
     AppLocalizations.delegate.load(locale);
@@ -89,28 +87,38 @@ void main() {
 
     // The point of the empty state: no section headings, no zeroed figures.
     // An empty chart reads as a score of zero.
-    expect(find.text(l10n.statsCompletionTitle), findsNothing);
-    expect(find.text(l10n.statsEstimateTitle), findsNothing);
-    expect(find.byType(TintedCard), findsNothing);
-    expect(find.byType(SegmentedProgress), findsNothing);
+    expect(find.text(l10n.statsFinishingHeadlineMost), findsNothing);
+    expect(find.text(l10n.statsEstimateHeadlineOver), findsNothing);
+    expect(find.text(l10n.statsEstimateHeadlineUnder), findsNothing);
   });
 
   group('hero finishing card', () {
-    testWidgets('names both halves of the bar and shows the split '
-        'sentence', (tester) async {
+    testWidgets('leads with the finding, not the figure', (tester) async {
+      // 3 of 4 is 75%, so the middle headline rather than the best one.
       final stats = _statsWith(finished: 3, abandoned: 1, streak: 2);
       await _pump(tester, stats);
       final l10n = await _l10n();
 
-      expect(find.text(l10n.statsCompletionFinished(3)), findsOneWidget);
-      expect(find.text(l10n.statsCompletionOfTotal(4)), findsOneWidget);
+      expect(find.text(l10n.statsFinishingHeadlineHalf), findsOneWidget);
+      expect(find.text(l10n.statsFinishingDetail(8)), findsOneWidget);
       expect(find.text(l10n.statsStreak(2)), findsOneWidget);
+    });
 
-      // The pale half of the bar means runs that ended early. Unlabelled it
-      // reads as nothing at all, so the legend names both halves — and names
-      // the second one without scolding.
-      expect(find.text(l10n.statsCompletionFinishedLegend(3)), findsOneWidget);
-      expect(find.text(l10n.statsCompletionLeftEarly(1)), findsOneWidget);
+    testWidgets('at nine in ten, the headline says most', (tester) async {
+      await _pump(tester, _statsWith(finished: 9, abandoned: 1));
+      expect(
+        find.text((await _l10n()).statsFinishingHeadlineMost),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('below half, the headline states it plainly', (tester) async {
+      // Descriptive, not a reproach: nothing on this screen scolds.
+      await _pump(tester, _statsWith(finished: 3, abandoned: 7));
+      expect(
+        find.text((await _l10n()).statsFinishingHeadlineFew),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -121,7 +129,8 @@ void main() {
         final l10n = await _l10n();
 
         final expectedLabel =
-            '${l10n.statsCompletionRate(5, 7)}. ${l10n.statsStreak(4)}';
+            '${l10n.statsFinishingHeadlineHalf} '
+            '${l10n.statsFinishingDetail(7)} ${l10n.statsStreak(4)}';
 
         final semantics = tester.getSemantics(
           find.byKey(const Key('statsHeroSemantics')),
@@ -133,7 +142,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byKey(const Key('statsHeroSemantics')),
-            matching: find.text(l10n.statsCompletionFinished(5)),
+            matching: find.text(l10n.statsFinishingHeadlineHalf),
           ),
           findsOneWidget,
         );
@@ -141,34 +150,41 @@ void main() {
       semanticsEnabled: true,
     );
 
-    testWidgets('segments at total 5: filled matches finished proportion', (
+    testWidgets('ten dots carry the rate however many runs there are', (
       tester,
     ) async {
       await _pump(tester, _statsWith(finished: 2, abandoned: 3));
-      final progress = tester.widget<SegmentedProgress>(
-        find.byType(SegmentedProgress),
+      expect(
+        find.text((await _l10n()).statsFinishingDetail(4)),
+        findsOneWidget,
       );
-      expect(progress.count, 5);
-      expect(progress.filled, 2);
     });
 
-    testWidgets('draws one segment per run up to 60', (tester) async {
-      await _pump(tester, _statsWith(finished: 26, abandoned: 14));
-      final progress = tester.widget<SegmentedProgress>(
-        find.byType(SegmentedProgress),
+    testWidgets('one finished run never rounds away to none', (tester) async {
+      // 1 of 40 rounds to zero, which would read as "you finish nothing" —
+      // untrue while a run did finish.
+      await _pump(tester, _statsWith(finished: 1, abandoned: 39));
+      expect(
+        find.text((await _l10n()).statsFinishingDetail(1)),
+        findsOneWidget,
       );
-      // 40 runs, so the bar stays countable rather than merely proportional.
-      expect(progress.count, 40);
-      expect(progress.filled, 26);
     });
 
-    testWidgets('segments cap at 60 past a total of 60', (tester) async {
-      await _pump(tester, _statsWith(finished: 60, abandoned: 40));
-      final progress = tester.widget<SegmentedProgress>(
-        find.byType(SegmentedProgress),
+    testWidgets('one unfinished run never rounds up to all', (tester) async {
+      // 39 of 40 rounds to ten, which would read as a clean sweep.
+      await _pump(tester, _statsWith(finished: 39, abandoned: 1));
+      expect(
+        find.text((await _l10n()).statsFinishingDetail(9)),
+        findsOneWidget,
       );
-      expect(progress.count, 60);
-      expect(progress.filled, 36);
+    });
+
+    testWidgets('a clean sweep really does read as ten', (tester) async {
+      await _pump(tester, _statsWith(finished: 40, abandoned: 0));
+      expect(
+        find.text((await _l10n()).statsFinishingDetail(10)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('guards against a zero total instead of throwing', (
@@ -176,12 +192,10 @@ void main() {
     ) async {
       await _pump(tester, _guardedZeroTotal);
       expect(tester.takeException(), isNull);
-
-      final progress = tester.widget<SegmentedProgress>(
-        find.byType(SegmentedProgress),
+      expect(
+        find.text((await _l10n()).statsFinishingDetail(0)),
+        findsOneWidget,
       );
-      expect(progress.count, 0);
-      expect(progress.filled, 0);
     });
   });
 
@@ -206,6 +220,14 @@ void main() {
         ),
       );
       final l10n = await _l10n();
+
+      // The headline names the worst one; the others wait behind the link.
+      expect(find.text(l10n.statsSkippedHeadline('Shower')), findsOneWidget);
+      expect(find.text(l10n.statsSkippedDetail(4)), findsOneWidget);
+      expect(find.text('Stretch'), findsNothing);
+
+      await tester.tap(find.text(l10n.statsSkippedShowRest));
+      await tester.pumpAndSettle();
 
       expect(find.text('Shower'), findsOneWidget);
       expect(find.text('Stretch'), findsOneWidget);
@@ -257,9 +279,14 @@ void main() {
       );
       final l10n = await _l10n();
 
-      expect(find.text(l10n.statsEstimateOver('8m')), findsOneWidget);
+      expect(find.text(l10n.statsEstimateHeadlineOver), findsOneWidget);
+      expect(find.text('+8m'), findsNothing);
+
+      await tester.tap(find.text(l10n.statsEstimateShowSteps));
+      await tester.pumpAndSettle();
+
       // The row says which way the step went, not two raw durations the
-      // reader has to subtract. A real minus sign for the other direction.
+      // reader has to subtract.
       expect(find.text('+8m'), findsOneWidget);
     });
 
@@ -291,7 +318,11 @@ void main() {
       );
       final l10n = await _l10n();
 
-      expect(find.text(l10n.statsEstimateUnder('3m')), findsOneWidget);
+      expect(find.text(l10n.statsEstimateHeadlineUnder), findsOneWidget);
+
+      await tester.tap(find.text(l10n.statsEstimateShowSteps));
+      await tester.pumpAndSettle();
+
       // U+2212, not a hyphen: it has to read as a sign at a glance.
       expect(find.text('\u22123m'), findsOneWidget);
     });
@@ -325,19 +356,30 @@ void main() {
 
       // colorScheme.secondary sits at a fixed hue offset from the accent, so
       // on a blue accent it comes out plum — which says nothing about a step
-      // running short. The diverging scale keeps its own colours.
-      final bar = tester.widget<SegmentedProgress>(
-        find.byType(SegmentedProgress),
-      );
-      expect(bar.color, AppColors.secondary);
+      // running short. The scale keeps its own colours.
+      final scheme = Theme.of(
+        tester.element(find.byType(StatsScreen)),
+      ).colorScheme;
       expect(
-        bar.color,
-        isNot(
-          Theme.of(
-            tester.element(find.byType(StatsScreen)),
-          ).colorScheme.secondary,
-        ),
+        AppColors.secondary,
+        isNot(scheme.secondary),
+        reason:
+            'the test palette must not already be moss, or this proves '
+            'nothing',
       );
+
+      final painted = tester
+          .widgetList<Container>(
+            find.descendant(
+              of: find.byKey(const Key('statsHeroCard')),
+              matching: find.byType(Container),
+            ),
+          )
+          .map((c) => (c.decoration as BoxDecoration?)?.color)
+          .toSet();
+
+      expect(painted, contains(AppColors.secondary.withValues(alpha: 0.75)));
+      expect(painted, isNot(contains(scheme.secondary)));
     });
 
     testWidgets('labels start-time buckets by hour', (tester) async {
@@ -360,8 +402,48 @@ void main() {
       );
       final l10n = await _l10n();
 
+      // The card answers with the part of the day; the hours are the
+      // evidence behind it.
+      expect(find.text(l10n.statsTimeHeadlineMorning), findsOneWidget);
+      expect(find.text(l10n.statsTimePartMorning), findsOneWidget);
+      expect(find.text(l10n.statsTimeHour('07')), findsNothing);
+
+      // The card is the last one on the page, so the link starts below the
+      // fold and a bare tap would miss it.
+      await tester.ensureVisible(find.text(l10n.statsTimeShowHours));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.statsTimeShowHours));
+      await tester.pumpAndSettle();
+
       expect(find.text(l10n.statsTimeHour('07')), findsOneWidget);
       expect(find.text(l10n.statsTimeHour('21')), findsOneWidget);
+    });
+
+    testWidgets('an evening person gets an evening headline', (tester) async {
+      await _pump(
+        tester,
+        RoutineStatistics(
+          estimates: null,
+          completion: const CompletionRate(
+            finished: 2,
+            abandoned: 0,
+            currentStreakDays: 1,
+          ),
+          skipped: const [],
+          startTimes: const [
+            HourBucket(hour: 7, runs: 1),
+            // 01:00 is the tail of a night, not the start of a morning.
+            HourBucket(hour: 1, runs: 2),
+            HourBucket(hour: 22, runs: 1),
+          ],
+          hasData: true,
+        ),
+      );
+
+      expect(
+        find.text((await _l10n()).statsTimeHeadlineEvening),
+        findsOneWidget,
+      );
     });
   });
 
@@ -449,8 +531,8 @@ void main() {
     );
     final l10n = await _l10n(const Locale('es'));
 
-    expect(find.text(l10n.statsCompletionOfTotal(4)), findsOneWidget);
+    expect(find.text(l10n.statsFinishingHeadlineHalf), findsOneWidget);
+    expect(find.text(l10n.statsFinishingDetail(8)), findsOneWidget);
     expect(find.text(l10n.statsStreak(2)), findsOneWidget);
-    expect(find.text(l10n.statsCompletionTitle.toUpperCase()), findsOneWidget);
   });
 }

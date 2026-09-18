@@ -14,18 +14,17 @@ import '../routines_list/home/home_routine.dart' show HomeDot;
 /// Side padding, matching home.
 const _gutter = 22.0;
 
-/// Space between one section and the next.
-const _sectionGap = 26.0;
-
 /// What the app reports back about past runs.
+///
+/// Each card leads with the finding in a sentence, because that is the thing
+/// worth knowing — "mornings are when you actually start" is the answer, a
+/// bar at 07:00 is only the evidence. The evidence stays one tap away rather
+/// than up front.
 ///
 /// The figures here are read as judgements about the person, not summaries of
 /// data, so the copy stays descriptive: a difference against an estimate, not
 /// an error rate; runs finished, not runs failed. Nothing on this screen
 /// should scold.
-///
-/// Laid out the way home is — a quiet heading on the paper over the thing it
-/// names — so the two destinations read as one app.
 ///
 /// A destination root on the bottom nav, so there is no back target and no
 /// stock `AppBar`.
@@ -125,8 +124,6 @@ class _Report extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
     return ListView(
       padding: EdgeInsets.fromLTRB(
         _gutter,
@@ -135,66 +132,14 @@ class _Report extends StatelessWidget {
         MediaQuery.paddingOf(context).bottom + 32,
       ),
       children: [
-        _SectionLabel(l10n.statsCompletionTitle),
         _FinishingCard(rate: stats.completion),
-        const SizedBox(height: _sectionGap),
-        _SectionLabel(l10n.statsEstimateTitle),
-        _EstimateBlock(accuracy: stats.estimates),
-        const SizedBox(height: _sectionGap),
-        _SectionLabel(l10n.statsSkippedTitle),
-        _SkippedBlock(skipped: stats.skipped),
-        const SizedBox(height: _sectionGap),
-        _SectionLabel(l10n.statsTimeTitle),
-        _StartTimesBlock(buckets: stats.startTimes),
+        const SizedBox(height: 12),
+        _EstimateCard(accuracy: stats.estimates),
+        const SizedBox(height: 12),
+        _SkippedCard(skipped: stats.skipped),
+        const SizedBox(height: 12),
+        _StartTimesCard(parts: stats.dayParts, hours: stats.startTimes),
       ],
-    );
-  }
-}
-
-/// A section's name, set on the paper rather than inside the thing it names.
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        text.toUpperCase(),
-        style: HomeInk.label.copyWith(
-          fontSize: 11.5,
-          letterSpacing: 0.9,
-          color: HomeInk.of(context).muted(0.55),
-        ),
-      ),
-    );
-  }
-}
-
-/// A white card on the paper, the same one home uses.
-class _Card extends StatelessWidget {
-  const _Card({required this.child, this.padding, this.onKey});
-
-  final Widget child;
-  final EdgeInsets? padding;
-  final Key? onKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = HomeInk.of(context);
-    return Material(
-      key: onKey,
-      color: ink.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.all(Radius.circular(20)),
-        side: BorderSide(color: ink.hairline),
-      ),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.fromLTRB(20, 20, 20, 18),
-        child: child,
-      ),
     );
   }
 }
@@ -203,41 +148,225 @@ class _Card extends StatelessWidget {
 /// the running scheme.
 ///
 /// `colorScheme.secondary` and `tertiary` sit at fixed hue offsets from the
-/// accent — see `theme/palette.dart`, +121.6° and +18.5° — so on a blue
-/// accent they come out plum and navy, which say nothing about whether a step
-/// ran long or came in short. A diverging scale has to hold its meaning
-/// whatever the accent does, so these stay the palette's own moss and honey:
-/// green for under, warm for over. `theme/colors.dart` already describes
-/// honey as "the 'a little longer' end of the estimate zones".
+/// accent — see `theme/palette.dart` — so on a blue accent they come out plum
+/// and navy, which say nothing about whether a step ran long or came in
+/// short. A diverging scale has to hold its meaning whatever the accent does,
+/// so these stay the palette's own moss and honey: green for under, warm for
+/// over. `theme/colors.dart` already describes honey as "the 'a little
+/// longer' end of the estimate zones".
 ({Color under, Color over}) _dataColors(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark
     ? (under: AppColors.darkSecondary, over: AppColors.darkTertiary)
     : (under: AppColors.secondary, over: AppColors.tertiary);
 
-/// How many of `SegmentedProgress`'s segments to draw, and how many of those
-/// read as filled, for a `finished`-of-`total` completion rate.
-///
-/// One segment per run while that stays legible, so the bar is countable
-/// rather than merely proportional. Past 60 runs the segments would be
-/// thinner than the gaps between them, so it falls back to a scaled bar.
-///
-/// Guarded against a zero total: the real aggregation service never reports
-/// `hasData: true` with a zero-total completion, but this screen doesn't
-/// assume that invariant holds — the guard is what keeps a division by zero
-/// from ever surfacing as a crash instead of an empty bar.
-(int segments, int filled) _heroSegments({
-  required int finished,
-  required int total,
-}) {
-  if (total <= 0) return (0, 0);
-  final segments = total <= 60 ? total : 60;
-  final filled = (finished * segments / total).round();
-  return (segments, filled);
+/// A white card on the paper, the same one home uses.
+class _Card extends StatelessWidget {
+  const _Card({required this.child, this.cardKey});
+
+  final Widget child;
+  final Key? cardKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Material(
+      key: cardKey,
+      color: ink.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        side: BorderSide(color: ink.hairline),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+        child: child,
+      ),
+    );
+  }
 }
 
-/// Finishing, as the hero: the number this screen exists to answer. The
-/// other three sections explain *why* it looks the way it does, so this one
-/// carries the visual weight.
+/// The finding, in a sentence. The largest thing on its card.
+class _Headline extends StatelessWidget {
+  const _Headline(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontFamily: AppTypography.display,
+        fontSize: 19.5,
+        fontWeight: FontWeight.w600,
+        height: 1.25,
+        letterSpacing: -0.2,
+        color: HomeInk.of(context).ink,
+      ),
+    );
+  }
+}
+
+/// The evidence behind a headline, in one quiet line.
+class _Detail extends StatelessWidget {
+  const _Detail({required this.spans});
+
+  final List<InlineSpan> spans;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Text.rich(
+      TextSpan(children: spans),
+      style: HomeInk.detail.copyWith(
+        fontSize: 13.5,
+        height: 1.45,
+        color: ink.muted(0.62),
+      ),
+    );
+  }
+}
+
+/// Splits an ICU message around its one placeholder so the value can be
+/// styled differently from the sentence carrying it.
+///
+/// The message is rendered once with a sentinel no translation would contain,
+/// then cut at it. That keeps the word order the translator chose instead of
+/// gluing fragments together in English order.
+List<InlineSpan> _around(
+  String Function(String) message,
+  String value,
+  TextStyle emphasis,
+) {
+  const sentinel = '⁣';
+  final parts = message(sentinel).split(sentinel);
+  return [
+    TextSpan(text: parts.first),
+    TextSpan(text: value, style: emphasis),
+    if (parts.length > 1) TextSpan(text: parts.last),
+  ];
+}
+
+/// The link that opens a card's evidence.
+class _Disclosure extends StatelessWidget {
+  const _Disclosure({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: const BorderRadius.all(Radius.circular(8)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Text(
+            label,
+            style: HomeInk.label.copyWith(
+              fontSize: 12.5,
+              color: ink.muted(0.62),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A card whose evidence expands in place.
+class _Expandable extends StatefulWidget {
+  const _Expandable({
+    required this.summary,
+    required this.showLabel,
+    required this.hideLabel,
+    required this.detail,
+    this.cardKey,
+  });
+
+  final Widget summary;
+  final String showLabel;
+  final String hideLabel;
+  final Widget detail;
+  final Key? cardKey;
+
+  @override
+  State<_Expandable> createState() => _ExpandableState();
+}
+
+class _ExpandableState extends State<_Expandable> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return _Card(
+      cardKey: widget.cardKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          widget.summary,
+          const SizedBox(height: 2),
+          _Disclosure(
+            label: _open ? widget.hideLabel : widget.showLabel,
+            onTap: () => setState(() => _open = !_open),
+          ),
+          if (_open) ...[
+            const SizedBox(height: 6),
+            Divider(height: 1, thickness: 1, color: ink.hairline),
+            const SizedBox(height: 14),
+            widget.detail,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Ten dots, however many runs there have been: the rate as a proportion you
+/// can count, not a bar you have to measure.
+class _RatioDots extends StatelessWidget {
+  const _RatioDots({required this.filled, required this.color});
+
+  final int filled;
+  final Color color;
+
+  static const total = 10;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var i = 0; i < total; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Container(
+            width: 15,
+            height: 15,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: i < filled ? 0.75 : 0.15),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// How many of ten dots read as filled.
+///
+/// Rounded, but never all ten unless every run finished, and never zero while
+/// any run has: a full row of dots next to "9 out of every 10" would be a lie
+/// in the direction that flatters, and an empty row would be one in the
+/// direction that stings.
+int _filledDots(CompletionRate rate) {
+  if (rate.total <= 0 || rate.finished == 0) return 0;
+  if (rate.finished == rate.total) return _RatioDots.total;
+  return (rate.rate * _RatioDots.total).round().clamp(1, _RatioDots.total - 1);
+}
+
 class _FinishingCard extends StatelessWidget {
   const _FinishingCard({required this.rate});
 
@@ -248,13 +377,16 @@ class _FinishingCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final ink = HomeInk.of(context);
     final data = _dataColors(context);
-    final (segments, filled) = _heroSegments(
-      finished: rate.finished,
-      total: rate.total,
-    );
+    final filled = _filledDots(rate);
+
+    final headline = rate.rate >= 0.8
+        ? l10n.statsFinishingHeadlineMost
+        : rate.rate >= 0.5
+        ? l10n.statsFinishingHeadlineHalf
+        : l10n.statsFinishingHeadlineFew;
 
     final sentence =
-        '${l10n.statsCompletionRate(rate.finished, rate.total)}. '
+        '$headline ${l10n.statsFinishingDetail(filled)} '
         '${l10n.statsStreak(rate.currentStreakDays)}';
 
     return Semantics(
@@ -263,67 +395,16 @@ class _FinishingCard extends StatelessWidget {
       label: sentence,
       child: ExcludeSemantics(
         child: _Card(
-          onKey: const Key('statsHeroCard'),
+          cardKey: const Key('statsHeroCard'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // A `Wrap`, not a `Row`: at the base text scale both pieces sit
-              // on one baseline-aligned line, but a large accessibility text
-              // scale can no longer fit "of N runs finished" beside a
-              // 56-point number, so the phrase drops to its own line instead
-              // of overflowing.
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.end,
-                spacing: 10,
-                runSpacing: 4,
-                children: [
-                  Text(
-                    l10n.statsCompletionFinished(rate.finished),
-                    style: TextStyle(
-                      fontFamily: AppTypography.display,
-                      fontSize: 56,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -1.5,
-                      height: 1,
-                      color: ink.ink,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      l10n.statsCompletionOfTotal(rate.total),
-                      style: HomeInk.detail.copyWith(
-                        fontSize: 14.5,
-                        color: ink.muted(0.6),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              SegmentedProgress(
-                count: segments,
-                filled: filled,
-                color: data.under,
-              ),
+              _Headline(headline),
+              const SizedBox(height: 16),
+              _RatioDots(filled: filled, color: data.under),
               const SizedBox(height: 14),
-              // The legend is what makes the bar readable: without it the
-              // pale half looks like nothing rather than like runs that
-              // ended early.
-              Wrap(
-                spacing: 16,
-                runSpacing: 6,
-                children: [
-                  _Swatch(
-                    color: data.under.withValues(alpha: 0.7),
-                    label: l10n.statsCompletionFinishedLegend(rate.finished),
-                  ),
-                  _Swatch(
-                    color: data.under.withValues(alpha: 0.15),
-                    label: l10n.statsCompletionLeftEarly(rate.abandoned),
-                  ),
-                ],
+              _Detail(
+                spans: [TextSpan(text: l10n.statsFinishingDetail(filled))],
               ),
               const SizedBox(height: 16),
               Divider(height: 1, thickness: 1, color: ink.hairline),
@@ -346,45 +427,12 @@ class _FinishingCard extends StatelessWidget {
   }
 }
 
-/// A small colour chip and the thing it stands for.
-class _Swatch extends StatelessWidget {
-  const _Swatch({required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: const BorderRadius.all(Radius.circular(2)),
-          ),
-        ),
-        const SizedBox(width: 7),
-        Text(
-          label,
-          style: HomeInk.detail.copyWith(
-            fontSize: 12.5,
-            color: HomeInk.of(context).muted(0.6),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// Estimated against actual time.
 ///
 /// Phrased as a difference rather than an accuracy percentage: "eight minutes
-/// longer than estimated" is information, "62% accurate" is a grade.
-class _EstimateBlock extends StatelessWidget {
-  const _EstimateBlock({required this.accuracy});
+/// longer than you plan" is information, "62% accurate" is a grade.
+class _EstimateCard extends StatelessWidget {
+  const _EstimateCard({required this.accuracy});
 
   final EstimateAccuracy? accuracy;
 
@@ -395,18 +443,25 @@ class _EstimateBlock extends StatelessWidget {
     final a = accuracy;
 
     if (a == null) {
-      return Text(
-        l10n.statsEstimateNone,
-        style: HomeInk.detail.copyWith(color: ink.muted(0.6)),
+      return _Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Headline(l10n.statsEstimateHeadlineExact),
+            const SizedBox(height: 10),
+            _Detail(spans: [TextSpan(text: l10n.statsEstimateNone)]),
+          ],
+        ),
       );
     }
 
     final difference = a.difference;
+    final over = difference.inSeconds > 0;
     final headline = difference.inSeconds == 0
-        ? l10n.statsEstimateExact
-        : difference.isNegative
-        ? l10n.statsEstimateUnder(_short(difference.abs()))
-        : l10n.statsEstimateOver(_short(difference));
+        ? l10n.statsEstimateHeadlineExact
+        : over
+        ? l10n.statsEstimateHeadlineOver
+        : l10n.statsEstimateHeadlineUnder;
 
     final steps = a.steps.take(5).toList();
     // Every bar is drawn against the worst overrun on screen, so the lengths
@@ -417,25 +472,47 @@ class _EstimateBlock extends StatelessWidget {
           s.difference.inSeconds.abs() > m ? s.difference.inSeconds.abs() : m,
     );
 
-    return Column(
+    final biggest = steps.isEmpty ? null : steps.first;
+    final emphasis = TextStyle(
+      fontWeight: FontWeight.w700,
+      color: ink.muted(0.85),
+    );
+
+    final summary = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          headline,
-          style: TextStyle(
-            fontFamily: AppTypography.display,
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            height: 1.2,
-            color: ink.ink,
-          ),
+        _Headline(headline),
+        const SizedBox(height: 10),
+        _Detail(
+          spans: [
+            if (difference.inSeconds != 0)
+              TextSpan(
+                text: over
+                    ? '${l10n.statsEstimateDetailOver(_short(difference))} '
+                    : '${l10n.statsEstimateDetailUnder(_short(difference.abs()))} ',
+              ),
+            if (biggest != null)
+              ..._around(l10n.statsEstimateBiggest, biggest.name, emphasis),
+          ],
         ),
-        const SizedBox(height: 14),
-        for (var i = 0; i < steps.length; i++) ...[
-          if (i > 0) Divider(height: 1, thickness: 1, color: ink.hairline),
-          _EstimateRow(step: steps[i], widest: widest),
-        ],
       ],
+    );
+
+    if (steps.isEmpty) return _Card(child: summary);
+
+    return _Expandable(
+      summary: summary,
+      showLabel: l10n.statsEstimateShowSteps,
+      hideLabel: l10n.statsEstimateHideSteps,
+      detail: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < steps.length; i++) ...[
+            if (i > 0) Divider(height: 1, thickness: 1, color: ink.hairline),
+            _EstimateRow(step: steps[i], widest: widest),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -461,13 +538,13 @@ class _EstimateRow extends StatelessWidget {
           Expanded(
             child: Text(
               step.name,
-              style: HomeInk.detail.copyWith(fontSize: 14, color: ink.ink),
+              style: HomeInk.detail.copyWith(fontSize: 13.5, color: ink.ink),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           SizedBox(
-            width: 96,
+            width: 80,
             child: _DivergingBar(
               factor: factor,
               over: over,
@@ -475,17 +552,17 @@ class _EstimateRow extends StatelessWidget {
               underColor: data.under,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           SizedBox(
-            width: 40,
+            width: 42,
             child: Text(
               // The sign is the point of the row, so it is always shown —
-              // "+6m" and "−1m", never a bare "6m" that reads the same
-              // either way. A real minus sign, not a hyphen.
+              // "+6m" and a real minus for the other direction, never a bare
+              // "6m" that reads the same either way.
               '${over ? '+' : '−'}${_short(step.difference.abs())}',
               textAlign: TextAlign.end,
               style: HomeInk.detail.copyWith(
-                fontSize: 13,
+                fontSize: 12.5,
                 color: ink.muted(0.6),
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
@@ -540,9 +617,8 @@ class _DivergingBar extends StatelessWidget {
   }
 }
 
-/// The steps you skip most, each on its own card.
-class _SkippedBlock extends StatelessWidget {
-  const _SkippedBlock({required this.skipped});
+class _SkippedCard extends StatelessWidget {
+  const _SkippedCard({required this.skipped});
 
   final List<SkippedStep> skipped;
 
@@ -553,52 +629,79 @@ class _SkippedBlock extends StatelessWidget {
     final data = _dataColors(context);
 
     if (skipped.isEmpty) {
-      return Text(
-        l10n.statsSkippedNone,
-        style: HomeInk.detail.copyWith(color: ink.muted(0.6)),
+      return _Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Headline(l10n.statsSkippedHeadlineNone),
+            const SizedBox(height: 10),
+            _Detail(spans: [TextSpan(text: l10n.statsSkippedNone)]),
+          ],
+        ),
       );
     }
 
     final steps = skipped.take(5).toList();
+    final worst = steps.first;
     final most = steps.fold(0, (m, s) => s.count > m ? s.count : m);
 
-    return Column(
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < steps.length; i++) ...[
-          if (i > 0) const SizedBox(height: 8),
-          _Card(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    steps[i].name,
-                    style: HomeInk.title.copyWith(fontSize: 14.5),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 64,
-                  child: _TrackBar(
-                    factor: most == 0 ? 0 : steps[i].count / most,
-                    color: data.over,
-                    track: ink.muted(0.1),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  l10n.statsSkippedCount(steps[i].count),
-                  style: HomeInk.detail.copyWith(
-                    fontSize: 12.5,
-                    color: ink.muted(0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        _Headline(l10n.statsSkippedHeadline(worst.name)),
+        const SizedBox(height: 10),
+        _Detail(spans: [TextSpan(text: l10n.statsSkippedDetail(worst.count))]),
       ],
+    );
+
+    // One skipped step is the whole story already; there is no rest to show.
+    if (steps.length == 1) return _Card(child: summary);
+
+    return _Expandable(
+      summary: summary,
+      showLabel: l10n.statsSkippedShowRest,
+      hideLabel: l10n.statsSkippedHideRest,
+      detail: Column(
+        children: [
+          for (var i = 0; i < steps.length; i++) ...[
+            if (i > 0) Divider(height: 1, thickness: 1, color: ink.hairline),
+            SizedBox(
+              height: 42,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      steps[i].name,
+                      style: HomeInk.detail.copyWith(
+                        fontSize: 13.5,
+                        color: ink.ink,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 64,
+                    child: _TrackBar(
+                      factor: most == 0 ? 0 : steps[i].count / most,
+                      color: data.over,
+                      track: ink.muted(0.1),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    l10n.statsSkippedCount(steps[i].count),
+                    style: HomeInk.detail.copyWith(
+                      fontSize: 12.5,
+                      color: ink.muted(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -632,79 +735,142 @@ class _TrackBar extends StatelessWidget {
   }
 }
 
-/// When runs actually start, as bars per local hour.
+/// When runs actually start: the part of the day up front, the hours behind
+/// it.
 ///
 /// Painted with layout rather than a charting dependency: it is a row of
 /// proportional bars, which does not justify a package.
-class _StartTimesBlock extends StatelessWidget {
-  const _StartTimesBlock({required this.buckets});
+class _StartTimesCard extends StatelessWidget {
+  const _StartTimesCard({required this.parts, required this.hours});
 
-  final List<HourBucket> buckets;
+  final List<DayPartBucket> parts;
+  final List<HourBucket> hours;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final ink = HomeInk.of(context);
     final data = _dataColors(context);
-    final busiest = buckets.fold(0, (m, b) => b.runs > m ? b.runs : m);
 
-    return Column(
+    final busiest = parts.fold(0, (m, p) => p.runs > m ? p.runs : m);
+    if (busiest == 0) return const SizedBox.shrink();
+
+    final top = parts.firstWhere((p) => p.runs == busiest);
+    final headline = switch (top.part) {
+      DayPart.morning => l10n.statsTimeHeadlineMorning,
+      DayPart.afternoon => l10n.statsTimeHeadlineAfternoon,
+      DayPart.evening => l10n.statsTimeHeadlineEvening,
+    };
+
+    String partLabel(DayPart part) => switch (part) {
+      DayPart.morning => l10n.statsTimePartMorning,
+      DayPart.afternoon => l10n.statsTimePartAfternoon,
+      DayPart.evening => l10n.statsTimePartEvening,
+    };
+
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final bucket in buckets)
+        _Headline(headline),
+        const SizedBox(height: 16),
+        for (final part in parts)
           SizedBox(
-            height: 34,
+            height: 30,
             child: Row(
               children: [
                 SizedBox(
-                  width: 46,
+                  width: 84,
                   child: Text(
-                    l10n.statsTimeHour(bucket.hour.toString().padLeft(2, '0')),
+                    partLabel(part.part),
                     style: HomeInk.detail.copyWith(
-                      fontSize: 12.5,
-                      color: ink.muted(0.55),
-                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontSize: 13,
+                      color: ink.muted(0.62),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
                 Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: bucket.runs,
-                        child: Container(
-                          height: 9,
-                          decoration: BoxDecoration(
-                            // The busiest hour wears the full colour and the
-                            // rest a wash of it: the shape already says which
-                            // is longest, the tint says it is the answer.
-                            color: bucket.runs == busiest
-                                ? data.under
-                                : data.under.withValues(alpha: 0.3),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(4.5),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      Text(
-                        '${bucket.runs}',
-                        style: HomeInk.detail.copyWith(
-                          fontSize: 12.5,
-                          color: ink.muted(0.6),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      if (busiest > bucket.runs)
-                        Spacer(flex: busiest - bucket.runs),
-                    ],
+                  child: _TrackBar(
+                    factor: part.runs / busiest,
+                    // The busiest part wears the full colour and the others a
+                    // wash of it: the lengths already say which is longest,
+                    // the tint says it is the answer in the headline.
+                    color: part.runs == busiest
+                        ? data.under
+                        : data.under.withValues(alpha: 0.4),
+                    track: ink.muted(0.06),
                   ),
                 ),
               ],
             ),
           ),
       ],
+    );
+
+    if (hours.isEmpty) return _Card(child: summary);
+
+    final busiestHour = hours.fold(0, (m, h) => h.runs > m ? h.runs : m);
+
+    return _Expandable(
+      cardKey: const Key('statsStartTimes'),
+      summary: summary,
+      showLabel: l10n.statsTimeShowHours,
+      hideLabel: l10n.statsTimeHideHours,
+      detail: Column(
+        children: [
+          for (final bucket in hours)
+            SizedBox(
+              height: 30,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 52,
+                    child: Text(
+                      l10n.statsTimeHour(
+                        bucket.hour.toString().padLeft(2, '0'),
+                      ),
+                      style: HomeInk.detail.copyWith(
+                        fontSize: 12.5,
+                        color: ink.muted(0.55),
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: bucket.runs,
+                          child: Container(
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: bucket.runs == busiestHour
+                                  ? data.under
+                                  : data.under.withValues(alpha: 0.35),
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Text(
+                          '${bucket.runs}',
+                          style: HomeInk.detail.copyWith(
+                            fontSize: 12.5,
+                            color: ink.muted(0.6),
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        if (busiestHour > bucket.runs)
+                          Spacer(flex: busiestHour - bucket.runs),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

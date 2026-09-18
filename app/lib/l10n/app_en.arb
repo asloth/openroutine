@@ -233,8 +233,6 @@
   "@statsEmptyBody": {
     "description": "Explains what the statistics screen will show once completion logs exist."
   },
-  "statsEstimateTitle": "Estimated vs actual",
-  "@statsEstimateTitle": {"description": "Section heading for estimate accuracy."},
   "statsEstimateNone": "No run has recorded an estimate yet, so there is nothing to compare.",
   "@statsEstimateNone": {"description": "Shown when logs exist but none recorded a step estimate."},
   "statsEstimateOver": "{duration} longer than estimated",
@@ -249,40 +247,84 @@
   },
   "statsEstimateExact": "Right on the estimate",
   "@statsEstimateExact": {"description": "Actual time matched the estimate exactly."},
-  "statsCompletionTitle": "Finishing",
-  "@statsCompletionTitle": {"description": "Section heading for completion rate and streak."},
   "statsCompletionRate": "{finished} of {total} runs finished",
   "@statsCompletionRate": {
     "description": "Finished runs against total runs. Used as the hero card's combined screen-reader sentence.",
     "placeholders": {"finished": {"type": "int"}, "total": {"type": "int"}}
   },
-  "statsCompletionFinished": "{finished}",
-  "@statsCompletionFinished": {
-    "description": "The finished-run count on its own, shown as a large standalone figure in the hero finishing card.",
-    "placeholders": {"finished": {"type": "int"}}
-  },
-  "statsCompletionOfTotal": "of {total} runs finished",
-  "@statsCompletionOfTotal": {
-    "description": "Trailing phrase next to the finished-run count in the hero finishing card.",
-    "placeholders": {"total": {"type": "int"}}
-  },
-  "statsCompletionFinishedLegend": "{count} finished",
-  "@statsCompletionFinishedLegend": {
-    "description": "Legend for the filled part of the finishing bar.",
+  "statsFinishingHeadlineMost": "You finish most of what you start.",
+  "@statsFinishingHeadlineMost": {"description": "Finishing card headline when at least 80% of runs finish."},
+  "statsFinishingHeadlineHalf": "You finish more than half of what you start.",
+  "@statsFinishingHeadlineHalf": {"description": "Finishing card headline between 50% and 80%."},
+  "statsFinishingHeadlineFew": "You start more than you finish.",
+  "@statsFinishingHeadlineFew": {"description": "Finishing card headline below 50%. Descriptive, never a reproach."},
+  "statsFinishingDetail": "{count} out of every 10 runs get finished.",
+  "@statsFinishingDetail": {
+    "description": "Supporting line under the finishing headline, the rate rounded to ten.",
     "placeholders": {"count": {"type": "int"}}
   },
-  "statsCompletionLeftEarly": "{count} left early",
-  "@statsCompletionLeftEarly": {
-    "description": "Legend for the pale part of the finishing bar. Never 'abandoned' or 'failed' — nothing on this screen scolds.",
+  "statsEstimateHeadlineOver": "Things take longer than you plan.",
+  "@statsEstimateHeadlineOver": {"description": "Estimate card headline when runs go over."},
+  "statsEstimateHeadlineUnder": "Things go quicker than you plan.",
+  "@statsEstimateHeadlineUnder": {"description": "Estimate card headline when runs come in under."},
+  "statsEstimateHeadlineExact": "Your plans land on the money.",
+  "@statsEstimateHeadlineExact": {"description": "Estimate card headline when estimate and actual match."},
+  "statsEstimateDetailOver": "Your runs go about {duration} over.",
+  "@statsEstimateDetailOver": {
+    "description": "Supporting line when runs go over.",
+    "placeholders": {"duration": {"type": "String"}}
+  },
+  "statsEstimateDetailUnder": "Your runs come in about {duration} under.",
+  "@statsEstimateDetailUnder": {
+    "description": "Supporting line when runs come in under.",
+    "placeholders": {"duration": {"type": "String"}}
+  },
+  "statsEstimateBiggest": "{step} is the biggest one.",
+  "@statsEstimateBiggest": {
+    "description": "Names the step furthest from its estimate. The step name renders in bold.",
+    "placeholders": {"step": {"type": "String"}}
+  },
+  "statsEstimateShowSteps": "Show every step",
+  "@statsEstimateShowSteps": {"description": "Expands the estimate card to every step."},
+  "statsEstimateHideSteps": "Hide the steps",
+  "@statsEstimateHideSteps": {"description": "Collapses the expanded estimate card."},
+  "statsSkippedHeadline": "{step} is the one you keep skipping.",
+  "@statsSkippedHeadline": {
+    "description": "Skipped card headline, naming the most skipped step.",
+    "placeholders": {"step": {"type": "String"}}
+  },
+  "statsSkippedHeadlineNone": "You see your steps through.",
+  "@statsSkippedHeadlineNone": {"description": "Skipped card headline when nothing has been skipped."},
+  "statsSkippedDetail": "{count, plural, =1{Skipped once. Making it shorter might help.} other{Skipped {count} times. Making it shorter might help.}}",
+  "@statsSkippedDetail": {
+    "description": "Supporting line under the skipped headline. A suggestion, never an instruction.",
     "placeholders": {"count": {"type": "int"}}
   },
+  "statsSkippedShowRest": "Show the rest",
+  "@statsSkippedShowRest": {"description": "Expands the skipped card to the other steps."},
+  "statsSkippedHideRest": "Hide the rest",
+  "@statsSkippedHideRest": {"description": "Collapses the expanded skipped card."},
+  "statsTimeHeadlineMorning": "Mornings are when you actually start.",
+  "@statsTimeHeadlineMorning": {"description": "Start-time card headline when mornings are busiest."},
+  "statsTimeHeadlineAfternoon": "Afternoons are when you actually start.",
+  "@statsTimeHeadlineAfternoon": {"description": "Start-time card headline when afternoons are busiest."},
+  "statsTimeHeadlineEvening": "Evenings are when you actually start.",
+  "@statsTimeHeadlineEvening": {"description": "Start-time card headline when evenings are busiest."},
+  "statsTimePartMorning": "Morning",
+  "@statsTimePartMorning": {"description": "Row label for runs started between 05:00 and 11:59."},
+  "statsTimePartAfternoon": "Afternoon",
+  "@statsTimePartAfternoon": {"description": "Row label for runs started between 12:00 and 17:59."},
+  "statsTimePartEvening": "Evening",
+  "@statsTimePartEvening": {"description": "Row label for runs started from 18:00 through the small hours."},
+  "statsTimeShowHours": "Show it by hour",
+  "@statsTimeShowHours": {"description": "Expands the start-time card to every hour."},
+  "statsTimeHideHours": "Hide the hours",
+  "@statsTimeHideHours": {"description": "Collapses the expanded start-time card."},
   "statsStreak": "{days, plural, =0{No current streak} =1{1 day in a row} other{{days} days in a row}}",
   "@statsStreak": {
     "description": "Consecutive days with at least one finished run.",
     "placeholders": {"days": {"type": "num", "format": "compact"}}
   },
-  "statsSkippedTitle": "Most skipped",
-  "@statsSkippedTitle": {"description": "Section heading for the most-skipped steps."},
   "statsSkippedNone": "You haven't skipped any steps.",
   "@statsSkippedNone": {"description": "Shown when no step has been skipped."},
   "statsSkippedCount": "{count, plural, =1{skipped once} other{skipped {count} times}}",
@@ -290,8 +332,6 @@
     "description": "How often a step was skipped.",
     "placeholders": {"count": {"type": "num", "format": "compact"}}
   },
-  "statsTimeTitle": "When you start",
-  "@statsTimeTitle": {"description": "Section heading for the time-of-day distribution."},
   "statsTimeHour": "{hour}:00",
   "@statsTimeHour": {
     "description": "Label for an hour bucket.",
@@ -769,8 +809,6 @@
     "description": "Summary line on a home routine card.",
     "placeholders": {"steps": {"type": "int"}, "minutes": {"type": "int"}}
   },
-  "homeStartWhenYouWant": "start when you want",
-  "@homeStartWhenYouWant": {"description": "Appended to a flexible routine's summary line on home."},
   "homeProgress": "{done} of {total}",
   "@homeProgress": {
     "description": "Badge on a home routine card when today's run stopped partway.",
