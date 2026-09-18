@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/models/completion_log.dart';
+import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase, SyncStateCompanion;
 import 'package:openroutine/services/storage/local_adapter.dart';
@@ -397,6 +398,166 @@ void main() {
       final bundle = await adapterV6.exportAll();
       expect(bundle.routines.single.name, 'renamed');
       expect(bundle.steps, hasLength(2));
+    });
+  });
+
+  // Every flexible routine on a real device has an empty day list — the
+  // create/edit form hard-forced `days: []` for flexible routines until now.
+  // v8 backfills them to all seven days so nothing drops off Today once the
+  // Today screen starts filtering flexible routines by day. Every device on
+  // remove-moments is at v7, so that's the fixture this group starts from —
+  // written by hand as the shape `tables.dart` describes at v7, rather than
+  // replaying the v1..v7 migrations, since v8 itself changes no column.
+  group('a v7 install upgrading to v8', () {
+    late sqlite.Database rawV7;
+    late AppDatabase dbV7;
+    late LocalAdapter adapterV7;
+
+    setUp(() {
+      rawV7 = sqlite.sqlite3.openInMemory();
+      rawV7.execute('''
+        CREATE TABLE routines (
+          id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          schedule_mode TEXT NOT NULL,
+          schedule_days TEXT NOT NULL DEFAULT '',
+          schedule_start_time TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER,
+          PRIMARY KEY (id)
+        )''');
+      rawV7.execute('''
+        CREATE TABLE routine_steps (
+          id TEXT NOT NULL,
+          routine_id TEXT NOT NULL REFERENCES routines (id),
+          name TEXT NOT NULL,
+          emoji TEXT NOT NULL,
+          duration_seconds INTEGER,
+          "order" INTEGER NOT NULL,
+          no_explicit_time INTEGER NOT NULL,
+          is_core INTEGER NOT NULL DEFAULT 0,
+          remind_during INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER,
+          PRIMARY KEY (id)
+        )''');
+      rawV7.execute('''
+        CREATE TABLE completion_logs (
+          id TEXT NOT NULL, routine_id TEXT NOT NULL REFERENCES routines (id),
+          started_at INTEGER NOT NULL, ended_at INTEGER NOT NULL,
+          outcome TEXT NOT NULL, steps_json TEXT NOT NULL,
+          mode TEXT NOT NULL DEFAULT 'full',
+          planned_step_ids_json TEXT NOT NULL DEFAULT '[]', PRIMARY KEY (id)
+        )''');
+      rawV7.execute('''
+        CREATE TABLE sync_state (
+          id INTEGER NOT NULL, routines_dirty INTEGER NOT NULL DEFAULT 0,
+          dirty_completion_months TEXT NOT NULL DEFAULT '', last_sync_at INTEGER,
+          last_error TEXT, PRIMARY KEY (id)
+        )''');
+
+      // r1: flexible, no days — every flexible routine on a real device.
+      // r2: flexible, already has days — untouched by the backfill, e.g. a
+      //     Drive pull from a build that already required days.
+      // r3: scheduled, no days — bad data the form never produces, so the
+      //     backfill leaves it alone rather than inventing days for it.
+      // r4: scheduled, with days — a sanity check that scheduled routines are
+      //     never touched at all.
+      for (final routine in [
+        ('r1', 'flexible', ''),
+        ('r2', 'flexible', 'mon,wed'),
+        ('r3', 'scheduled', ''),
+        ('r4', 'scheduled', 'tue,thu'),
+      ]) {
+        rawV7.execute(
+          'INSERT INTO routines (id, name, schedule_mode, schedule_days, '
+          'schedule_start_time, created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [
+            routine.$1,
+            'routine ${routine.$1}',
+            routine.$2,
+            routine.$3,
+            routine.$2 == 'scheduled' ? '07:20' : null,
+            _epoch(_createdAt),
+            _epoch(_createdAt),
+          ],
+        );
+      }
+      rawV7.execute(
+        'INSERT INTO routine_steps (id, routine_id, name, emoji, '
+        'duration_seconds, "order", no_explicit_time, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          's1',
+          'r1',
+          'Brush my teeth',
+          '🪥',
+          180,
+          0,
+          0,
+          _epoch(_createdAt),
+          _epoch(_createdAt),
+        ],
+      );
+
+      rawV7.execute('PRAGMA user_version = 7');
+      dbV7 = AppDatabase(NativeDatabase.opened(rawV7));
+      adapterV7 = LocalAdapter(dbV7);
+    });
+
+    tearDown(() => dbV7.close());
+
+    test('lands on the current schema version', () async {
+      await adapterV7.getRoutine('r1');
+      expect(rawV7.userVersion, dbV7.schemaVersion);
+    });
+
+    test(
+      'backfills all seven days for a flexible routine with no days',
+      () async {
+        final routine = (await adapterV7.getRoutine('r1'))!;
+
+        expect(routine.schedule.days, DayOfWeek.values);
+        final stored = rawV7.select(
+          'SELECT schedule_days FROM routines WHERE id = ?',
+          ['r1'],
+        ).first['schedule_days'];
+        expect(stored, 'mon,tue,wed,thu,fri,sat,sun');
+      },
+    );
+
+    test('leaves a flexible routine that already has days alone', () async {
+      final routine = (await adapterV7.getRoutine('r2'))!;
+
+      expect(routine.schedule.days.map((d) => d.name), ['mon', 'wed']);
+    });
+
+    test('leaves a scheduled routine with no days alone', () async {
+      final routine = (await adapterV7.getRoutine('r3'))!;
+
+      expect(routine.schedule.days, isEmpty);
+    });
+
+    test('leaves a scheduled routine with days alone', () async {
+      final routine = (await adapterV7.getRoutine('r4'))!;
+
+      expect(routine.schedule.days.map((d) => d.name), ['tue', 'thu']);
+    });
+
+    test('does not disturb other columns or other tables', () async {
+      final routine = (await adapterV7.getRoutine('r1'))!;
+
+      expect(routine.name, 'routine r1');
+      expect(routine.schedule.mode, ScheduleMode.flexible);
+      expect(routine.schedule.startTime, isNull);
+      expect(routine.createdAt.toUtc(), _createdAt);
+      expect(routine.updatedAt.toUtc(), _createdAt);
+
+      final steps = await adapterV7.getSteps('r1');
+      expect(steps.map((s) => s.name), ['Brush my teeth']);
     });
   });
 }
