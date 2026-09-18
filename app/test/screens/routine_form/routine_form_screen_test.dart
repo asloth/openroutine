@@ -84,7 +84,7 @@ void main() {
       final l10n = AppLocalizations.of(
         tester.element(find.byType(Scaffold).first),
       )!;
-      await tester.tap(find.byTooltip(l10n.commonSave));
+      await tester.tap(find.text(l10n.commonSave));
       await tester.pumpAndSettle();
 
       expect(find.text(l10n.routineFormNameRequired), findsOneWidget);
@@ -94,6 +94,18 @@ void main() {
 
   // Onboarding ends by opening the builder on the kind of routine the user
   // picked, so the choice they just made isn't lost on arrival.
+  /// Every day toggle is on screen. They carry stable keys rather than their
+  /// labels, because the single letters repeat — two Ts and two Ss in English.
+  void expectAllDayToggles() {
+    for (final day in DayOfWeek.values) {
+      expect(
+        find.byKey(Key('day-${day.name}')),
+        findsOneWidget,
+        reason: 'the ${day.name} toggle should be on screen',
+      );
+    }
+  }
+
   testWidgets('a new routine can start on Scheduled', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
@@ -102,11 +114,13 @@ void main() {
     router.push('/form');
     await tester.pumpAndSettle();
 
-    final segments = tester.widget<SegmentedButton<ScheduleMode>>(
-      find.byType(SegmentedButton<ScheduleMode>),
-    );
-    expect(segments.selected, {ScheduleMode.scheduled});
-    expect(find.byType(FilterChip), findsNWidgets(DayOfWeek.values.length));
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(Scaffold).first),
+    )!;
+    // Starting on Scheduled means the start-time row is there to fill in.
+    expect(find.text(l10n.routineFormAtASetTime), findsOneWidget);
+    expect(find.byKey(const Key('startTime')), findsOneWidget);
+    expectAllDayToggles();
   });
 
   testWidgets(
@@ -129,9 +143,9 @@ void main() {
       );
       // Flexible is the default mode, and a flexible routine still needs a
       // day picked before it can save.
-      await tester.tap(find.text(l10n.dayMon));
+      await tester.tap(find.byKey(const Key('day-mon')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.commonSave));
+      await tester.tap(find.text(l10n.commonSave));
       await tester.pumpAndSettle();
 
       final rows = await db.select(db.routines).get();
@@ -154,7 +168,7 @@ void main() {
     )!;
 
     // Moments are gone: a routine is reached through its schedule alone.
-    expect(find.text(l10n.routineFormNameLabel), findsOneWidget);
+    expect(find.text(l10n.routineFormNameHint), findsOneWidget);
     expect(find.byType(DropdownButtonFormField<String?>), findsNothing);
     expect(find.textContaining('oment'), findsNothing);
   });
@@ -185,10 +199,7 @@ void main() {
         router.push('/form');
         await tester.pumpAndSettle();
 
-        final l10n = AppLocalizations.of(
-          tester.element(find.byType(Scaffold).first),
-        )!;
-        await tester.tap(find.text(l10n.routineFormStartTimeLabel));
+        await tester.tap(find.byKey(const Key('startTime')));
         await tester.pumpAndSettle();
 
         final dialog = tester.widget<TimePickerDialog>(
@@ -292,7 +303,7 @@ void main() {
         final l10n = AppLocalizations.of(
           tester.element(find.byType(Scaffold).first),
         )!;
-        await tester.tap(find.byTooltip(l10n.commonSave));
+        await tester.tap(find.text(l10n.commonSave));
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.routineFormDaysRequired), findsOneWidget);
@@ -332,7 +343,7 @@ void main() {
         final l10n = AppLocalizations.of(
           tester.element(find.byType(Scaffold).first),
         )!;
-        await tester.tap(find.byTooltip(l10n.commonSave));
+        await tester.tap(find.text(l10n.commonSave));
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.routineFormStartTimeRequired), findsOneWidget);
@@ -370,11 +381,11 @@ void main() {
       final l10n = AppLocalizations.of(
         tester.element(find.byType(Scaffold).first),
       )!;
-      await tester.tap(find.byTooltip(l10n.commonSave));
+      await tester.tap(find.text(l10n.commonSave));
       await tester.pumpAndSettle();
       expect(find.text(l10n.routineFormDaysRequired), findsOneWidget);
 
-      await tester.tap(find.text(l10n.dayMon));
+      await tester.tap(find.byKey(const Key('day-mon')));
       await tester.pumpAndSettle();
 
       expect(find.text(l10n.routineFormDaysRequired), findsNothing);
@@ -400,7 +411,7 @@ void main() {
         // Flexible is the default mode — a flexible routine still needs
         // days, so saving without picking any must fail the same way a
         // scheduled routine does.
-        await tester.tap(find.byTooltip(l10n.commonSave));
+        await tester.tap(find.text(l10n.commonSave));
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.routineFormDaysRequired), findsOneWidget);
@@ -423,9 +434,9 @@ void main() {
           tester.element(find.byType(Scaffold).first),
         )!;
         await tester.enterText(find.byType(TextFormField).first, 'Reading');
-        await tester.tap(find.text(l10n.dayMon));
+        await tester.tap(find.byKey(const Key('day-mon')));
         await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip(l10n.commonSave));
+        await tester.tap(find.text(l10n.commonSave));
         await tester.pumpAndSettle();
 
         final rows = await db.select(db.routines).get();
@@ -451,7 +462,7 @@ void main() {
       await tester.tap(find.text(l10n.routinesTabFlexible));
       await tester.pumpAndSettle();
 
-      expect(find.byType(FilterChip), findsNWidgets(DayOfWeek.values.length));
+      expectAllDayToggles();
     });
 
     testWidgets('choosing Flexible hides the start-time row', (tester) async {
@@ -468,7 +479,7 @@ void main() {
       await tester.tap(find.text(l10n.routinesTabFlexible));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10n.routineFormStartTimeLabel), findsNothing);
+      expect(find.byKey(const Key('startTime')), findsNothing);
     });
 
     testWidgets(
@@ -501,7 +512,7 @@ void main() {
         )!;
         await tester.tap(find.text(l10n.routinesTabFlexible));
         await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip(l10n.commonSave));
+        await tester.tap(find.text(l10n.commonSave));
         await tester.pumpAndSettle();
 
         final rows = await db.select(db.routines).get();

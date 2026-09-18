@@ -9,6 +9,8 @@ import '../../services/id_generator.dart';
 import '../../services/storage/storage_adapter.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
+import '../../theme/theme.dart';
+import '../routines_list/home/home_ink.dart';
 
 /// docs/SPEC.md §7 screen 4. Only routine-level fields — steps are added
 /// afterward from Routine Detail, since this screen's field list (name,
@@ -82,6 +84,24 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
     if (hour == null || minute == null) return null;
     if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
     return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  /// Moves the start time by [minutes], wrapping around midnight.
+  ///
+  /// A nudge, not a replacement for the picker: the steppers are for "make it
+  /// a quarter of an hour later", and tapping the time itself is still how
+  /// you jump somewhere else entirely.
+  void _nudgeStartTime(int minutes) {
+    final current =
+        _parseStartTime(_startTime) ?? const TimeOfDay(hour: 7, minute: 0);
+    final total = (current.hour * 60 + current.minute + minutes) % (24 * 60);
+    final wrapped = total < 0 ? total + 24 * 60 : total;
+    setState(() {
+      _startTime =
+          '${(wrapped ~/ 60).toString().padLeft(2, '0')}:'
+          '${(wrapped % 60).toString().padLeft(2, '0')}';
+      _startTimeError = null;
+    });
   }
 
   Future<void> _save() async {
@@ -185,94 +205,81 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
       }
     }
 
+    final ink = HomeInk.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           _isEditing ? l10n.routineFormEditTitle : l10n.routineFormCreateTitle,
         ),
-        actions: [
-          IconButton(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check),
-            tooltip: l10n.commonSave,
-          ),
-        ],
+      ),
+      // The button is the point of the screen, so it sits under the content
+      // at full width rather than hiding as a checkmark in the bar.
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: _SaveButton(
+          label: l10n.commonSave,
+          saving: _saving,
+          onPressed: _saving ? null : _save,
+        ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
             TextFormField(
               controller: _nameController,
-              decoration: InputDecoration(labelText: l10n.routineFormNameLabel),
+              style: TextStyle(
+                fontFamily: AppTypography.display,
+                fontSize: 26,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.4,
+                color: ink.ink,
+              ),
+              decoration: InputDecoration(
+                hintText: l10n.routineFormNameHint,
+                hintStyle: TextStyle(
+                  fontFamily: AppTypography.display,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.4,
+                  color: ink.muted(0.4),
+                ),
+                // Nothing but a rule under it: the name is the title of the
+                // screen once it is filled in, not a field among fields.
+                filled: false,
+                isDense: true,
+                contentPadding: const EdgeInsets.only(bottom: 10),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: ink.muted(0.18)),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: ink.accent, width: 2),
+                ),
+              ),
               validator: (value) => (value == null || value.trim().isEmpty)
                   ? l10n.routineFormNameRequired
                   : null,
             ),
-            const SizedBox(height: 16),
-            SegmentedButton<ScheduleMode>(
-              segments: [
-                ButtonSegment(
-                  value: ScheduleMode.scheduled,
-                  label: Text(l10n.routinesTabScheduled),
-                ),
-                ButtonSegment(
-                  value: ScheduleMode.flexible,
-                  label: Text(l10n.routinesTabFlexible),
-                ),
-              ],
-              selected: {_mode},
-              onSelectionChanged: (selection) =>
-                  setState(() => _mode = selection.first),
+            const SizedBox(height: 22),
+            _ScheduleCard(
+              mode: _mode,
+              onModeChanged: (mode) => setState(() => _mode = mode),
+              startTimeText: _startTimeText(context),
+              onEarlier: () => _nudgeStartTime(-15),
+              onLater: () => _nudgeStartTime(15),
+              onPickTime: _pickStartTime,
+              startTimeError: _startTimeError,
+              days: _days,
+              dayLabel: (day) => _dayLabel(l10n, day),
+              dayName: (day) => _dayName(l10n, day),
+              onDayToggled: (day, selected) => setState(() {
+                selected ? _days.add(day) : _days.remove(day);
+                if (_days.isNotEmpty) _daysError = null;
+              }),
+              daysError: _daysError,
             ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final day in DayOfWeek.values)
-                  FilterChip(
-                    label: Text(_dayLabel(l10n, day)),
-                    selected: _days.contains(day),
-                    onSelected: (selected) => setState(() {
-                      selected ? _days.add(day) : _days.remove(day);
-                      if (_days.isNotEmpty) _daysError = null;
-                    }),
-                  ),
-              ],
-            ),
-            if (_daysError != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                _daysError!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
-            ],
-            if (_mode == ScheduleMode.scheduled) ...[
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.routineFormStartTimeLabel),
-                subtitle: Text(_startTimeText(context)),
-                trailing: const Icon(Icons.access_time),
-                onTap: _pickStartTime,
-              ),
-              if (_startTimeError != null)
-                Text(
-                  _startTimeError!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                ),
-            ],
           ],
         ),
       ),
@@ -293,7 +300,7 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
     );
   }
 
-  String _dayLabel(AppLocalizations l10n, DayOfWeek day) {
+  String _dayName(AppLocalizations l10n, DayOfWeek day) {
     return switch (day) {
       DayOfWeek.mon => l10n.dayMon,
       DayOfWeek.tue => l10n.dayTue,
@@ -303,5 +310,368 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
       DayOfWeek.sat => l10n.daySat,
       DayOfWeek.sun => l10n.daySun,
     };
+  }
+
+  String _dayLabel(AppLocalizations l10n, DayOfWeek day) {
+    return switch (day) {
+      DayOfWeek.mon => l10n.dayMonShort,
+      DayOfWeek.tue => l10n.dayTueShort,
+      DayOfWeek.wed => l10n.dayWedShort,
+      DayOfWeek.thu => l10n.dayThuShort,
+      DayOfWeek.fri => l10n.dayFriShort,
+      DayOfWeek.sat => l10n.daySatShort,
+      DayOfWeek.sun => l10n.daySunShort,
+    };
+  }
+}
+
+/// The schedule, its start time and its days, grouped on one card.
+class _ScheduleCard extends StatelessWidget {
+  const _ScheduleCard({
+    required this.mode,
+    required this.onModeChanged,
+    required this.startTimeText,
+    required this.onEarlier,
+    required this.onLater,
+    required this.onPickTime,
+    required this.startTimeError,
+    required this.days,
+    required this.dayLabel,
+    required this.dayName,
+    required this.onDayToggled,
+    required this.daysError,
+  });
+
+  final ScheduleMode mode;
+  final ValueChanged<ScheduleMode> onModeChanged;
+  final String startTimeText;
+  final VoidCallback onEarlier;
+  final VoidCallback onLater;
+  final VoidCallback onPickTime;
+  final String? startTimeError;
+  final Set<DayOfWeek> days;
+  final String Function(DayOfWeek) dayLabel;
+  final String Function(DayOfWeek) dayName;
+  final void Function(DayOfWeek day, bool selected) onDayToggled;
+  final String? daysError;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final ink = HomeInk.of(context);
+
+    return Material(
+      color: ink.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        side: BorderSide(color: ink.hairline),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _ModeTab(
+                    label: l10n.routineFormAtASetTime,
+                    selected: mode == ScheduleMode.scheduled,
+                    onTap: () => onModeChanged(ScheduleMode.scheduled),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _ModeTab(
+                    label: l10n.routinesTabFlexible,
+                    selected: mode == ScheduleMode.flexible,
+                    onTap: () => onModeChanged(ScheduleMode.flexible),
+                  ),
+                ),
+              ],
+            ),
+            if (mode == ScheduleMode.scheduled) ...[
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.routineFormStartsAt,
+                      style: HomeInk.detail.copyWith(
+                        fontSize: 14,
+                        color: ink.muted(0.7),
+                      ),
+                    ),
+                  ),
+                  _Stepper(
+                    icon: Icons.remove,
+                    tooltip: l10n.routineFormEarlier,
+                    onPressed: onEarlier,
+                  ),
+                  // The time is a button of its own: the steppers nudge, this
+                  // jumps.
+                  InkWell(
+                    key: const Key('startTime'),
+                    onTap: onPickTime,
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Text(
+                        startTimeText,
+                        style: TextStyle(
+                          fontFamily: AppTypography.display,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                          color: ink.ink,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ),
+                  _Stepper(
+                    icon: Icons.add,
+                    tooltip: l10n.routineFormLater,
+                    onPressed: onLater,
+                  ),
+                ],
+              ),
+              if (startTimeError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    startTimeError!,
+                    style: HomeInk.detail.copyWith(
+                      fontSize: 12.5,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+            ],
+            const SizedBox(height: 18),
+            Text(
+              l10n.routineFormRepeat.toUpperCase(),
+              style: HomeInk.label.copyWith(
+                fontSize: 11,
+                letterSpacing: 0.9,
+                color: ink.muted(0.5),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (final day in DayOfWeek.values) ...[
+                  if (day != DayOfWeek.values.first) const SizedBox(width: 6),
+                  Expanded(
+                    child: _DayToggle(
+                      key: Key('day-${day.name}'),
+                      label: dayLabel(day),
+                      name: dayName(day),
+                      selected: days.contains(day),
+                      onTap: () => onDayToggled(day, !days.contains(day)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (daysError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  daysError!,
+                  style: HomeInk.detail.copyWith(
+                    fontSize: 12.5,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One half of the scheduled/flexible pair.
+class _ModeTab extends StatelessWidget {
+  const _ModeTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? ink.accent : ink.muted(0.06),
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: HomeInk.label.copyWith(
+                    fontSize: 13,
+                    color: selected ? ink.onAction : ink.muted(0.7),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One day of the week, on or off.
+class _DayToggle extends StatelessWidget {
+  const _DayToggle({
+    super.key,
+    required this.label,
+    required this.name,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+
+  /// The day's full name, so a screen reader says "Monday" rather than "M".
+  final String name;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: name,
+      excludeSemantics: true,
+      child: Material(
+        color: selected ? ink.accent : ink.muted(0.06),
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          child: SizedBox(
+            height: 44,
+            child: Center(
+              child: Text(
+                label,
+                style: HomeInk.label.copyWith(
+                  fontSize: 13,
+                  color: selected ? ink.onAction : ink.muted(0.7),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A round nudge button beside the start time.
+class _Stepper extends StatelessWidget {
+  const _Stepper({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, size: 18, color: ink.muted(0.6)),
+        ),
+      ),
+    );
+  }
+}
+
+/// The screen's one filled action, full width at the bottom.
+class _SaveButton extends StatelessWidget {
+  const _SaveButton({
+    required this.label,
+    required this.saving,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool saving;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    final enabled = onPressed != null;
+    return Material(
+      color: enabled ? ink.action : ink.muted(0.12),
+      borderRadius: const BorderRadius.all(Radius.circular(16)),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: const BorderRadius.all(Radius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          // heightFactor, or the Center fills every pixel the Scaffold offers
+          // its bottom bar and leaves the form no room at all.
+          child: Center(
+            heightFactor: 1,
+            child: saving
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: ink.onAction,
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppTypography.display,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w600,
+                        color: enabled ? ink.onAction : ink.muted(0.5),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
   }
 }
