@@ -42,7 +42,10 @@ so there is no second field to keep in step and no change to the constructor.
 
 ## Colour
 
-The diverging pair is fixed to the palette's moss and honey rather than
-`colorScheme.secondary` and `tertiary`. Those sit at fixed hue offsets from
-the accent, so on a blue accent they come out plum and navy — colours that say
-nothing about a step running long or short.
+Everything on this screen is a single series — how many runs, how many skips,
+which part of the day. None of it carries a good-or-bad reading, so all of it
+draws in the palette's accent and follows whichever accent is set.
+
+The estimate bars diverge left and right from a centre line and carry a signed
+number, so the direction and the sign separate over from under without a
+second hue.

@@ -327,25 +327,16 @@ void main() {
       expect(find.text('\u22123m'), findsOneWidget);
     });
 
-    testWidgets('reads under in moss whatever the accent is', (tester) async {
+    testWidgets('draws its data in the accent, not a colour of its own', (
+      tester,
+    ) async {
       await _pump(
         tester,
         const RoutineStatistics(
-          estimates: EstimateAccuracy(
-            estimated: Duration(minutes: 10),
-            actual: Duration(minutes: 7),
-            steps: [
-              StepEstimate(
-                stepId: 'a',
-                name: 'Water',
-                estimated: Duration(minutes: 10),
-                actual: Duration(minutes: 7),
-              ),
-            ],
-          ),
+          estimates: null,
           completion: CompletionRate(
-            finished: 1,
-            abandoned: 0,
+            finished: 3,
+            abandoned: 1,
             currentStreakDays: 1,
           ),
           skipped: [],
@@ -354,19 +345,13 @@ void main() {
         ),
       );
 
-      // colorScheme.secondary sits at a fixed hue offset from the accent, so
-      // on a blue accent it comes out plum — which says nothing about a step
-      // running short. The scale keeps its own colours.
-      final scheme = Theme.of(
+      // Everything on this screen is a single series — how many runs, how
+      // many skips, which part of the day. None of it carries a good-or-bad
+      // reading that would need a hue outside the palette's accent, so it
+      // follows whichever accent is set.
+      final accent = Theme.of(
         tester.element(find.byType(StatsScreen)),
-      ).colorScheme;
-      expect(
-        AppColors.secondary,
-        isNot(scheme.secondary),
-        reason:
-            'the test palette must not already be moss, or this proves '
-            'nothing',
-      );
+      ).colorScheme.primary;
 
       final painted = tester
           .widgetList<Container>(
@@ -378,8 +363,9 @@ void main() {
           .map((c) => (c.decoration as BoxDecoration?)?.color)
           .toSet();
 
-      expect(painted, contains(AppColors.secondary.withValues(alpha: 0.75)));
-      expect(painted, isNot(contains(scheme.secondary)));
+      expect(painted, contains(accent.withValues(alpha: 0.75)));
+      expect(painted, isNot(contains(AppColors.secondary)));
+      expect(painted, isNot(contains(AppColors.tertiary)));
     });
 
     testWidgets('labels start-time buckets by hour', (tester) async {

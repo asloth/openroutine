@@ -144,21 +144,6 @@ class _Report extends StatelessWidget {
   }
 }
 
-/// The two colours this screen reads data in, fixed rather than taken from
-/// the running scheme.
-///
-/// `colorScheme.secondary` and `tertiary` sit at fixed hue offsets from the
-/// accent — see `theme/palette.dart` — so on a blue accent they come out plum
-/// and navy, which say nothing about whether a step ran long or came in
-/// short. A diverging scale has to hold its meaning whatever the accent does,
-/// so these stay the palette's own moss and honey: green for under, warm for
-/// over. `theme/colors.dart` already describes honey as "the 'a little
-/// longer' end of the estimate zones".
-({Color under, Color over}) _dataColors(BuildContext context) =>
-    Theme.of(context).brightness == Brightness.dark
-    ? (under: AppColors.darkSecondary, over: AppColors.darkTertiary)
-    : (under: AppColors.secondary, over: AppColors.tertiary);
-
 /// A white card on the paper, the same one home uses.
 class _Card extends StatelessWidget {
   const _Card({required this.child, this.cardKey});
@@ -376,7 +361,6 @@ class _FinishingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final ink = HomeInk.of(context);
-    final data = _dataColors(context);
     final filled = _filledDots(rate);
 
     final headline = rate.rate >= 0.8
@@ -401,7 +385,7 @@ class _FinishingCard extends StatelessWidget {
             children: [
               _Headline(headline),
               const SizedBox(height: 16),
-              _RatioDots(filled: filled, color: data.under),
+              _RatioDots(filled: filled, color: ink.accent),
               const SizedBox(height: 14),
               _Detail(
                 spans: [TextSpan(text: l10n.statsFinishingDetail(filled))],
@@ -526,7 +510,6 @@ class _EstimateRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = HomeInk.of(context);
-    final data = _dataColors(context);
     final seconds = step.difference.inSeconds;
     final over = seconds > 0;
     final factor = widest == 0 ? 0.0 : seconds.abs() / widest;
@@ -545,12 +528,7 @@ class _EstimateRow extends StatelessWidget {
           const SizedBox(width: 10),
           SizedBox(
             width: 80,
-            child: _DivergingBar(
-              factor: factor,
-              over: over,
-              overColor: data.over,
-              underColor: data.under,
-            ),
+            child: _DivergingBar(factor: factor, over: over, color: ink.accent),
           ),
           const SizedBox(width: 10),
           SizedBox(
@@ -574,21 +552,23 @@ class _EstimateRow extends StatelessWidget {
   }
 }
 
-/// A bar growing out of a centre line: right and warm when a step ran long,
-/// left and green when it came in under. The centre is what lets one glance
-/// separate the two, without reading a single number.
+/// A bar growing out of a centre line: right when a step ran long, left when
+/// it came in under.
+///
+/// One colour, not two. The side the bar grows to already separates the two
+/// directions at a glance, and the row carries a signed number besides, so a
+/// second hue would only be saying a third time what the shape says once —
+/// and it would have to come from outside the accent to do it.
 class _DivergingBar extends StatelessWidget {
   const _DivergingBar({
     required this.factor,
     required this.over,
-    required this.overColor,
-    required this.underColor,
+    required this.color,
   });
 
   final double factor;
   final bool over;
-  final Color overColor;
-  final Color underColor;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -600,7 +580,7 @@ class _DivergingBar extends StatelessWidget {
           child: Container(
             height: 7,
             decoration: BoxDecoration(
-              color: over ? overColor : underColor,
+              color: color,
               borderRadius: const BorderRadius.all(Radius.circular(3.5)),
             ),
           ),
@@ -626,7 +606,6 @@ class _SkippedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final ink = HomeInk.of(context);
-    final data = _dataColors(context);
 
     if (skipped.isEmpty) {
       return _Card(
@@ -684,7 +663,7 @@ class _SkippedCard extends StatelessWidget {
                     width: 64,
                     child: _TrackBar(
                       factor: most == 0 ? 0 : steps[i].count / most,
-                      color: data.over,
+                      color: ink.accent,
                       track: ink.muted(0.1),
                     ),
                   ),
@@ -750,7 +729,6 @@ class _StartTimesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final ink = HomeInk.of(context);
-    final data = _dataColors(context);
 
     final busiest = parts.fold(0, (m, p) => p.runs > m ? p.runs : m);
     if (busiest == 0) return const SizedBox.shrink();
@@ -795,8 +773,8 @@ class _StartTimesCard extends StatelessWidget {
                     // wash of it: the lengths already say which is longest,
                     // the tint says it is the answer in the headline.
                     color: part.runs == busiest
-                        ? data.under
-                        : data.under.withValues(alpha: 0.4),
+                        ? ink.accent
+                        : ink.accent.withValues(alpha: 0.4),
                     track: ink.muted(0.06),
                   ),
                 ),
@@ -844,8 +822,8 @@ class _StartTimesCard extends StatelessWidget {
                             height: 8,
                             decoration: BoxDecoration(
                               color: bucket.runs == busiestHour
-                                  ? data.under
-                                  : data.under.withValues(alpha: 0.35),
+                                  ? ink.accent
+                                  : ink.accent.withValues(alpha: 0.35),
                               borderRadius: const BorderRadius.all(
                                 Radius.circular(4),
                               ),

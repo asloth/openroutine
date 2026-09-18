@@ -1,14 +1,18 @@
 # Design notes
 
-## Sharing home's ink
+## One colour, the accent
 
-`HomeInk` and `HomeDot` live under `screens/routines_list/home/`. Statistics
-imports them rather than restating the same roles against `colorScheme`.
+An earlier pass drew the estimate bars as a diverging pair — green for under,
+warm for over — taken from `colorScheme.secondary` and `tertiary`. Those sit
+at fixed hue offsets from the accent, so on a blue accent they came out plum
+and navy, saying nothing. Pinning them to the palette's fixed moss and honey
+fixed the meaning but broke the app: Statistics went green while Today stayed
+blue.
 
-The alternative was moving `HomeInk` somewhere shared. That would touch every
-home file for no behaviour change, and the repo already crosses this boundary:
-`routines_library_screen.dart` imports `HomeRoutineRow` from the same folder.
-Worth revisiting when a third screen needs it.
+Everything here is a single series. The bar's direction and its signed number
+already separate over from under, so the second hue was saying a third time
+what the shape says once, and it could only do so from outside the accent.
+One colour, the accent, everywhere.
 
 ## One segment per run
 

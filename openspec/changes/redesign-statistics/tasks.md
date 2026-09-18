@@ -29,3 +29,4 @@
 - [x] Retire the strings this design drops from both ARB files.
 - [x] Rework the screen tests: headlines at each threshold, both rounding
       clamps, the evening headline, and the detail behind each link.
+- [x] Draw every figure in the accent; drop the fixed moss-and-honey pair.
