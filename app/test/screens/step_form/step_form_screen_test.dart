@@ -12,6 +12,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/state/storage_provider.dart';
+import 'package:openroutine/widgets/tinted/soft_back_button.dart';
 
 final _now = DateTime.utc(2026, 8, 27);
 
@@ -92,6 +93,25 @@ void main() {
     await tester.pumpAndSettle();
     return AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
   }
+
+  testWidgets('the app bar leads with a SoftBackButton, not the stock arrow', (
+    tester,
+  ) async {
+    // Edit mode, via '/step': create mode ('/step-new') pumps the
+    // template-asset provider, which only resolves once per test file (see
+    // the mid-step reminder toggle's first test below) — reusing it here
+    // would starve that test's pump.
+    await adapter.saveStep(_step('s4', 3, isCore: false));
+
+    final l10n = await pumpForm(tester, '/step');
+
+    expect(find.byType(SoftBackButton), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+    expect(find.byIcon(Icons.arrow_back_ios), findsNothing);
+    // The step form's own actions — save and delete — don't move.
+    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(find.byTooltip(l10n.commonDelete), findsOneWidget);
+  });
 
   testWidgets('a fourth essential step can be saved and read from storage', (
     tester,

@@ -413,83 +413,87 @@ void main() {
       await _disposeCleanly(tester);
     });
 
-    testWidgets('Share and Edit show today\'s tooltips, and Edit navigates', (
-      tester,
-    ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      addTearDown(db.close);
-      final adapter = await _seed(db, [_step('s1', 0)]);
-      await tester.pumpWidget(_wrap(adapter));
-      await tester.pumpAndSettle();
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(RoutineDetailScreen)),
-      )!;
+    testWidgets(
+      'Share, Edit, and Delete show today\'s tooltips, and Edit navigates',
+      (tester) async {
+        final db = AppDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final adapter = await _seed(db, [_step('s1', 0)]);
+        await tester.pumpWidget(_wrap(adapter));
+        await tester.pumpAndSettle();
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(RoutineDetailScreen)),
+        )!;
 
-      expect(find.byTooltip(l10n.routineDetailShare), findsOneWidget);
-      expect(find.byTooltip(l10n.commonEdit), findsOneWidget);
+        expect(find.byTooltip(l10n.routineDetailShare), findsOneWidget);
+        expect(find.byTooltip(l10n.commonEdit), findsOneWidget);
+        expect(find.byTooltip(l10n.commonDelete), findsOneWidget);
 
-      await tester.tap(find.byTooltip(l10n.commonEdit));
-      await tester.pumpAndSettle();
-      expect(find.text('Editing routine'), findsOneWidget);
+        await tester.tap(find.byTooltip(l10n.commonEdit));
+        await tester.pumpAndSettle();
+        expect(find.text('Editing routine'), findsOneWidget);
 
-      await _disposeCleanly(tester);
-    });
+        await _disposeCleanly(tester);
+      },
+    );
 
-    testWidgets('More opens Delete, and cancelling keeps the routine', (
-      tester,
-    ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      addTearDown(db.close);
-      final adapter = await _seed(db, [_step('s1', 0)]);
-      final router = _router(initialLocation: '/routines');
-      await tester.pumpWidget(_wrap(adapter, router: router));
-      router.push('/routines/r1');
-      await tester.pumpAndSettle();
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(RoutineDetailScreen)),
-      )!;
+    testWidgets(
+      'the trash icon opens Delete directly, with no overflow menu, and '
+      'cancelling keeps the routine',
+      (tester) async {
+        final db = AppDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final adapter = await _seed(db, [_step('s1', 0)]);
+        final router = _router(initialLocation: '/routines');
+        await tester.pumpWidget(_wrap(adapter, router: router));
+        router.push('/routines/r1');
+        await tester.pumpAndSettle();
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(RoutineDetailScreen)),
+        )!;
 
-      await tester.tap(find.byIcon(Icons.more_horiz));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.commonDelete));
-      await tester.pumpAndSettle();
-      expect(find.text(l10n.routineDetailDeleteConfirmTitle), findsOneWidget);
+        expect(find.byIcon(Icons.more_horiz), findsNothing);
+        expect(find.byIcon(Icons.delete_outline), findsOneWidget);
 
-      await tester.tap(find.text(l10n.commonCancel));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.routineDetailDeleteConfirmTitle), findsOneWidget);
 
-      expect(find.byType(RoutineDetailScreen), findsOneWidget);
-      expect(await adapter.getRoutine('r1'), isNotNull);
+        await tester.tap(find.text(l10n.commonCancel));
+        await tester.pumpAndSettle();
 
-      await _disposeCleanly(tester);
-    });
+        expect(find.byType(RoutineDetailScreen), findsOneWidget);
+        expect(await adapter.getRoutine('r1'), isNotNull);
 
-    testWidgets('More opens Delete, and confirming deletes and pops', (
-      tester,
-    ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      addTearDown(db.close);
-      final adapter = await _seed(db, [_step('s1', 0)]);
-      final router = _router(initialLocation: '/routines');
-      await tester.pumpWidget(_wrap(adapter, router: router));
-      router.push('/routines/r1');
-      await tester.pumpAndSettle();
-      final l10n = AppLocalizations.of(
-        tester.element(find.byType(RoutineDetailScreen)),
-      )!;
+        await _disposeCleanly(tester);
+      },
+    );
 
-      await tester.tap(find.byIcon(Icons.more_horiz));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.commonDelete));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.commonDelete));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'the trash icon opens Delete, and confirming deletes and pops',
+      (tester) async {
+        final db = AppDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final adapter = await _seed(db, [_step('s1', 0)]);
+        final router = _router(initialLocation: '/routines');
+        await tester.pumpWidget(_wrap(adapter, router: router));
+        router.push('/routines/r1');
+        await tester.pumpAndSettle();
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(RoutineDetailScreen)),
+        )!;
 
-      expect(find.text('Routines'), findsOneWidget);
-      expect(await adapter.getRoutine('r1'), isNull);
+        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.commonDelete));
+        await tester.pumpAndSettle();
 
-      await _disposeCleanly(tester);
-    });
+        expect(find.text('Routines'), findsOneWidget);
+        expect(await adapter.getRoutine('r1'), isNull);
+
+        await _disposeCleanly(tester);
+      },
+    );
   });
 
   group('summary card', () {

@@ -8,5 +8,6 @@ export 'page_header.dart';
 export 'pill_segmented_control.dart';
 export 'section_label.dart';
 export 'segmented_progress.dart';
+export 'soft_back_button.dart';
 export 'soft_circle_button.dart';
 export 'tinted_card.dart';

@@ -12,6 +12,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/state/storage_provider.dart';
+import 'package:openroutine/widgets/tinted/soft_back_button.dart';
 
 // Wrapped in a real GoRouter, not a bare MaterialApp, because the screen
 // calls context.pop() on save — that throws without a GoRouter ancestor.
@@ -66,6 +67,29 @@ Future<AppDatabase> _seededDb(Routine routine) async {
 }
 
 void main() {
+  testWidgets('the app bar leads with a SoftBackButton, not the stock arrow', (
+    tester,
+  ) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final adapter = LocalAdapter(db);
+    final router = _routerTo();
+    await tester.pumpWidget(_wrap(router, adapter));
+    router.push('/form');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SoftBackButton), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+    expect(find.byIcon(Icons.arrow_back_ios), findsNothing);
+
+    // 16px from the left edge, matching the routine detail screen's own
+    // hand-rolled row of SoftCircleButtons.
+    final buttonRect = tester.getRect(find.byType(SoftBackButton));
+    final appBarRect = tester.getRect(find.byType(AppBar));
+    expect(buttonRect.left, 16);
+    expect(buttonRect.center.dy, appBarRect.center.dy);
+  });
+
   testWidgets(
     'submitting with an empty name shows a validation error and does not save',
     (tester) async {

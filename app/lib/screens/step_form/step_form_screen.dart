@@ -11,6 +11,7 @@ import '../../services/storage/storage_adapter.dart';
 import '../../state/reference_data_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
+import '../../widgets/tinted/soft_back_button.dart';
 
 /// docs/SPEC.md §7 screens 5 (Add step) and 6 (Edit step), combined into one
 /// screen: the same form serves both, with a template picker shown only
@@ -241,19 +242,28 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
       if (step != null) _loadFrom(step);
       if (stepAsync.isLoading && !_loaded) {
         return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(
+            leading: SoftBackButton.asAppBarLeading(),
+            leadingWidth: SoftBackButton.appBarLeadingWidth,
+          ),
           body: const Center(child: CircularProgressIndicator()),
         );
       }
       if (stepAsync.hasError) {
         return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(
+            leading: SoftBackButton.asAppBarLeading(),
+            leadingWidth: SoftBackButton.appBarLeadingWidth,
+          ),
           body: Center(child: Text(l10n.commonLoadError)),
         );
       }
       if (!stepAsync.isLoading && step == null) {
         return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(
+            leading: SoftBackButton.asAppBarLeading(),
+            leadingWidth: SoftBackButton.appBarLeadingWidth,
+          ),
           body: Center(child: Text(l10n.commonItemUnavailable)),
         );
       }
@@ -261,6 +271,8 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: SoftBackButton.asAppBarLeading(),
+        leadingWidth: SoftBackButton.appBarLeadingWidth,
         title: Text(
           _isEditing ? l10n.stepFormEditTitle : l10n.stepFormAddTitle,
         ),

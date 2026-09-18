@@ -10,6 +10,7 @@ import '../../services/storage/storage_adapter.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../theme/theme.dart';
+import '../../widgets/tinted/soft_back_button.dart';
 import '../routines_list/home/home_ink.dart';
 
 /// docs/SPEC.md §7 screen 4. Only routine-level fields — steps are added
@@ -187,19 +188,28 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
       if (routine != null) _loadFrom(routine);
       if (routineAsync.isLoading && !_loaded) {
         return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(
+            leading: SoftBackButton.asAppBarLeading(),
+            leadingWidth: SoftBackButton.appBarLeadingWidth,
+          ),
           body: const Center(child: CircularProgressIndicator()),
         );
       }
       if (routineAsync.hasError) {
         return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(
+            leading: SoftBackButton.asAppBarLeading(),
+            leadingWidth: SoftBackButton.appBarLeadingWidth,
+          ),
           body: Center(child: Text(l10n.commonLoadError)),
         );
       }
       if (!routineAsync.isLoading && routine == null) {
         return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(
+            leading: SoftBackButton.asAppBarLeading(),
+            leadingWidth: SoftBackButton.appBarLeadingWidth,
+          ),
           body: Center(child: Text(l10n.commonItemUnavailable)),
         );
       }
@@ -209,6 +219,8 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: SoftBackButton.asAppBarLeading(),
+        leadingWidth: SoftBackButton.appBarLeadingWidth,
         title: Text(
           _isEditing ? l10n.routineFormEditTitle : l10n.routineFormCreateTitle,
         ),

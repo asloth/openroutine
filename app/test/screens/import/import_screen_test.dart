@@ -14,6 +14,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/state/import_export_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
+import 'package:openroutine/widgets/tinted/soft_back_button.dart';
 
 final _now = DateTime.utc(2026, 8, 27);
 
@@ -69,6 +70,18 @@ Widget _wrap(LocalAdapter adapter, Locale locale) => ProviderScope(
 );
 
 void main() {
+  testWidgets('the app bar leads with a SoftBackButton, not the stock arrow', (
+    tester,
+  ) async {
+    final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+    await tester.pumpWidget(_wrap(adapter, const Locale('en')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SoftBackButton), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+    expect(find.byIcon(Icons.arrow_back_ios), findsNothing);
+  });
+
   for (final entry in {
     'en':
         'This file was created by a newer OpenRoutine version. Nothing was imported. Update OpenRoutine before using this file.',

@@ -97,43 +97,19 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                             context.push('/routines/$routineId/edit'),
                       ),
                       const SizedBox(width: 8),
-                      PopupMenuButton<_MenuAction>(
-                        padding: EdgeInsets.zero,
-                        onSelected: (action) async {
-                          if (action == _MenuAction.delete) {
-                            final confirmed = await _confirmDelete(
-                              context,
-                              l10n,
-                            );
-                            if (confirmed && context.mounted) {
-                              await ref
-                                  .read(storageAdapterProvider)
-                                  .deleteRoutine(routineId);
-                              ref.invalidate(routinesProvider);
-                              if (context.mounted) context.pop();
-                            }
+                      SoftCircleButton(
+                        icon: Icons.delete_outline,
+                        tooltip: l10n.commonDelete,
+                        onPressed: () async {
+                          final confirmed = await _confirmDelete(context, l10n);
+                          if (confirmed && context.mounted) {
+                            await ref
+                                .read(storageAdapterProvider)
+                                .deleteRoutine(routineId);
+                            ref.invalidate(routinesProvider);
+                            if (context.mounted) context.pop();
                           }
                         },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: _MenuAction.delete,
-                            child: Text(l10n.commonDelete),
-                          ),
-                        ],
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainer,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.more_horiz,
-                            size: 22,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
                       ),
                     ],
                   ),
@@ -420,8 +396,6 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
     return l10n.routineDetailEstimateMinutes(minutes);
   }
 }
-
-enum _MenuAction { delete }
 
 /// The uppercase caption over each half of the summary card. Written locally
 /// rather than through `SectionLabel` — that widget hard-codes
