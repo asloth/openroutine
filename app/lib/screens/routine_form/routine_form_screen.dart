@@ -88,18 +88,19 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final l10n = AppLocalizations.of(context)!;
-    if (_mode == ScheduleMode.scheduled) {
-      final daysError = _days.isEmpty ? l10n.routineFormDaysRequired : null;
-      final startTimeError = _startTime == null
-          ? l10n.routineFormStartTimeRequired
-          : null;
-      if (daysError != null || startTimeError != null) {
-        setState(() {
-          _daysError = daysError;
-          _startTimeError = startTimeError;
-        });
-        return;
-      }
+    // Days are required in both modes — a flexible routine still runs on
+    // specific days, it just has no fixed start time. Only the scheduled
+    // mode needs that time.
+    final daysError = _days.isEmpty ? l10n.routineFormDaysRequired : null;
+    final startTimeError = _mode == ScheduleMode.scheduled && _startTime == null
+        ? l10n.routineFormStartTimeRequired
+        : null;
+    if (daysError != null || startTimeError != null) {
+      setState(() {
+        _daysError = daysError;
+        _startTimeError = startTimeError;
+      });
+      return;
     }
 
     setState(() => _saving = true);
@@ -108,7 +109,7 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
     final now = nowUtc();
     final schedule = Schedule(
       mode: _mode,
-      days: _mode == ScheduleMode.scheduled ? _days.toList() : const [],
+      days: _days.toList(),
       startTime: _mode == ScheduleMode.scheduled ? _startTime : null,
     );
 
@@ -231,31 +232,31 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
               onSelectionChanged: (selection) =>
                   setState(() => _mode = selection.first),
             ),
-            if (_mode == ScheduleMode.scheduled) ...[
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final day in DayOfWeek.values)
-                    FilterChip(
-                      label: Text(_dayLabel(l10n, day)),
-                      selected: _days.contains(day),
-                      onSelected: (selected) => setState(() {
-                        selected ? _days.add(day) : _days.remove(day);
-                        if (_days.isNotEmpty) _daysError = null;
-                      }),
-                    ),
-                ],
-              ),
-              if (_daysError != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  _daysError!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final day in DayOfWeek.values)
+                  FilterChip(
+                    label: Text(_dayLabel(l10n, day)),
+                    selected: _days.contains(day),
+                    onSelected: (selected) => setState(() {
+                      selected ? _days.add(day) : _days.remove(day);
+                      if (_days.isNotEmpty) _daysError = null;
+                    }),
                   ),
-                ),
               ],
+            ),
+            if (_daysError != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                _daysError!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+            if (_mode == ScheduleMode.scheduled) ...[
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,
