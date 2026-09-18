@@ -129,11 +129,17 @@ class HomeRoutineRow extends StatelessWidget {
     required this.item,
     required this.subtitle,
     this.trailing,
+    this.showDot = true,
   });
 
   final HomeRoutine item;
   final String subtitle;
   final Widget? trailing;
+
+  /// Whether the row draws its own dot. False when something outside the card
+  /// already marks the stop — Anytime today sits on [HomeRail], which draws
+  /// one. The Routines tab has no rail, so it keeps the default.
+  final bool showDot;
 
   @override
   Widget build(BuildContext context) {
@@ -152,8 +158,7 @@ class HomeRoutineRow extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(17, 13, 8, 13),
           child: Row(
             children: [
-              const HomeDot(),
-              const SizedBox(width: 12),
+              if (showDot) ...[const HomeDot(), const SizedBox(width: 12)],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

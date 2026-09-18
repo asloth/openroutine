@@ -9,6 +9,7 @@ import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
 import 'package:openroutine/screens/routines_list/home/home_routine.dart';
+import 'package:openroutine/screens/routines_list/home/timeline.dart';
 import 'package:openroutine/screens/routines_list/routines_list_screen.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
@@ -598,6 +599,69 @@ void main() {
       expect(
         tester.getCenter(railDots.at(0)).dx,
         tester.getCenter(railDots.at(1)).dx,
+      );
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('carries one dot per row, the rail\'s', (tester) async {
+      final now = _fixedNow();
+      final today = [_dayOfWeek(now)];
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      await _addRoutine(
+        adapter,
+        id: 'f1',
+        name: 'Deep work',
+        mode: ScheduleMode.flexible,
+        days: today,
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: now));
+      await tester.pumpAndSettle();
+
+      // The rail already marks the stop, so the row must not draw a second
+      // dot of its own inside the card. The Routines tab still does, which is
+      // why HomeRoutineRow keeps drawing one by default.
+      final row = find.byType(HomeRoutineRow);
+      expect(row, findsOneWidget);
+      expect(
+        find.descendant(of: row, matching: find.byType(HomeDot)),
+        findsNothing,
+      );
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('runs the rail unbroken between rows', (tester) async {
+      final now = _fixedNow();
+      final today = [_dayOfWeek(now)];
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      await _addRoutine(
+        adapter,
+        id: 'f1',
+        name: 'Deep work',
+        mode: ScheduleMode.flexible,
+        days: today,
+      );
+      await _addRoutine(
+        adapter,
+        id: 'f2',
+        name: 'Read',
+        mode: ScheduleMode.flexible,
+        days: today,
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: now));
+      await tester.pumpAndSettle();
+
+      // Two flexible routines is the case she reported: a gap between the
+      // rails would read as two loose cards again, which is the whole point
+      // of threading them.
+      final rails = find.byType(HomeRail);
+      expect(rails, findsNWidgets(2));
+      expect(
+        tester.getRect(rails.at(0)).bottom,
+        tester.getRect(rails.at(1)).top,
       );
 
       await _disposeCleanly(tester);

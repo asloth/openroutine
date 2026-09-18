@@ -64,12 +64,16 @@ class AnytimeSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(_railGutter, 0, _gutter, 0),
             sliver: SliverList.separated(
               itemCount: routines.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              // No gap: HomeRail already pads the card away from its
+              // neighbours, and a gap here would break the rail's line into
+              // dashes — the loose-cards look this section is fixing.
+              separatorBuilder: (_, _) => const SizedBox.shrink(),
               itemBuilder: (context, i) {
                 final item = routines[i];
                 return HomeRail(
                   child: HomeRoutineRow(
                     item: item,
+                    showDot: false,
                     subtitle:
                         '${item.summary(l10n)} · ${l10n.homeStartWhenYouWant}',
                     trailing: HomeTextAction(
