@@ -127,6 +127,10 @@ void main() {
         find.byType(TextFormField).first,
         'Evening Routine',
       );
+      // Flexible is the default mode, and a flexible routine still needs a
+      // day picked before it can save.
+      await tester.tap(find.text(l10n.dayMon));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(l10n.commonSave));
       await tester.pumpAndSettle();
 
@@ -376,29 +380,136 @@ void main() {
       expect(find.text(l10n.routineFormDaysRequired), findsNothing);
     });
 
-    testWidgets('a Flexible save still works with no days and no time', (
-      tester,
-    ) async {
+    testWidgets(
+      'saving a flexible routine with no days shows the days error and does not save',
+      (tester) async {
+        final db = AppDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final adapter = LocalAdapter(db);
+        final router = _routerTo();
+        await tester.pumpWidget(_wrap(router, adapter));
+        router.push('/form');
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(Scaffold).first),
+        )!;
+        await tester.enterText(find.byType(TextFormField).first, 'Reading');
+        // Flexible is the default mode — a flexible routine still needs
+        // days, so saving without picking any must fail the same way a
+        // scheduled routine does.
+        await tester.tap(find.byTooltip(l10n.commonSave));
+        await tester.pumpAndSettle();
+
+        expect(find.text(l10n.routineFormDaysRequired), findsOneWidget);
+        expect(await db.select(db.routines).get(), isEmpty);
+      },
+    );
+
+    testWidgets(
+      'saving a flexible routine with days selected persists those days',
+      (tester) async {
+        final db = AppDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final adapter = LocalAdapter(db);
+        final router = _routerTo();
+        await tester.pumpWidget(_wrap(router, adapter));
+        router.push('/form');
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(Scaffold).first),
+        )!;
+        await tester.enterText(find.byType(TextFormField).first, 'Reading');
+        await tester.tap(find.text(l10n.dayMon));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip(l10n.commonSave));
+        await tester.pumpAndSettle();
+
+        final rows = await db.select(db.routines).get();
+        expect(rows, hasLength(1));
+        expect(rows.single.name, 'Reading');
+        expect(rows.single.scheduleMode, ScheduleMode.flexible);
+        expect(rows.single.scheduleDays, [DayOfWeek.mon]);
+        expect(rows.single.scheduleStartTime, isNull);
+      },
+    );
+  });
+
+  group('Flexible has days but no start time', () {
+    testWidgets('choosing Flexible still shows the day chips', (tester) async {
       final db = AppDatabase(NativeDatabase.memory());
       addTearDown(db.close);
-      final adapter = LocalAdapter(db);
-      final router = _routerTo();
-      await tester.pumpWidget(_wrap(router, adapter));
+      final router = _routerTo(initialMode: ScheduleMode.scheduled);
+      await tester.pumpWidget(_wrap(router, LocalAdapter(db)));
       router.push('/form');
       await tester.pumpAndSettle();
 
       final l10n = AppLocalizations.of(
         tester.element(find.byType(Scaffold).first),
       )!;
-      await tester.enterText(find.byType(TextFormField).first, 'Reading');
-      // Flexible is the default mode — no day chips or start-time tile
-      // even appear, so there is nothing to fill in before saving.
-      await tester.tap(find.byTooltip(l10n.commonSave));
+      await tester.tap(find.text(l10n.routinesTabFlexible));
       await tester.pumpAndSettle();
 
-      final rows = await db.select(db.routines).get();
-      expect(rows, hasLength(1));
-      expect(rows.single.name, 'Reading');
+      expect(find.byType(FilterChip), findsNWidgets(DayOfWeek.values.length));
     });
+
+    testWidgets('choosing Flexible hides the start-time row', (tester) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final router = _routerTo(initialMode: ScheduleMode.scheduled);
+      await tester.pumpWidget(_wrap(router, LocalAdapter(db)));
+      router.push('/form');
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(Scaffold).first),
+      )!;
+      await tester.tap(find.text(l10n.routinesTabFlexible));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.routineFormStartTimeLabel), findsNothing);
+    });
+
+    testWidgets(
+      'editing a scheduled routine with days and switching it to flexible keeps the days',
+      (tester) async {
+        final now = DateTime.utc(2026, 1, 1);
+        final db = await _seededDb(
+          Routine(
+            id: 'r1',
+            name: 'Morning',
+            schedule: const Schedule(
+              mode: ScheduleMode.scheduled,
+              days: [DayOfWeek.mon, DayOfWeek.wed],
+              startTime: '07:30',
+            ),
+            stepIds: const [],
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        addTearDown(db.close);
+        final adapter = LocalAdapter(db);
+        final router = _routerTo(routineId: 'r1');
+        await tester.pumpWidget(_wrap(router, adapter));
+        router.push('/form');
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(Scaffold).first),
+        )!;
+        await tester.tap(find.text(l10n.routinesTabFlexible));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip(l10n.commonSave));
+        await tester.pumpAndSettle();
+
+        final rows = await db.select(db.routines).get();
+        expect(rows, hasLength(1));
+        expect(rows.single.scheduleMode, ScheduleMode.flexible);
+        expect(rows.single.scheduleDays, [DayOfWeek.mon, DayOfWeek.wed]);
+        expect(rows.single.scheduleStartTime, isNull);
+      },
+    );
   });
 }
