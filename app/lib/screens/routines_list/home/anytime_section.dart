@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'home_routine.dart';
+import 'timeline.dart';
+
+/// Matches the timeline's own left inset (`_gutter - 8` in
+/// routines_list_screen.dart), so the rail's dot lines up under the
+/// timeline's, rather than under its wider header padding.
+const _railGutter = 14.0;
+const _gutter = 22.0;
 
 /// Flexible routines, which have no start time. The toggle row stays pinned
 /// while you scroll, so the section can be closed from anywhere on the page.
@@ -54,19 +61,21 @@ class AnytimeSection extends StatelessWidget {
         ),
         if (open)
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 22),
+            padding: const EdgeInsets.fromLTRB(_railGutter, 0, _gutter, 0),
             sliver: SliverList.separated(
               itemCount: routines.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, i) {
                 final item = routines[i];
-                return HomeRoutineRow(
-                  item: item,
-                  subtitle:
-                      '${item.summary(l10n)} · ${l10n.homeStartWhenYouWant}',
-                  trailing: HomeTextAction(
-                    label: l10n.homeStart,
-                    onPressed: () => item.start(context),
+                return HomeRail(
+                  child: HomeRoutineRow(
+                    item: item,
+                    subtitle:
+                        '${item.summary(l10n)} · ${l10n.homeStartWhenYouWant}',
+                    trailing: HomeTextAction(
+                      label: l10n.homeStart,
+                      onPressed: () => item.start(context),
+                    ),
                   ),
                 );
               },

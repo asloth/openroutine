@@ -106,7 +106,15 @@ class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
 
     final anytime = [
       for (final item in items)
-        if (item.routine.schedule.mode == ScheduleMode.flexible) item,
+        if (item.routine.schedule.mode == ScheduleMode.flexible &&
+            // Empty days isn't "never": it's a routine that hasn't been
+            // given days yet, including one pulled down by Drive sync from
+            // another device, or one that predates a local database
+            // migration. Treat it as due today rather than silently
+            // dropping it off the screen the user actually looks at.
+            (item.routine.schedule.days.isEmpty ||
+                _dueToday(item.routine, now)))
+          item,
     ];
     final scheduled = [
       for (final item in items)

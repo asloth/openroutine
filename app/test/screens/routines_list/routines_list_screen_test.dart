@@ -8,6 +8,7 @@ import 'package:openroutine/models/completion_log.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
+import 'package:openroutine/screens/routines_list/home/home_routine.dart';
 import 'package:openroutine/screens/routines_list/routines_list_screen.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
@@ -499,6 +500,105 @@ void main() {
       await tester.tap(find.text('Deep work'));
       await tester.pumpAndSettle();
       expect(recorder.last, '/routines/f1');
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('a flexible routine due today appears', (tester) async {
+      final now = _fixedNow();
+      final adapter = await _adapterWithRoutine(
+        id: 'f1',
+        name: 'Deep work',
+        mode: ScheduleMode.flexible,
+        days: [_dayOfWeek(now)],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: now));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Deep work'), findsOneWidget);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('a flexible routine due only on another day stays off today', (
+      tester,
+    ) async {
+      final now = _fixedNow();
+      final tomorrow = _dayOfWeek(now.add(const Duration(days: 1)));
+      final adapter = await _adapterWithRoutine(
+        id: 'f1',
+        name: 'Deep work',
+        mode: ScheduleMode.flexible,
+        days: [tomorrow],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: now));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('anytimeToday')), findsNothing);
+      expect(find.text('Deep work'), findsNothing);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets(
+      'a flexible routine with no days set still appears, so a routine '
+      "without a days backfill (a Drive sync from another device, or a "
+      'local migration that has not run yet) does not vanish from today',
+      (tester) async {
+        final now = _fixedNow();
+        final adapter = await _adapterWithRoutine(
+          id: 'f1',
+          name: 'Deep work',
+          mode: ScheduleMode.flexible,
+          days: const [],
+        );
+
+        await tester.pumpWidget(_wrap(adapter, now: now));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Deep work'), findsOneWidget);
+
+        await _disposeCleanly(tester);
+      },
+    );
+
+    testWidgets('threads its rows onto the same rail as the timeline', (
+      tester,
+    ) async {
+      final now = _fixedNow();
+      final today = [_dayOfWeek(now)];
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      await _addRoutine(
+        adapter,
+        id: 'f1',
+        name: 'Deep work',
+        mode: ScheduleMode.flexible,
+        days: today,
+      );
+      await _addRoutine(
+        adapter,
+        id: 'r1',
+        name: 'Morning reset',
+        startTime: '07:00',
+        days: today,
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: now));
+      await tester.pumpAndSettle();
+
+      // The rail's own dot is 8px, distinct from the 9px default dot inside
+      // HomeRoutineRow and the header's dot cluster, so this isolates the
+      // anytime row's rail dot from the timeline row's rail dot.
+      final railDots = find.byWidgetPredicate(
+        (widget) => widget is HomeDot && widget.size == 8,
+      );
+      expect(railDots, findsNWidgets(2));
+      expect(
+        tester.getCenter(railDots.at(0)).dx,
+        tester.getCenter(railDots.at(1)).dx,
+      );
 
       await _disposeCleanly(tester);
     });
