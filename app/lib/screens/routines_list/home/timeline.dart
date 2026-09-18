@@ -29,8 +29,29 @@ class _TimelineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ink = HomeInk.of(context);
     final highlighted = item.upcoming != null || item.progress is PartwayToday;
+
+    return HomeRail(
+      time: _StartTime(item: item, strong: highlighted),
+      child: _TimelineCard(item: item, highlighted: highlighted),
+    );
+  }
+}
+
+/// The vertical spine a routine card sits on: a fixed-width time column (kept
+/// empty, rather than removed, when [time] is null, so a card with no start
+/// time still lines its dot up with one that has a time), a hairline with a
+/// dot marking the stop, and the card itself. Shared by the timeline and by
+/// Anytime today, so both read as one continuous rail down the screen.
+class HomeRail extends StatelessWidget {
+  const HomeRail({super.key, this.time, required this.child});
+
+  final Widget? time;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
 
     return IntrinsicHeight(
       child: Row(
@@ -38,10 +59,9 @@ class _TimelineRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 56,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: _StartTime(item: item, strong: highlighted),
-            ),
+            child: time == null
+                ? null
+                : Padding(padding: const EdgeInsets.only(top: 20), child: time),
           ),
           const SizedBox(width: 14),
           SizedBox(
@@ -62,7 +82,7 @@ class _TimelineRow extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: _TimelineCard(item: item, highlighted: highlighted),
+              child: child,
             ),
           ),
         ],
