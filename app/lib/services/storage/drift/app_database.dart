@@ -16,12 +16,17 @@ class AppDatabase extends _$AppDatabase {
   /// v2 (M3) added [CompletionLogs]; v3 (M4) added [SyncState]; v4 adds
   /// the additive Low Mode core-step marker; v5 records Low Mode run evidence;
   /// v6 adds the additive per-step mid-step reminder opt-in; v7 removes
-  /// moments, dropping `routines.trigger_id` and the `triggers` table.
+  /// moments, dropping `routines.trigger_id` and the `triggers` table; v8
+  /// backfills every flexible routine with no scheduled days to all seven
+  /// days. No column changes — the create/edit form used to hard-force
+  /// `days: []` for flexible routines, so every flexible routine on a real
+  /// device has an empty day list, and once Today starts filtering flexible
+  /// routines by day, an empty list would mean the routine never shows up.
   /// Bump this and
   /// add an `onUpgrade` branch for every schema change — installs from M2
   /// carry real user routines, so dropping and recreating is not an option.
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,6 +59,17 @@ class AppDatabase extends _$AppDatabase {
         await m.alterTable(TableMigration(routines));
         await m.deleteTable('triggers');
         await customStatement('PRAGMA foreign_keys = ON');
+      }
+      if (from < 8) {
+        // No column change — schedule_days already exists. This only
+        // rewrites the flexible routines the old form left empty, using the
+        // same comma-joined format DayListConverter reads and writes.
+        final allDays = DayOfWeek.values.map((day) => day.name).join(',');
+        await customStatement(
+          'UPDATE routines SET schedule_days = ? '
+          "WHERE schedule_mode = ? AND schedule_days = ''",
+          [allDays, ScheduleMode.flexible.name],
+        );
       }
     },
   );
