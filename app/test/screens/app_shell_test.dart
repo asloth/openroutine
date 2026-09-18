@@ -140,7 +140,7 @@ void main() {
     final l10n = await pumpApp(tester);
 
     expect(find.text('Stretch'), findsOneWidget);
-    await tester.tap(find.text(l10n.homeAnytimeHide));
+    await tester.tap(find.text(l10n.homeAnytimeCountHide(1)));
     await tester.pumpAndSettle();
     expect(find.text('Stretch'), findsNothing);
 

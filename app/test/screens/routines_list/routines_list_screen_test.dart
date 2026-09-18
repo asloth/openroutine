@@ -9,7 +9,7 @@ import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
 import 'package:openroutine/screens/routines_list/home/home_routine.dart';
-import 'package:openroutine/screens/routines_list/home/timeline.dart';
+
 import 'package:openroutine/screens/routines_list/routines_list_screen.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
@@ -451,30 +451,24 @@ void main() {
       await tester.pumpAndSettle();
 
       final l10n = _l10n(tester);
-      expect(find.text(l10n.homeAnytimeToday), findsOneWidget);
+      expect(find.text(l10n.homeAnytimeToday.toUpperCase()), findsOneWidget);
       expect(find.text('Deep work'), findsOneWidget);
-      expect(
-        find.text(
-          '${l10n.homeStepsAndMinutes(2, 50)} · ${l10n.homeStartWhenYouWant}',
-        ),
-        findsOneWidget,
-      );
+      // The pill has room for the name and the length, nothing else.
+      expect(find.text(l10n.homeMinutesShort(50)), findsOneWidget);
 
-      await tester.tap(find.text(l10n.homeAnytimeHide));
+      await tester.tap(find.text(l10n.homeAnytimeCountHide(1)));
       await tester.pumpAndSettle();
       expect(find.text('Deep work'), findsNothing);
-      expect(find.text(l10n.homeAnytimeReady(1)), findsOneWidget);
+      expect(find.text(l10n.homeAnytimeCountShow(1)), findsOneWidget);
 
-      await tester.tap(find.text(l10n.homeAnytimeReady(1)));
+      await tester.tap(find.text(l10n.homeAnytimeCountShow(1)));
       await tester.pumpAndSettle();
       expect(find.text('Deep work'), findsOneWidget);
 
       await _disposeCleanly(tester);
     });
 
-    testWidgets('Start opens the timer and the row opens the routine', (
-      tester,
-    ) async {
+    testWidgets('a pill opens its routine', (tester) async {
       final recorder = _RouteRecorder();
       final adapter = await _adapterWithRoutine(
         id: 'f1',
@@ -487,17 +481,16 @@ void main() {
       await tester.pumpWidget(_wrap(adapter, recorder: recorder));
       await tester.pumpAndSettle();
 
-      await tester.tap(
+      // There is no Start on a pill — it is too small to hold one, so the
+      // tap goes where every other card on Today goes.
+      expect(
         find.descendant(
           of: find.byKey(const Key('anytimeToday')),
           matching: find.text(_l10n(tester).homeStart),
         ),
+        findsNothing,
       );
-      await tester.pumpAndSettle();
-      expect(recorder.last, '/routines/f1/timer?mode=null');
 
-      GoRouter.of(tester.element(find.text('Timer screen'))).pop();
-      await tester.pumpAndSettle();
       await tester.tap(find.text('Deep work'));
       await tester.pumpAndSettle();
       expect(recorder.last, '/routines/f1');
@@ -565,74 +558,9 @@ void main() {
       },
     );
 
-    testWidgets('threads its rows onto the same rail as the timeline', (
+    testWidgets('anytime today lays its pills out horizontally', (
       tester,
     ) async {
-      final now = _fixedNow();
-      final today = [_dayOfWeek(now)];
-      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
-      await _addRoutine(
-        adapter,
-        id: 'f1',
-        name: 'Deep work',
-        mode: ScheduleMode.flexible,
-        days: today,
-      );
-      await _addRoutine(
-        adapter,
-        id: 'r1',
-        name: 'Morning reset',
-        startTime: '07:00',
-        days: today,
-      );
-
-      await tester.pumpWidget(_wrap(adapter, now: now));
-      await tester.pumpAndSettle();
-
-      // The rail's own dot is 8px, distinct from the 9px default dot inside
-      // HomeRoutineRow and the header's dot cluster, so this isolates the
-      // anytime row's rail dot from the timeline row's rail dot.
-      final railDots = find.byWidgetPredicate(
-        (widget) => widget is HomeDot && widget.size == 8,
-      );
-      expect(railDots, findsNWidgets(2));
-      expect(
-        tester.getCenter(railDots.at(0)).dx,
-        tester.getCenter(railDots.at(1)).dx,
-      );
-
-      await _disposeCleanly(tester);
-    });
-
-    testWidgets('carries one dot per row, the rail\'s', (tester) async {
-      final now = _fixedNow();
-      final today = [_dayOfWeek(now)];
-      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
-      await _addRoutine(
-        adapter,
-        id: 'f1',
-        name: 'Deep work',
-        mode: ScheduleMode.flexible,
-        days: today,
-      );
-
-      await tester.pumpWidget(_wrap(adapter, now: now));
-      await tester.pumpAndSettle();
-
-      // The rail already marks the stop, so the row must not draw a second
-      // dot of its own inside the card. The Routines tab still does, which is
-      // why HomeRoutineRow keeps drawing one by default.
-      final row = find.byType(HomeRoutineRow);
-      expect(row, findsOneWidget);
-      expect(
-        find.descendant(of: row, matching: find.byType(HomeDot)),
-        findsNothing,
-      );
-
-      await _disposeCleanly(tester);
-    });
-
-    testWidgets('runs the rail unbroken between rows', (tester) async {
       final now = _fixedNow();
       final today = [_dayOfWeek(now)];
       final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
@@ -654,14 +582,46 @@ void main() {
       await tester.pumpWidget(_wrap(adapter, now: now));
       await tester.pumpAndSettle();
 
-      // Two flexible routines is the case she reported: a gap between the
-      // rails would read as two loose cards again, which is the whole point
-      // of threading them.
-      final rails = find.byType(HomeRail);
-      expect(rails, findsNWidgets(2));
+      // Side by side, not stacked: two pills on one line is the whole point
+      // of the strip, and it's what keeps the section short.
+      final first = tester.getRect(find.text('Deep work'));
+      final second = tester.getRect(find.text('Read'));
+      expect(second.left, greaterThan(first.right));
+      expect(second.top, first.top);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('anytime today sets its heading on the paper', (tester) async {
+      final now = _fixedNow();
+      final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+      await _addRoutine(
+        adapter,
+        id: 'f1',
+        name: 'Deep work',
+        mode: ScheduleMode.flexible,
+        days: [_dayOfWeek(now)],
+      );
+
+      await tester.pumpWidget(_wrap(adapter, now: now));
+      await tester.pumpAndSettle();
+
+      // The heading is text, not a card. A Material inside the section would
+      // put a second box on screen next to the pills — the thing she asked
+      // to be rid of.
       expect(
-        tester.getRect(rails.at(0)).bottom,
-        tester.getRect(rails.at(1)).top,
+        find.descendant(
+          of: find.byKey(const Key('anytimeToday')),
+          matching: find.byType(HomeSectionToggle),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('anytimeToday')),
+          matching: find.byType(HomeRoutineRow),
+        ),
+        findsNothing,
       );
 
       await _disposeCleanly(tester);

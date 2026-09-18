@@ -739,11 +739,19 @@
   "@homeStart": {"description": "Starts a routine's timer from home."},
   "homeAnytimeToday": "Anytime today",
   "@homeAnytimeToday": {"description": "Home section for flexible routines, which have no start time."},
-  "homeAnytimeHide": "Hide",
-  "@homeAnytimeHide": {"description": "Collapses the Anytime today section."},
-  "homeAnytimeReady": "{count} ready",
-  "@homeAnytimeReady": {
-    "description": "Shown on the collapsed Anytime today section; selecting it expands the section.",
+  "homeAnytimeCountHide": "{count} · Hide",
+  "@homeAnytimeCountHide": {
+    "description": "Action on the open Anytime today heading; selecting it collapses the section.",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "homeAnytimeCountShow": "{count} · Show",
+  "@homeAnytimeCountShow": {
+    "description": "Action on the collapsed Anytime today heading; selecting it expands the section.",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "homeMinutesShort": "{count}m",
+  "@homeMinutesShort": {
+    "description": "How long a routine takes, on an Anytime today pill where there is no room for the word.",
     "placeholders": {"count": {"type": "int"}}
   },
   "homeStepsAndMinutes": "{steps, plural, =1{1 step} other{{steps} steps}} · {minutes} min",
