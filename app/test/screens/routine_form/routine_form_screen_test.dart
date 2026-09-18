@@ -379,7 +379,9 @@ void main() {
 
       expect(find.text(l10n.routineFormDaysRequired), findsNothing);
     });
+  });
 
+  group('Flexible has days but no start time', () {
     testWidgets(
       'saving a flexible routine with no days shows the days error and does not save',
       (tester) async {
@@ -434,9 +436,7 @@ void main() {
         expect(rows.single.scheduleStartTime, isNull);
       },
     );
-  });
 
-  group('Flexible has days but no start time', () {
     testWidgets('choosing Flexible still shows the day chips', (tester) async {
       final db = AppDatabase(NativeDatabase.memory());
       addTearDown(db.close);
