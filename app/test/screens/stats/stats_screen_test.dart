@@ -96,21 +96,21 @@ void main() {
   });
 
   group('hero finishing card', () {
-    testWidgets('fills with the accent container pair and shows the split '
+    testWidgets('names both halves of the bar and shows the split '
         'sentence', (tester) async {
       final stats = _statsWith(finished: 3, abandoned: 1, streak: 2);
       await _pump(tester, stats);
       final l10n = await _l10n();
 
-      final card = tester.widget<TintedCard>(find.byType(TintedCard));
-      final theme = AppTheme.light();
-      final colors = theme.extension<RoutineCardColors>()!;
-      expect(card.color, colors.fill);
-      expect(card.foregroundColor, colors.onFill);
-
       expect(find.text(l10n.statsCompletionFinished(3)), findsOneWidget);
       expect(find.text(l10n.statsCompletionOfTotal(4)), findsOneWidget);
       expect(find.text(l10n.statsStreak(2)), findsOneWidget);
+
+      // The pale half of the bar means runs that ended early. Unlabelled it
+      // reads as nothing at all, so the legend names both halves — and names
+      // the second one without scolding.
+      expect(find.text(l10n.statsCompletionFinishedLegend(3)), findsOneWidget);
+      expect(find.text(l10n.statsCompletionLeftEarly(1)), findsOneWidget);
     });
 
     testWidgets(
@@ -152,13 +152,23 @@ void main() {
       expect(progress.filled, 2);
     });
 
-    testWidgets('segments cap at 20 past a total of 20', (tester) async {
+    testWidgets('draws one segment per run up to 60', (tester) async {
       await _pump(tester, _statsWith(finished: 26, abandoned: 14));
       final progress = tester.widget<SegmentedProgress>(
         find.byType(SegmentedProgress),
       );
-      expect(progress.count, 20);
-      expect(progress.filled, 13);
+      // 40 runs, so the bar stays countable rather than merely proportional.
+      expect(progress.count, 40);
+      expect(progress.filled, 26);
+    });
+
+    testWidgets('segments cap at 60 past a total of 60', (tester) async {
+      await _pump(tester, _statsWith(finished: 60, abandoned: 40));
+      final progress = tester.widget<SegmentedProgress>(
+        find.byType(SegmentedProgress),
+      );
+      expect(progress.count, 60);
+      expect(progress.filled, 36);
     });
 
     testWidgets('guards against a zero total instead of throwing', (
@@ -176,9 +186,7 @@ void main() {
   });
 
   group('flat sections', () {
-    testWidgets('most-skipped renders dividers between rows only', (
-      tester,
-    ) async {
+    testWidgets('most-skipped names every step and its count', (tester) async {
       await _pump(
         tester,
         RoutineStatistics(
@@ -203,16 +211,11 @@ void main() {
       expect(find.text('Stretch'), findsOneWidget);
       expect(find.text('Journal'), findsOneWidget);
 
-      final skippedSection = find.ancestor(
-        of: find.text(l10n.statsSkippedTitle.toUpperCase()),
-        matching: find.byType(Column),
-      );
-      final dividers = find.descendant(
-        of: skippedSection.first,
-        matching: find.byType(Divider),
-      );
-      // Three rows: two dividers between them, none after the last.
-      expect(tester.widgetList(dividers).length, 2);
+      // Each skipped step carries its own count rather than sharing one
+      // scale the reader has to infer.
+      expect(find.text(l10n.statsSkippedCount(4)), findsOneWidget);
+      expect(find.text(l10n.statsSkippedCount(2)), findsOneWidget);
+      expect(find.text(l10n.statsSkippedCount(1)), findsOneWidget);
     });
 
     testWidgets('says nothing was skipped rather than showing an empty list', (
@@ -255,7 +258,42 @@ void main() {
       final l10n = await _l10n();
 
       expect(find.text(l10n.statsEstimateOver('8m')), findsOneWidget);
-      expect(find.text('18m / 10m'), findsOneWidget);
+      // The row says which way the step went, not two raw durations the
+      // reader has to subtract. A real minus sign for the other direction.
+      expect(find.text('+8m'), findsOneWidget);
+    });
+
+    testWidgets('a step that came in under reads as a minus', (tester) async {
+      await _pump(
+        tester,
+        const RoutineStatistics(
+          estimates: EstimateAccuracy(
+            estimated: Duration(minutes: 10),
+            actual: Duration(minutes: 7),
+            steps: [
+              StepEstimate(
+                stepId: 'a',
+                name: 'Water',
+                estimated: Duration(minutes: 10),
+                actual: Duration(minutes: 7),
+              ),
+            ],
+          ),
+          completion: CompletionRate(
+            finished: 1,
+            abandoned: 0,
+            currentStreakDays: 1,
+          ),
+          skipped: [],
+          startTimes: [],
+          hasData: true,
+        ),
+      );
+      final l10n = await _l10n();
+
+      expect(find.text(l10n.statsEstimateUnder('3m')), findsOneWidget);
+      // U+2212, not a hyphen: it has to read as a sign at a glance.
+      expect(find.text('\u22123m'), findsOneWidget);
     });
 
     testWidgets('labels start-time buckets by hour', (tester) async {

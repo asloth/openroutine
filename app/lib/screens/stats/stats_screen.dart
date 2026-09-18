@@ -8,6 +8,14 @@ import '../../state/stats_provider.dart';
 import '../../theme/theme.dart';
 import '../../widgets/mascot_slot.dart';
 import '../../widgets/tinted/tinted.dart';
+import '../routines_list/home/home_ink.dart';
+import '../routines_list/home/home_routine.dart' show HomeDot;
+
+/// Side padding, matching home.
+const _gutter = 22.0;
+
+/// Space between one section and the next.
+const _sectionGap = 26.0;
 
 /// What the app reports back about past runs.
 ///
@@ -16,9 +24,11 @@ import '../../widgets/tinted/tinted.dart';
 /// an error rate; runs finished, not runs failed. Nothing on this screen
 /// should scold.
 ///
+/// Laid out the way home is — a quiet heading on the paper over the thing it
+/// names — so the two destinations read as one app.
+///
 /// A destination root on the bottom nav, so there is no back target and no
-/// stock `AppBar` — a `PageHeader` carries the title instead, over the same
-/// tinted ground as the rest of the screen.
+/// stock `AppBar`.
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
 
@@ -40,7 +50,7 @@ class StatsScreen extends ConsumerWidget {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                padding: const EdgeInsets.fromLTRB(_gutter, 16, _gutter, 0),
                 child: PageHeader(title: l10n.statsTitle),
               ),
               Expanded(
@@ -115,28 +125,86 @@ class _Report extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return ListView(
       padding: EdgeInsets.fromLTRB(
-        16,
+        _gutter,
         AppSpacing.container,
-        16,
+        _gutter,
         MediaQuery.paddingOf(context).bottom + 32,
       ),
       children: [
-        _HeroCard(rate: stats.completion),
-        AppSpacing.gapContainer,
-        _EstimateSection(accuracy: stats.estimates),
-        AppSpacing.gapContainer,
-        _SkippedSection(skipped: stats.skipped),
-        AppSpacing.gapContainer,
-        _StartTimesSection(buckets: stats.startTimes),
+        _SectionLabel(l10n.statsCompletionTitle),
+        _FinishingCard(rate: stats.completion),
+        const SizedBox(height: _sectionGap),
+        _SectionLabel(l10n.statsEstimateTitle),
+        _EstimateBlock(accuracy: stats.estimates),
+        const SizedBox(height: _sectionGap),
+        _SectionLabel(l10n.statsSkippedTitle),
+        _SkippedBlock(skipped: stats.skipped),
+        const SizedBox(height: _sectionGap),
+        _SectionLabel(l10n.statsTimeTitle),
+        _StartTimesBlock(buckets: stats.startTimes),
       ],
+    );
+  }
+}
+
+/// A section's name, set on the paper rather than inside the thing it names.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        text.toUpperCase(),
+        style: HomeInk.label.copyWith(
+          fontSize: 11.5,
+          letterSpacing: 0.9,
+          color: HomeInk.of(context).muted(0.55),
+        ),
+      ),
+    );
+  }
+}
+
+/// A white card on the paper, the same one home uses.
+class _Card extends StatelessWidget {
+  const _Card({required this.child, this.padding, this.onKey});
+
+  final Widget child;
+  final EdgeInsets? padding;
+  final Key? onKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Material(
+      key: onKey,
+      color: ink.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        side: BorderSide(color: ink.hairline),
+      ),
+      child: Padding(
+        padding: padding ?? const EdgeInsets.fromLTRB(20, 20, 20, 18),
+        child: child,
+      ),
     );
   }
 }
 
 /// How many of `SegmentedProgress`'s segments to draw, and how many of those
 /// read as filled, for a `finished`-of-`total` completion rate.
+///
+/// One segment per run while that stays legible, so the bar is countable
+/// rather than merely proportional. Past 60 runs the segments would be
+/// thinner than the gaps between them, so it falls back to a scaled bar.
 ///
 /// Guarded against a zero total: the real aggregation service never reports
 /// `hasData: true` with a zero-total completion, but this screen doesn't
@@ -147,7 +215,7 @@ class _Report extends StatelessWidget {
   required int total,
 }) {
   if (total <= 0) return (0, 0);
-  final segments = total < 20 ? total : 20;
+  final segments = total <= 60 ? total : 60;
   final filled = (finished * segments / total).round();
   return (segments, filled);
 }
@@ -155,15 +223,16 @@ class _Report extends StatelessWidget {
 /// Finishing, as the hero: the number this screen exists to answer. The
 /// other three sections explain *why* it looks the way it does, so this one
 /// carries the visual weight.
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.rate});
+class _FinishingCard extends StatelessWidget {
+  const _FinishingCard({required this.rate});
 
   final CompletionRate rate;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colors = context.routineCardColors;
+    final ink = HomeInk.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final (segments, filled) = _heroSegments(
       finished: rate.finished,
       total: rate.total,
@@ -178,26 +247,15 @@ class _HeroCard extends StatelessWidget {
       container: true,
       label: sentence,
       child: ExcludeSemantics(
-        child: TintedCard(
-          key: const Key('statsHeroCard'),
-          color: colors.fill,
-          foregroundColor: colors.onFill,
-          borderRadius: AppRadius.heroBorder,
-          padding: const EdgeInsets.fromLTRB(22, 24, 24, 24),
+        child: _Card(
+          onKey: const Key('statsHeroCard'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.statsCompletionTitle.toUpperCase(),
-                style: AppTypography.sectionLabel.copyWith(
-                  color: colors.onFill.withValues(alpha: 0.8),
-                ),
-              ),
-              const SizedBox(height: 12),
               // A `Wrap`, not a `Row`: at the base text scale both pieces sit
               // on one baseline-aligned line, but a large accessibility text
               // scale can no longer fit "of N runs finished" beside a
-              // 64-point number, so the phrase drops to its own line instead
+              // 56-point number, so the phrase drops to its own line instead
               // of overflowing.
               Wrap(
                 crossAxisAlignment: WrapCrossAlignment.end,
@@ -206,38 +264,64 @@ class _HeroCard extends StatelessWidget {
                 children: [
                   Text(
                     l10n.statsCompletionFinished(rate.finished),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppTypography.display,
-                      fontSize: 64,
+                      fontSize: 56,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -1.5,
                       height: 1,
-                      fontFeatures: [FontFeature.tabularFigures()],
+                      color: ink.ink,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
-                  Text(
-                    l10n.statsCompletionOfTotal(rate.total),
-                    style: const TextStyle(
-                      fontFamily: AppTypography.display,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500,
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      l10n.statsCompletionOfTotal(rate.total),
+                      style: HomeInk.detail.copyWith(
+                        fontSize: 14.5,
+                        color: ink.muted(0.6),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.statsStreak(rate.currentStreakDays),
-                style: const TextStyle(
-                  fontFamily: AppTypography.body,
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 18),
               SegmentedProgress(
                 count: segments,
                 filled: filled,
-                color: colors.onFill,
+                color: scheme.secondary,
+              ),
+              const SizedBox(height: 14),
+              // The legend is what makes the bar readable: without it the
+              // pale half looks like nothing rather than like runs that
+              // ended early.
+              Wrap(
+                spacing: 16,
+                runSpacing: 6,
+                children: [
+                  _Swatch(
+                    color: scheme.secondary.withValues(alpha: 0.7),
+                    label: l10n.statsCompletionFinishedLegend(rate.finished),
+                  ),
+                  _Swatch(
+                    color: scheme.secondary.withValues(alpha: 0.15),
+                    label: l10n.statsCompletionLeftEarly(rate.abandoned),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Divider(height: 1, thickness: 1, color: ink.hairline),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const HomeDot(size: 7),
+                  const SizedBox(width: 9),
+                  Text(
+                    l10n.statsStreak(rate.currentStreakDays),
+                    style: HomeInk.title.copyWith(fontSize: 14.5),
+                  ),
+                ],
               ),
             ],
           ),
@@ -247,51 +331,35 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
-/// A `SectionLabel` over rows laid flat on the page, divided by a hairline
-/// between rows and no divider after the last one — the "flat on the page"
-/// treatment the three non-hero sections share, in place of a bounding card.
-class _FlatSection extends StatelessWidget {
-  const _FlatSection({required this.title, required this.rows});
+/// A small colour chip and the thing it stands for.
+class _Swatch extends StatelessWidget {
+  const _Swatch({required this.color, required this.label});
 
-  final String title;
-  final List<Widget> rows;
+  final Color color;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final divider = Divider(
-      height: 1,
-      thickness: 1,
-      color: Theme.of(context).colorScheme.outlineVariant,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SectionLabel(title),
-        AppSpacing.gapBase,
-        for (var i = 0; i < rows.length; i++) ...[
-          rows[i],
-          if (i != rows.length - 1) divider,
-        ],
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: const BorderRadius.all(Radius.circular(2)),
+          ),
+        ),
+        const SizedBox(width: 7),
+        Text(
+          label,
+          style: HomeInk.detail.copyWith(
+            fontSize: 12.5,
+            color: HomeInk.of(context).muted(0.6),
+          ),
+        ),
       ],
-    );
-  }
-}
-
-/// One 44px-tall, 8px-inset row inside a `_FlatSection`.
-class _FlatRow extends StatelessWidget {
-  const _FlatRow({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Align(alignment: Alignment.centerLeft, child: child),
-      ),
     );
   }
 }
@@ -300,30 +368,21 @@ class _FlatRow extends StatelessWidget {
 ///
 /// Phrased as a difference rather than an accuracy percentage: "eight minutes
 /// longer than estimated" is information, "62% accurate" is a grade.
-class _EstimateSection extends StatelessWidget {
-  const _EstimateSection({required this.accuracy});
+class _EstimateBlock extends StatelessWidget {
+  const _EstimateBlock({required this.accuracy});
 
   final EstimateAccuracy? accuracy;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final ink = HomeInk.of(context);
     final a = accuracy;
 
     if (a == null) {
-      return _FlatSection(
-        title: l10n.statsEstimateTitle,
-        rows: [
-          _FlatRow(
-            child: Text(
-              l10n.statsEstimateNone,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
+      return Text(
+        l10n.statsEstimateNone,
+        style: HomeInk.detail.copyWith(color: ink.muted(0.6)),
       );
     }
 
@@ -334,95 +393,226 @@ class _EstimateSection extends StatelessWidget {
         ? l10n.statsEstimateUnder(_short(difference.abs()))
         : l10n.statsEstimateOver(_short(difference));
 
-    return _FlatSection(
-      title: l10n.statsEstimateTitle,
-      rows: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            headline,
-            style: const TextStyle(
-              fontFamily: AppTypography.display,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+    final steps = a.steps.take(5).toList();
+    // Every bar is drawn against the worst overrun on screen, so the lengths
+    // stay comparable to each other rather than each filling its own row.
+    final widest = steps.fold(
+      0,
+      (m, s) =>
+          s.difference.inSeconds.abs() > m ? s.difference.inSeconds.abs() : m,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          headline,
+          style: TextStyle(
+            fontFamily: AppTypography.display,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            height: 1.2,
+            color: ink.ink,
           ),
         ),
-        for (final step in a.steps.take(5))
-          _FlatRow(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    step.name,
-                    style: theme.textTheme.bodyMedium,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Text(
-                  '${_short(step.actual)} / ${_short(step.estimated)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        const SizedBox(height: 14),
+        for (var i = 0; i < steps.length; i++) ...[
+          if (i > 0) Divider(height: 1, thickness: 1, color: ink.hairline),
+          _EstimateRow(step: steps[i], widest: widest),
+        ],
       ],
     );
   }
 }
 
-class _SkippedSection extends StatelessWidget {
-  const _SkippedSection({required this.skipped});
+class _EstimateRow extends StatelessWidget {
+  const _EstimateRow({required this.step, required this.widest});
+
+  final StepEstimate step;
+  final int widest;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final seconds = step.difference.inSeconds;
+    final over = seconds > 0;
+    final factor = widest == 0 ? 0.0 : seconds.abs() / widest;
+
+    return SizedBox(
+      height: 42,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              step.name,
+              style: HomeInk.detail.copyWith(fontSize: 14, color: ink.ink),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 96,
+            child: _DivergingBar(
+              factor: factor,
+              over: over,
+              overColor: scheme.tertiary,
+              underColor: scheme.secondary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 40,
+            child: Text(
+              // The sign is the point of the row, so it is always shown —
+              // "+6m" and "−1m", never a bare "6m" that reads the same
+              // either way. A real minus sign, not a hyphen.
+              '${over ? '+' : '−'}${_short(step.difference.abs())}',
+              textAlign: TextAlign.end,
+              style: HomeInk.detail.copyWith(
+                fontSize: 13,
+                color: ink.muted(0.6),
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A bar growing out of a centre line: right and warm when a step ran long,
+/// left and green when it came in under. The centre is what lets one glance
+/// separate the two, without reading a single number.
+class _DivergingBar extends StatelessWidget {
+  const _DivergingBar({
+    required this.factor,
+    required this.over,
+    required this.overColor,
+    required this.underColor,
+  });
+
+  final double factor;
+  final bool over;
+  final Color overColor;
+  final Color underColor;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget half(Alignment side, bool mine) => Expanded(
+      child: Align(
+        alignment: side,
+        child: FractionallySizedBox(
+          widthFactor: mine ? factor.clamp(0.0, 1.0) : 0.0,
+          child: Container(
+            height: 7,
+            decoration: BoxDecoration(
+              color: over ? overColor : underColor,
+              borderRadius: const BorderRadius.all(Radius.circular(3.5)),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return Row(
+      children: [
+        half(Alignment.centerRight, !over),
+        half(Alignment.centerLeft, over),
+      ],
+    );
+  }
+}
+
+/// The steps you skip most, each on its own card.
+class _SkippedBlock extends StatelessWidget {
+  const _SkippedBlock({required this.skipped});
 
   final List<SkippedStep> skipped;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final ink = HomeInk.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     if (skipped.isEmpty) {
-      return _FlatSection(
-        title: l10n.statsSkippedTitle,
-        rows: [
-          _FlatRow(
-            child: Text(
-              l10n.statsSkippedNone,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
+      return Text(
+        l10n.statsSkippedNone,
+        style: HomeInk.detail.copyWith(color: ink.muted(0.6)),
       );
     }
 
-    return _FlatSection(
-      title: l10n.statsSkippedTitle,
-      rows: [
-        for (final step in skipped.take(5))
-          _FlatRow(
+    final steps = skipped.take(5).toList();
+    final most = steps.fold(0, (m, s) => s.count > m ? s.count : m);
+
+    return Column(
+      children: [
+        for (var i = 0; i < steps.length; i++) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _Card(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                    step.name,
-                    style: theme.textTheme.bodyMedium,
+                    steps[i].name,
+                    style: HomeInk.title.copyWith(fontSize: 14.5),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 64,
+                  child: _TrackBar(
+                    factor: most == 0 ? 0 : steps[i].count / most,
+                    color: scheme.tertiary,
+                    track: ink.muted(0.1),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Text(
-                  l10n.statsSkippedCount(step.count),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  l10n.statsSkippedCount(steps[i].count),
+                  style: HomeInk.detail.copyWith(
+                    fontSize: 12.5,
+                    color: ink.muted(0.6),
                   ),
                 ),
               ],
             ),
           ),
+        ],
       ],
+    );
+  }
+}
+
+/// A bar filled from the left against a visible track.
+class _TrackBar extends StatelessWidget {
+  const _TrackBar({
+    required this.factor,
+    required this.color,
+    required this.track,
+  });
+
+  final double factor;
+  final Color color;
+  final Color track;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.all(Radius.circular(3.5)),
+      child: Container(
+        height: 7,
+        color: track,
+        child: FractionallySizedBox(
+          alignment: Alignment.centerLeft,
+          widthFactor: factor.clamp(0.0, 1.0),
+          child: Container(color: color),
+        ),
+      ),
     );
   }
 }
@@ -431,49 +621,69 @@ class _SkippedSection extends StatelessWidget {
 ///
 /// Painted with layout rather than a charting dependency: it is a row of
 /// proportional bars, which does not justify a package.
-class _StartTimesSection extends StatelessWidget {
-  const _StartTimesSection({required this.buckets});
+class _StartTimesBlock extends StatelessWidget {
+  const _StartTimesBlock({required this.buckets});
 
   final List<HourBucket> buckets;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final ink = HomeInk.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final busiest = buckets.fold(0, (m, b) => b.runs > m ? b.runs : m);
 
-    return _FlatSection(
-      title: l10n.statsTimeTitle,
-      rows: [
+    return Column(
+      children: [
         for (final bucket in buckets)
-          _FlatRow(
+          SizedBox(
+            height: 34,
             child: Row(
               children: [
                 SizedBox(
-                  width: 44,
+                  width: 46,
                   child: Text(
                     l10n.statsTimeHour(bucket.hour.toString().padLeft(2, '0')),
-                    style: TextStyle(
-                      fontFamily: AppTypography.body,
-                      fontSize: 14,
-                      color: theme.colorScheme.onSurfaceVariant,
+                    style: HomeInk.detail.copyWith(
+                      fontSize: 12.5,
+                      color: ink.muted(0.55),
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Container(
-                      height: 8,
-                      color: theme.colorScheme.surfaceContainer,
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: busiest == 0 ? 0 : bucket.runs / busiest,
-                        child: Container(color: theme.colorScheme.primary),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: bucket.runs,
+                        child: Container(
+                          height: 9,
+                          decoration: BoxDecoration(
+                            // The busiest hour wears the full colour and the
+                            // rest a wash of it: the shape already says which
+                            // is longest, the tint says it is the answer.
+                            color: bucket.runs == busiest
+                                ? scheme.secondary
+                                : scheme.secondary.withValues(alpha: 0.3),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(4.5),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 9),
+                      Text(
+                        '${bucket.runs}',
+                        style: HomeInk.detail.copyWith(
+                          fontSize: 12.5,
+                          color: ink.muted(0.6),
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      if (busiest > bucket.runs)
+                        Spacer(flex: busiest - bucket.runs),
+                    ],
                   ),
                 ),
               ],

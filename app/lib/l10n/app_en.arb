@@ -266,6 +266,16 @@
     "description": "Trailing phrase next to the finished-run count in the hero finishing card.",
     "placeholders": {"total": {"type": "int"}}
   },
+  "statsCompletionFinishedLegend": "{count} finished",
+  "@statsCompletionFinishedLegend": {
+    "description": "Legend for the filled part of the finishing bar.",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "statsCompletionLeftEarly": "{count} left early",
+  "@statsCompletionLeftEarly": {
+    "description": "Legend for the pale part of the finishing bar. Never 'abandoned' or 'failed' — nothing on this screen scolds.",
+    "placeholders": {"count": {"type": "int"}}
+  },
   "statsStreak": "{days, plural, =0{No current streak} =1{1 day in a row} other{{days} days in a row}}",
   "@statsStreak": {
     "description": "Consecutive days with at least one finished run.",
