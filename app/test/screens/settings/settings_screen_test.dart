@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/screens/settings/settings_screen.dart';
 import 'package:openroutine/state/app_prefs_provider.dart';
+import 'package:openroutine/widgets/tinted/soft_back_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Settings › Appearance used to show two pickers: a background palette
@@ -26,6 +27,18 @@ Future<void> _pump(WidgetTester tester, SharedPreferences prefs) {
 }
 
 void main() {
+  testWidgets('the app bar leads with a SoftBackButton, not the stock arrow', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    await _pump(tester, prefs);
+
+    expect(find.byType(SoftBackButton), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+    expect(find.byIcon(Icons.arrow_back_ios), findsNothing);
+  });
+
   testWidgets(
     'Appearance shows the accent picker and no theme picker or custom swatch',
     (tester) async {

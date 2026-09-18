@@ -9,6 +9,7 @@ import '../../services/schema_version.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../theme/theme.dart';
+import '../../widgets/tinted/soft_back_button.dart';
 
 /// docs/SPEC.md §7 screen 8 / §10: file picker → validate against
 /// schemas/*.json → preview (X to add / Y to update) → confirm. §10 only
@@ -95,7 +96,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.importTitle)),
+      appBar: AppBar(
+        leading: SoftBackButton.asAppBarLeading(),
+        leadingWidth: SoftBackButton.appBarLeadingWidth,
+        title: Text(l10n.importTitle),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
