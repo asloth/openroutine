@@ -59,20 +59,22 @@ The chain goes away. A new routine pops back to wherever you started, which is u
 
 *Alternative considered:* replacing the form with the new routine's detail. That was rejected because you've already seen every step on the form, and Detail would show the same steps back to you.
 
+### Backing out of unsaved changes asks first
+
+When the draft differs from what's stored, or from an empty form for a new routine, a `PopScope` asks "Discard this routine?" before it closes. The dialog has **Keep editing** and **Discard**. It needs new strings in both ARB files.
+
+*Rationale:* before this change, the routine was on disk after the first Save. Now one swipe back would throw away every step you typed.
+
 ## Delivery
 
 Each part fits under 400 lines. The storage lands first, apart from the UI, following the pattern in `5ef5b2a`:
 
 1. **2a, storage:** `saveRoutineWithSteps` on both adapters, with unit tests for the transaction, soft deletes, and a failure that rolls everything back.
 2. **2b, step form draft mode:** the route, returning a step instead of writing it, and widget tests.
-3. **2c, the form:** the draft list, Add, reorder, and remove, the one-step rule, the label, the diff on Save, and dropping the chain.
+3. **2c, the form:** the draft list, Add, reorder, and remove, the one-step rule, the label, the diff on Save, the discard prompt, and dropping the chain.
 
 ## Risks / Trade-offs
 
-**Backing out now throws away more work.** Before, the routine was on disk after the first Save. Now five typed steps disappear with one swipe back. → See the open question below.
+**Backing out now throws away more work.** Before, the routine was on disk after the first Save. → The discard prompt above covers it.
 
 **Two doors to the same steps.** Routine Detail still edits steps directly. If the form is open for a routine while Detail changes it, the form's Save wins. That can't happen today, because both screens can't be open on the same routine at once, but it's worth knowing before either screen changes.
-
-## Open questions
-
-- **Confirm before discarding a draft?** A `PopScope` that asks "Discard this routine?" when the draft has unsaved changes. It's cheap, and it needs two new strings in both ARB files. It's recommended, but it isn't in the proposal.

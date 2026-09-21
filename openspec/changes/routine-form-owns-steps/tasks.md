@@ -12,9 +12,10 @@
 ## Slice 2 — steps on the form
 
 - [ ] Hold draft steps in the form; assign the routine id up front.
-- [ ] Give the step form a draft mode that pops a step instead of saving it.
+- [x] Give the step form a draft mode that pops a step instead of saving it.
 - [ ] Inline Add step, reorder and remove.
 - [ ] Block Save until there is at least one step.
 - [ ] Button reads "Save · N steps, M min".
-- [ ] Write the routine and its steps together; drop the post-save chain.
+- [ ] Write the routine and its steps together; drop the post-save chain. (Storage: done in 2a.)
+- [ ] Ask "Discard this routine?" before backing out of unsaved changes.
 - [ ] Editing diffs against what is stored: add, update, delete, reorder.
