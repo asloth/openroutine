@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Brightness, ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/models/routine.dart';
@@ -10,6 +11,7 @@ import 'package:openroutine/services/home_widget/home_widget_publisher.dart';
 import 'package:openroutine/state/app_prefs_provider.dart';
 import 'package:openroutine/state/home_widget_provider.dart';
 import 'package:openroutine/state/routines_provider.dart';
+import 'package:openroutine/theme/palette.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeSink implements HomeWidgetSink {
@@ -114,6 +116,25 @@ void main() {
     expect(
       (_payload(sink.saved.single)['strings'] as Map<String, dynamic>)['empty'],
       'Todavía no hay rutinas',
+    );
+  });
+
+  test('republishes in the new colors when you change the accent', () async {
+    final (container, sink) = await _boot(Stream.value([_routine('Morning')]));
+    await _publishes(sink, 1);
+
+    final palette = Palette.builtIns.last;
+    await container.read(accentSettingProvider.notifier).setAccent(palette);
+    await container
+        .read(themeModeSettingProvider.notifier)
+        .setMode(ThemeMode.light);
+    await _publishes(sink, 2);
+
+    final theme = _payload(sink.saved.last)['theme'] as Map<String, dynamic>;
+    expect(theme['mode'], 'light');
+    expect(
+      (theme['light'] as Map<String, dynamic>)['accent'],
+      palette.scheme(Brightness.light).primary.toARGB32(),
     );
   });
 }

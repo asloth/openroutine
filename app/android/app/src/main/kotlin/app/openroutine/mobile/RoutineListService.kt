@@ -18,12 +18,15 @@ class RoutineListService : RemoteViewsService() {
 class RoutineListFactory(private val context: Context) : RemoteViewsService.RemoteViewsFactory {
 
   private var rows: List<RoutineRow> = emptyList()
+  private var colors: WidgetColors? = null
 
   override fun onCreate() = Unit
 
   /** Called on every `notifyAppWidgetViewDataChanged`, which is every publish. */
   override fun onDataSetChanged() {
-    rows = RoutineSnapshot.read(context, HomeWidgetPlugin.getData(context)).routines
+    val snapshot = RoutineSnapshot.read(context, HomeWidgetPlugin.getData(context))
+    rows = snapshot.routines
+    colors = snapshot.colors
   }
 
   override fun onDestroy() {
@@ -38,6 +41,18 @@ class RoutineListFactory(private val context: Context) : RemoteViewsService.Remo
       setTextViewText(R.id.row_time, formatStartTime(row.startTime))
       setTextViewText(R.id.row_name, row.name)
       setTextViewText(R.id.row_steps, row.steps)
+      // The divider sits under each row rather than on the ListView, which
+      // can't be recolored remotely.
+      setViewVisibility(
+          R.id.row_divider,
+          if (position == rows.lastIndex) android.view.View.GONE else android.view.View.VISIBLE,
+      )
+      colors?.let { colors ->
+        colors.apply(context, this, R.id.row_time, "setTextColor") { it.accent }
+        colors.apply(context, this, R.id.row_name, "setTextColor") { it.onSurface }
+        colors.apply(context, this, R.id.row_steps, "setTextColor") { it.onSurfaceVariant }
+        colors.apply(context, this, R.id.row_divider, "setBackgroundColor") { it.divider }
+      }
       // Only the routine differs per row; the provider's template holds the
       // action and the target activity.
       setOnClickFillInIntent(
