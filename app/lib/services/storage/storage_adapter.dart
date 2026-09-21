@@ -23,6 +23,15 @@ abstract class StorageAdapter {
   Future<void> saveRoutine(Routine routine);
   Future<void> saveStep(RoutineStep step);
 
+  /// Writes [routine], [steps], and the soft deletes in [removedStepIds] in
+  /// one transaction: all of it lands, or none of it does. Every step must
+  /// belong to [routine]. Like [saveRoutine], it doesn't bump `updatedAt`.
+  Future<void> saveRoutineWithSteps(
+    Routine routine,
+    List<RoutineStep> steps, {
+    Set<String> removedStepIds = const {},
+  });
+
   Future<void> reorderSteps(
     String routineId,
     List<String> orderedStepIds, {

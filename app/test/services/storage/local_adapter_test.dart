@@ -398,6 +398,47 @@ void main() {
     });
   });
 
+  group('saveRoutineWithSteps', () {
+    test('writes a new routine and its steps together', () async {
+      await adapter.saveRoutineWithSteps(_routine(), [
+        _step(id: 's1', order: 0),
+        _step(id: 's2', order: 1, name: 'Wash face'),
+      ]);
+
+      final steps = await adapter.getSteps('r1');
+      expect(steps.map((s) => s.id), ['s1', 's2']);
+      expect((await adapter.getRoutine('r1'))?.stepIds, ['s1', 's2']);
+    });
+
+    test('soft-deletes the removed steps and leaves the rest', () async {
+      await adapter.saveRoutine(_routine());
+      await adapter.saveStep(_step(id: 's1', order: 0));
+      await adapter.saveStep(_step(id: 's2', order: 1));
+
+      await adapter.saveRoutineWithSteps(
+        _routine(name: 'Mornings'),
+        [_step(id: 's3', order: 1, name: 'Stretch')],
+        removedStepIds: {'s2'},
+      );
+
+      expect((await adapter.getRoutine('r1'))?.name, 'Mornings');
+      expect((await adapter.getSteps('r1')).map((s) => s.id), ['s1', 's3']);
+    });
+
+    test('writes nothing when a step belongs to another routine', () async {
+      await expectLater(
+        adapter.saveRoutineWithSteps(_routine(), [
+          _step(id: 's1', order: 0),
+          _step(id: 's2', order: 1, routineId: 'other'),
+        ]),
+        throwsArgumentError,
+      );
+
+      expect(await adapter.getRoutine('r1'), isNull);
+      expect(await adapter.getSteps('r1'), isEmpty);
+    });
+  });
+
   group('soft delete', () {
     test(
       'deleteRoutine hides it from getRoutine/watchRoutines but does not remove the row',

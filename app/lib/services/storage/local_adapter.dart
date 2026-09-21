@@ -96,6 +96,30 @@ class LocalAdapter implements StorageAdapter {
   }
 
   @override
+  Future<void> saveRoutineWithSteps(
+    Routine routine,
+    List<RoutineStep> steps, {
+    Set<String> removedStepIds = const {},
+  }) {
+    return _db.transaction(() async {
+      await saveRoutine(routine);
+      for (final step in steps) {
+        if (step.routineId != routine.id) {
+          throw ArgumentError.value(
+            step.routineId,
+            'steps',
+            'Step ${step.id} belongs to another routine',
+          );
+        }
+        await saveStep(step);
+      }
+      for (final id in removedStepIds) {
+        await deleteStep(id);
+      }
+    });
+  }
+
+  @override
   Future<void> reorderSteps(
     String routineId,
     List<String> orderedStepIds, {

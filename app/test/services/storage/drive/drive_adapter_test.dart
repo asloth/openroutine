@@ -35,6 +35,32 @@ RoutineStep _step(String id, int order, {DateTime? deletedAt}) => RoutineStep(
 );
 
 void main() {
+  test(
+    'saveRoutineWithSteps marks routines dirty and notifies exactly once',
+    () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final local = LocalAdapter(db);
+      final queue = SyncQueue(db);
+      var localChanges = 0;
+      final adapter = DriveAdapter(
+        local: local,
+        queue: queue,
+        onLocalChange: () => localChanges++,
+      );
+
+      await adapter.saveRoutineWithSteps(_routine(), [
+        _step('s1', 0),
+        _step('s2', 1),
+      ]);
+
+      expect(queue.routinesGeneration, 1);
+      expect(await queue.routinesDirty, isTrue);
+      expect(localChanges, 1);
+      expect((await local.getSteps('r1')).map((s) => s.id), ['s1', 's2']);
+    },
+  );
+
   test('reorder marks routines dirty and notifies exactly once', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
