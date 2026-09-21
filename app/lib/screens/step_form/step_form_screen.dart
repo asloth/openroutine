@@ -12,6 +12,7 @@ import '../../state/reference_data_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../widgets/tinted/soft_back_button.dart';
+import '../../widgets/tinted/soft_circle_button.dart';
 
 /// docs/SPEC.md §7 screens 5 (Add step) and 6 (Edit step), combined into one
 /// screen: the same form serves both, with a template picker shown only
@@ -277,23 +278,21 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
           _isEditing ? l10n.stepFormEditTitle : l10n.stepFormAddTitle,
         ),
         actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
+          if (_isEditing) ...[
+            SoftCircleButton(
+              icon: Icons.delete_outline,
               tooltip: l10n.commonDelete,
               onPressed: _delete,
             ),
-          IconButton(
-            onPressed: _saving ? null : _save,
-            icon: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check),
+            const SizedBox(width: 8),
+          ],
+          SoftCircleButton(
+            icon: Icons.check,
             tooltip: l10n.commonSave,
+            style: SoftCircleButtonStyle.accent,
+            onPressed: _saving ? null : _save,
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Form(
