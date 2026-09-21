@@ -13,6 +13,7 @@ import 'package:openroutine/services/storage/drift/app_database.dart'
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/widgets/tinted/soft_back_button.dart';
+import 'package:openroutine/widgets/tinted/soft_circle_button.dart';
 
 final _now = DateTime.utc(2026, 8, 27);
 
@@ -111,6 +112,39 @@ void main() {
     // The step form's own actions — save and delete — don't move.
     expect(find.byIcon(Icons.check), findsOneWidget);
     expect(find.byTooltip(l10n.commonDelete), findsOneWidget);
+  });
+
+  testWidgets('edit mode app bar uses SoftCircleButton actions', (
+    tester,
+  ) async {
+    await adapter.saveStep(_step('s4', 3, isCore: false));
+
+    final l10n = await pumpForm(tester, '/step');
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is SoftCircleButton && widget.tooltip == l10n.commonSave,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is SoftCircleButton && widget.tooltip == l10n.commonDelete,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is IconButton &&
+            widget.icon is Icon &&
+            ((widget.icon as Icon).icon == Icons.check ||
+                (widget.icon as Icon).icon == Icons.delete_outline),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('a fourth essential step can be saved and read from storage', (
