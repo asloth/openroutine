@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/screens/settings/settings_screen.dart';
 import 'package:openroutine/state/app_prefs_provider.dart';
+import 'package:openroutine/state/sync_provider.dart';
 import 'package:openroutine/widgets/tinted/soft_back_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,10 +14,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// renders the accent picker's own title and helper and nothing shaped like
 /// the old palette picker (no "Custom" swatch, no second "{name} selected"
 /// caption).
-Future<void> _pump(WidgetTester tester, SharedPreferences prefs) {
+class _FixedSync extends SyncController {
+  _FixedSync(this._snapshot);
+
+  final SyncSnapshot _snapshot;
+
+  @override
+  SyncSnapshot build() => _snapshot;
+}
+
+Future<void> _pump(
+  WidgetTester tester,
+  SharedPreferences prefs, {
+  SyncSnapshot? sync,
+}) {
   return tester.pumpWidget(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        if (sync != null) ...[
+          // The Drive section only renders when a build has OAuth ids, and a
+          // test build never does.
+          driveAvailableProvider.overrideWithValue(true),
+          syncControllerProvider.overrideWith(() => _FixedSync(sync)),
+        ],
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -105,4 +127,26 @@ void main() {
       expect(find.text(l10n.settingsThemeSystem), findsNothing);
     },
   );
+
+  testWidgets('a duplicate Drive folder is named as the reason sync stopped', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // The sync row belongs to Drive mode, so the status has somewhere to show.
+    SharedPreferences.setMockInitialValues({'storage_mode': 'drive'});
+    final prefs = await SharedPreferences.getInstance();
+    await _pump(
+      tester,
+      prefs,
+      sync: const SyncSnapshot(status: SyncStatus.ambiguousFolder),
+    );
+
+    final context = tester.element(find.byType(SettingsScreen));
+    final l10n = AppLocalizations.of(context)!;
+    expect(find.text(l10n.syncStatusAmbiguousFolder), findsOneWidget);
+  });
 }

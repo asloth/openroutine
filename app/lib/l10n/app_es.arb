@@ -388,6 +388,7 @@
   "syncStatusPending": "Hay cambios sin sincronizar",
   "syncStatusNeedsReauth": "Toca para reconectar Google Drive",
   "syncStatusNewerSchema": "Tu carpeta de Drive necesita una versión más reciente de OpenRoutine. Los cambios se quedan en este dispositivo hasta que actualices.",
+  "syncStatusAmbiguousFolder": "Hay más de una carpeta llamada OpenRoutine en tu Drive. Quita la que sobra y sincroniza otra vez.",
   "syncStatusError": "Falló la sincronización — se reintenta",
   "syncLastSynced": "Última sincronización: {time}",
   "@syncLastSynced": {

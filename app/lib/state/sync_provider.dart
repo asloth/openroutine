@@ -33,6 +33,7 @@ enum SyncStatus {
   offline,
   needsReauth,
   remoteSchemaNewer,
+  ambiguousFolder,
   error,
   disconnected,
 }
@@ -185,6 +186,11 @@ class SyncController extends _$SyncController {
         // app is updated, never on a timer. pendingChanges is left as it is —
         // the edits really are still waiting, and saying so is the point.
         state = state.copyWith(status: SyncStatus.remoteSchemaNewer);
+      case SyncOutcome.ambiguousFolder:
+        // No retry, for the same reason as remoteSchemaNewer: the duplicate
+        // folder is still there on the next run, and only the user can clear
+        // it. Pending changes stay pending and go up once it's gone.
+        state = state.copyWith(status: SyncStatus.ambiguousFolder);
       case SyncOutcome.needsReauth:
         // No retry on purpose: the grant will not come back on its own, and a
         // timer would only spend battery rediscovering that.

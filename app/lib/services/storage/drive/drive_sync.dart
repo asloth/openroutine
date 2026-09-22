@@ -17,7 +17,14 @@ import 'sync_queue.dart';
 /// this, so `offline`, `needsReauth` and `remoteSchemaNewer` are first-class
 /// results rather than flavours of failure — none of them is something the
 /// user did wrong, and only one of them is worth retrying on a timer.
-enum SyncOutcome { synced, offline, needsReauth, remoteSchemaNewer, failed }
+enum SyncOutcome {
+  synced,
+  offline,
+  needsReauth,
+  remoteSchemaNewer,
+  ambiguousFolder,
+  failed,
+}
 
 /// Reconciles the local drift database with the `OpenRoutine` folder in the
 /// user's Drive (docs/SPEC.md §5).
@@ -117,6 +124,15 @@ class DriveSync {
         return SyncOutcome.failed;
       }
       return _refuseToWrite(e.version);
+    } on DriveAmbiguousDiscovery catch (e) {
+      // Two folders carry the app's name, and nothing here can tell which one
+      // holds their routines. Recorded like a newer remote schema rather than
+      // as a retryable failure: only the user can clear this, so a timer would
+      // spend battery rediscovering the same answer.
+      await _queue.recordUnwritableRemote(
+        'More than one folder in Drive is named ${e.name}',
+      );
+      return SyncOutcome.ambiguousFolder;
     } on DriveAuthExpired catch (e) {
       await _queue.recordAuthExpired(e.toString());
       return SyncOutcome.needsReauth;

@@ -9,12 +9,12 @@
 
 ## 2. Ambiguous Drive folder
 
-- [ ] 2.1 Add a test using the fake Drive client with two folders named `OpenRoutine`, asserting `sync()` returns `SyncOutcome.ambiguousFolder`, and verify it fails with an uncaught `DriveAmbiguousDiscovery`
-- [ ] 2.2 Add `SyncOutcome.ambiguousFolder`, catch `DriveAmbiguousDiscovery` in `DriveSync._run`, record it through `recordUnwritableRemote`, and verify 2.1 passes
-- [ ] 2.3 Add a test asserting the run records a failure the queue reports and schedules no retry, and verify it passes
-- [ ] 2.4 Add `SyncStatus.ambiguousFolder`, map the outcome in `SyncController.syncNow` without scheduling a retry, and verify the analyzer reports no unhandled switch case
-- [ ] 2.5 Add `syncStatusAmbiguousFolder` to `app_en.arb` and `app_es.arb`, naming the duplicate folder as the cause and removing it as the fix
-- [ ] 2.6 Add a widget test asserting Settings shows that message for the new status, and verify it passes
+- [x] 2.1 Add a test using the fake Drive client with two folders named `OpenRoutine`, asserting `sync()` returns `SyncOutcome.ambiguousFolder`, and verify it fails with an uncaught `DriveAmbiguousDiscovery`
+- [x] 2.2 Add `SyncOutcome.ambiguousFolder`, catch `DriveAmbiguousDiscovery` in `DriveSync._run`, record it through `recordUnwritableRemote`, and verify 2.1 passes
+- [x] 2.3 Add a test asserting the run records a failure the queue reports and schedules no retry, and verify it passes
+- [x] 2.4 Add `SyncStatus.ambiguousFolder`, map the outcome in `SyncController.syncNow` without scheduling a retry, and verify the analyzer reports no unhandled switch case
+- [x] 2.5 Add `syncStatusAmbiguousFolder` to `app_en.arb` and `app_es.arb`, naming the duplicate folder as the cause and removing it as the fix
+- [x] 2.6 Add a widget test asserting Settings shows that message for the new status, and verify it passes
 
 ## 3. Escaping and sanitizing
 

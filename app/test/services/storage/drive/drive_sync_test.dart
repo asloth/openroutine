@@ -721,4 +721,43 @@ void main() {
       expect(ids, containsAll(['c-first', 'c-during-upload']));
     });
   });
+
+  group('two folders share the app name', () {
+    test('sync stops on its own outcome instead of throwing', () async {
+      // A copy of the folder inside Drive is enough. Discovery can't tell
+      // which one is theirs, and neither can the app.
+      api.seed(path: DriveLayout.routinesFile, content: _remoteBundle([]));
+      api.seedFolder(DriveLayout.folderName);
+      await local.saveRoutine(_routine());
+      await queue.markRoutinesDirty();
+
+      expect(await sync.sync(), SyncOutcome.ambiguousFolder);
+    });
+
+    test('records the duplicate without accumulating backoff', () async {
+      api.seedFolder(DriveLayout.folderName);
+      await queue.markRoutinesDirty();
+
+      await sync.sync();
+
+      expect(await queue.lastError, contains(DriveLayout.folderName));
+      // Like a newer remote schema: no timer clears a duplicate folder, so
+      // the queue must not back off against it.
+      expect(queue.backoff, Duration.zero);
+      expect(api.uploads, isEmpty);
+      expect(await queue.routinesDirty, isTrue);
+    });
+
+    test('uploads what was waiting once the duplicate is gone', () async {
+      api.seedFolder(DriveLayout.folderName);
+      await local.saveRoutine(_routine());
+      await queue.markRoutinesDirty();
+      expect(await sync.sync(), SyncOutcome.ambiguousFolder);
+
+      api.removeFolders(DriveLayout.folderName, keep: 1);
+
+      expect(await sync.sync(), SyncOutcome.synced);
+      expect(await queue.routinesDirty, isFalse);
+    });
+  });
 }
