@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
 import 'services/app_prefs.dart';
 import 'services/home_widget/widget_launch.dart';
+import 'services/notifications/notification_launch.dart';
 import 'screens/import/import_screen.dart';
 import 'screens/stats/stats_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
@@ -289,7 +290,7 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
     // Tapping a routine reminder should land on that routine. The service
     // cannot know about routing, so the wiring happens here, where both exist.
     ref.read(notificationServiceProvider).onOpenRoutine = (routineId) =>
-        router.go('/routines/$routineId');
+        router.go(routineNotificationRoute(routineId));
     // Keeps the home screen widget in step with the routine list for the whole
     // session. Watched here rather than from the routines list because a Drive
     // sync can change the list while any screen is on top — or none.

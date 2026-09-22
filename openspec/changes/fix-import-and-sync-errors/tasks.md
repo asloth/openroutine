@@ -18,14 +18,14 @@
 
 ## 3. Escaping and sanitizing
 
-- [ ] 3.1 Add a test asserting a notification payload containing a path separator routes to an escaped segment, and verify it fails
-- [ ] 3.2 Escape the payload with `Uri.encodeComponent` where the route is built in `main.dart`, and verify 3.1 passes
-- [ ] 3.3 Add a test asserting an exported file name drops characters a file name can't carry while keeping the readable part, and verify it fails
-- [ ] 3.4 Sanitize the routine name in `ExportService.exportRoutine`, and verify 3.3 passes
+- [x] 3.1 Add a test asserting a notification payload containing a path separator routes to an escaped segment, and verify it fails
+- [x] 3.2 Escape the payload with `Uri.encodeComponent` where the route is built in `main.dart`, and verify 3.1 passes
+- [x] 3.3 Add a test asserting an exported file name drops characters a file name can't carry while keeping the readable part, and verify it fails
+- [x] 3.4 Sanitize the routine name in `ExportService.exportRoutine`, and verify 3.3 passes
 
 ## 4. Verification
 
-- [ ] 4.1 Run `/home/sabera/fvm/bin/fvm flutter analyze --fatal-infos` from `app/` and verify no issues
-- [ ] 4.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes at or above the current 594 baseline
-- [ ] 4.3 Run `openspec validate fix-import-and-sync-errors --type change --strict` and verify it passes
-- [ ] 4.4 Verify the diff stays within the 400-line review budget
+- [x] 4.1 Run `/home/sabera/fvm/bin/fvm flutter analyze --fatal-infos` from `app/` and verify no issues
+- [x] 4.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes at or above the current 604 baseline (618 after this change)
+- [x] 4.3 Run `openspec validate fix-import-and-sync-errors --type change --strict` and verify it passes
+- [x] 4.4 Verify the diff stays within the 400-line review budget
