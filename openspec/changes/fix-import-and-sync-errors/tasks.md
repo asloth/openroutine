@@ -1,10 +1,11 @@
 ## 1. Import validation
 
-- [ ] 1.1 Add a unit test importing a bundle whose `exported_at` is `"yesterday"`, asserting it throws `ImportException` with `schemaViolation`, and verify it fails with a raw `FormatException`
-- [ ] 1.2 Pass `validateFormats: true` to `_exportSchema.validate` in `SchemaValidator.validateExportBundle`, and verify 1.1 passes
-- [ ] 1.3 Add a unit test asserting a bundle produced by `ExportService` still validates, and verify it passes
-- [ ] 1.4 Add a unit test covering a value that passes the schema but defeats the models, asserting `ImportException`, and verify it fails
-- [ ] 1.5 Wrap `ExportBundle.fromJson` in `ImportService.validateJsonString`, mapping `FormatException` and `ArgumentError` to `ImportException(schemaViolation)`, and verify 1.4 passes
+- [x] 1.1 Add a unit test importing a bundle whose `exported_at` is `"yesterday"`, asserting it throws `ImportException` with `schemaViolation`, and verify it fails with a raw `FormatException`
+- [x] 1.2 Pass `validateFormats: true` to `_exportSchema.validate` in `SchemaValidator.validateExportBundle`, and verify 1.1 passes
+- [x] 1.2a Override the `uuid` format with a check that accepts v7, because json_schema's own regex stops at version 5 and rejects every id this app writes, and add tests pinning both the acceptance and the rejection
+- [x] 1.3 Add a unit test asserting a bundle produced by `ExportService` still validates, and verify it passes
+- [x] 1.4 Add a unit test covering a value that passes the schema but defeats the models, asserting `ImportException`, and verify it fails
+- [x] 1.5 Wrap `ExportBundle.fromJson` in `ImportService.validateJsonString`, mapping `FormatException` and `ArgumentError` to `ImportException(schemaViolation)`, and verify 1.4 passes
 
 ## 2. Ambiguous Drive folder
 

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:json_schema/json_schema.dart';
 
@@ -22,6 +23,13 @@ class SchemaValidationException implements Exception {
 class SchemaValidator {
   SchemaValidator._(this._exportSchema);
 
+  /// Lets a test stand in a schema of its own — a permissive one, to reach
+  /// the parse boundary behind this validator without hand-crafting data
+  /// that defeats the real schema.
+  @visibleForTesting
+  SchemaValidator.forTesting(JsonSchema exportSchema)
+    : _exportSchema = exportSchema;
+
   final JsonSchema _exportSchema;
 
   static const _schemaAssets = {
@@ -38,6 +46,25 @@ class SchemaValidator {
   static const _exportSchemaId =
       'https://openroutine.app/schemas/v2/export.schema.json';
 
+  /// json_schema's own `uuid` check predates RFC 9562: its regex accepts
+  /// versions 0-5, so it rejects every v7 id this app writes. The schemas
+  /// already pin v7 with a `pattern`, so this keeps `format: uuid` meaning
+  /// "shaped like a UUID" and leaves the version to that pattern.
+  static final _uuidShape = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'
+    r'[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
+  static ValidationContext _validateUuid(
+    ValidationContext context,
+    String instanceData,
+  ) {
+    if (!_uuidShape.hasMatch(instanceData)) {
+      context.addError('"uuid" format not accepted $instanceData');
+    }
+    return context;
+  }
+
   static Future<SchemaValidator> load() async {
     final schemasById = <String, Map<String, dynamic>>{};
     for (final entry in _schemaAssets.entries) {
@@ -47,6 +74,7 @@ class SchemaValidator {
     final exportSchema = await JsonSchema.createAsync(
       schemasById[_exportSchemaId]!,
       refProvider: RefProvider.async((ref) async => schemasById[ref]),
+      customFormats: {'uuid': _validateUuid},
     );
     return SchemaValidator._(exportSchema);
   }
@@ -56,7 +84,10 @@ class SchemaValidator {
   /// other than an actual schema mismatch — callers should catch this and
   /// show the user an error, not let it crash the app.
   void validateExportBundle(Map<String, dynamic> json) {
-    final result = _exportSchema.validate(json);
+    // The schemas declare draft 2020-12, where json_schema leaves `format`
+    // unchecked unless you ask. Without this, a `date-time` that isn't one
+    // passes validation and fails later, in the models, as a raw exception.
+    final result = _exportSchema.validate(json, validateFormats: true);
     if (!result.isValid) {
       throw SchemaValidationException(
         result.errors.map((e) => e.message).toList(),

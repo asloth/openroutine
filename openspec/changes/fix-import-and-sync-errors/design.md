@@ -26,6 +26,14 @@ See `proposal.md` — Why. Both defects share a shape: an exception type that no
 
 *Alternative considered:* adding `pattern` constraints for timestamps next to the existing UUID patterns. Rejected for now: it duplicates in a regex what `format: date-time` already says, in both copies of five files. Worth revisiting only if a second client needs the constraint expressed without format support.
 
+### `format: uuid` is checked by the app's own rule, not the library's
+
+`SchemaValidator.load` passes a `customFormats` override for `uuid`.
+
+*Rationale:* `json_schema` 5.2.2 checks `uuid` with a regex that accepts versions 0-5, which predates RFC 9562 and rejects every v7 id this app writes. Turning on format validation without the override rejects every real bundle, including the app's own exports — the suite catches it immediately. The override checks the canonical UUID shape and leaves the version to the `pattern` the schemas already declare, which is stricter than the library's rule anyway.
+
+*Alternative considered:* dropping `format: uuid` from the schemas, since the `pattern` already pins v7. Rejected — `schemas/` is a public API, and the format is the part another client's validator reads most easily. The defect is in one library's regex, so it's fixed at that library.
+
 ### `ImportService` owns the model-parse boundary
 
 `ExportBundle.fromJson` is wrapped, and a `FormatException` or `ArgumentError` from it becomes `ImportException(ImportFailureReason.schemaViolation)`.
@@ -33,6 +41,8 @@ See `proposal.md` — Why. Both defects share a shape: an exception type that no
 *Rationale:* format validation closes the case the audit confirmed, but not the class. The schema constrains types, enums, and patterns; the models also parse. Any value that satisfies the first and defeats the second lands here, and the screen already knows how to show a schema violation. Catching at the screen instead would fix the one symptom and leave `validateJsonString` able to throw raw exceptions at any other caller.
 
 `ArgumentError` is included because a value outside a Dart enum throws that rather than a `FormatException`. Errors aren't usually caught, but this one is a data defect crossing a trust boundary, not a bug in the code.
+
+`UnsupportedSchemaVersionException` extends `FormatException`, so it's rethrown ahead of both: a bundle from a newer build has its own answer on the screen, and catching it here would replace that with a generic schema-violation message.
 
 ### A duplicate folder is its own sync outcome, not a generic failure
 

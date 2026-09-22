@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:json_schema/json_schema.dart';
 import 'package:openroutine/models/completion_log.dart';
+import 'package:openroutine/models/routine.dart';
+import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/services/import_export/import_service.dart';
 import 'package:openroutine/services/import_export/schema_validator.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
@@ -11,12 +16,24 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late ImportService service;
+  late LocalAdapter adapter;
 
   setUpAll(() async {
     final validator = await SchemaValidator.load();
-    final adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
+    adapter = LocalAdapter(AppDatabase(NativeDatabase.memory()));
     service = ImportService(adapter, validator);
   });
+
+  String bundleExportedAt(String exportedAt) =>
+      '''
+    {
+      "schema_version": "1.0.0",
+      "exported_at": $exportedAt,
+      "routines": [],
+      "steps": [],
+      "triggers": []
+    }
+    ''';
 
   test('malformed JSON throws ImportException(invalidJson), not a crash', () {
     expect(
@@ -70,6 +87,56 @@ void main() {
       );
     },
   );
+
+  test('a malformed date-time is a schema violation, not a crash', () {
+    expect(
+      () => service.validateJsonString(bundleExportedAt('"yesterday"')),
+      throwsA(
+        isA<ImportException>().having(
+          (e) => e.reason,
+          'reason',
+          ImportFailureReason.schemaViolation,
+        ),
+      ),
+    );
+  });
+
+  test('a bundle this build exported still validates', () async {
+    await adapter.saveRoutine(
+      Routine(
+        id: '019c0000-0000-7000-8000-00000000000a',
+        name: 'Morning',
+        schedule: const Schedule(mode: ScheduleMode.flexible, days: []),
+        stepIds: const [],
+        createdAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
+        deletedAt: null,
+      ),
+    );
+    final exported = jsonEncode(await adapter.exportAll().then((b) => b.toJson()));
+
+    final bundle = service.validateJsonString(exported);
+    expect(bundle.routines.single.name, 'Morning');
+  });
+
+  test('a value the schema lets through is reported, not thrown raw', () {
+    // Nothing in the export schema can express every constraint the models
+    // apply, so the parse boundary has to hold on its own. A schema that
+    // accepts anything is how you see it holding.
+    final permissive = SchemaValidator.forTesting(JsonSchema.create(true));
+    final unguarded = ImportService(adapter, permissive);
+
+    expect(
+      () => unguarded.validateJsonString(bundleExportedAt('"yesterday"')),
+      throwsA(
+        isA<ImportException>().having(
+          (e) => e.reason,
+          'reason',
+          ImportFailureReason.schemaViolation,
+        ),
+      ),
+    );
+  });
 
   test('a fully valid export bundle parses into an ExportBundle', () {
     const validJson = '''
