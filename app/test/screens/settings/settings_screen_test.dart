@@ -163,6 +163,31 @@ void main() {
     expect(find.text(l10n.syncStatusAmbiguousFolder), findsOneWidget);
   });
 
+  testWidgets('a folder waiting for approval says so and offers to sync', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({'storage_mode': 'drive'});
+    final prefs = await SharedPreferences.getInstance();
+    await _pump(
+      tester,
+      prefs,
+      sync: const SyncSnapshot(status: SyncStatus.cutoverNeeded),
+    );
+
+    final context = tester.element(find.byType(SettingsScreen));
+    final l10n = AppLocalizations.of(context)!;
+    expect(find.text(l10n.syncStatusCutoverNeeded), findsOneWidget);
+
+    await tester.tap(find.text(l10n.driveSyncNow));
+    expect(_lastSync!.syncAgainCalls, 1);
+    expect(_lastSync!.disconnectCalls, 0);
+  });
+
   testWidgets(
     'with a duplicate folder, the row offers to sync, not disconnect',
     (tester) async {

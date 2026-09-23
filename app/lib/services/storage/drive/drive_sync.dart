@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../../../models/completion_log.dart';
 import '../../../models/export_bundle.dart';
@@ -23,6 +24,7 @@ enum SyncOutcome {
   needsReauth,
   remoteSchemaNewer,
   ambiguousFolder,
+  cutoverNeeded,
   failed,
 }
 
@@ -107,7 +109,10 @@ class DriveSync {
       return SyncOutcome.needsReauth;
     } on DriveOffline {
       return SyncOutcome.offline;
-    } on DriveApiException {
+    } on Object catch (e) {
+      // Anything else — a 2xx that isn't JSON, from a captive portal or a
+      // proxy — is still a failed attempt, not an error for the tap to drop.
+      debugPrint('Drive cutover failed: $e');
       return SyncOutcome.failed;
     }
   }
@@ -141,6 +146,14 @@ class DriveSync {
         return SyncOutcome.failed;
       }
       return _refuseToWrite(e.version);
+    } on _CutoverNeeded {
+      // No approval, or one for a folder that's gone: the user removed the
+      // folder, or kept the copy of a duplicate. Only their tap can approve
+      // what's there now, so this waits for it rather than retrying.
+      await _queue.recordUnwritableRemote(
+        'Drive cutover requires explicit approval',
+      );
+      return SyncOutcome.cutoverNeeded;
     } on DriveAmbiguousDiscovery catch (e) {
       // Two folders carry the app's name, and nothing here can tell which one
       // holds their routines. Recorded like a newer remote schema rather than
@@ -199,7 +212,7 @@ class DriveSync {
       if (approval != null && folderId != approval.folderId) {
         await _saveApproval?.call(null);
       }
-      throw const FormatException('Drive cutover requires explicit approval');
+      throw const _CutoverNeeded();
     }
     _folderId = folderId;
     _meta = await _api.readTextFile(
@@ -404,4 +417,9 @@ class DriveSync {
       }
     }
   }
+}
+
+/// Thrown by the preflight when no approval covers the folder Drive holds now.
+class _CutoverNeeded implements Exception {
+  const _CutoverNeeded();
 }

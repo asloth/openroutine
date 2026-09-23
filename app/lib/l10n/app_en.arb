@@ -674,6 +674,10 @@
   "@syncStatusAmbiguousFolder": {
     "description": "Sync status when Drive holds two folders with the app's name, so the app can't tell which one holds the user's routines."
   },
+  "syncStatusCutoverNeeded": "Drive is waiting for your OK to sync this folder. Select Sync now to continue.",
+  "@syncStatusCutoverNeeded": {
+    "description": "Sync status when no approval covers the Drive folder: it was removed, or the user kept the copy of a duplicate. Syncing resumes once they select Sync now."
+  },
   "syncStatusError": "Sync failed — will retry",
   "syncLastSynced": "Last synced {time}",
   "@syncLastSynced": {

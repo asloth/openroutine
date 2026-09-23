@@ -30,6 +30,6 @@ The audit also flagged two pieces of hardening in the same neighbourhood. The no
 
 **Existing users.** A file that imported before still imports: every bundle this app writes uses ISO-8601 timestamps and v7 UUIDs, which both already satisfy their declared formats. What changes is that an invalid file now fails with a message instead of a spinner.
 
-**i18n.** One new string in both ARB files for the duplicate-folder status.
+**i18n.** Three new strings in both ARB files: the duplicate-folder status, the waiting-for-approval status, and the "Sync now" action.
 
 **Rollback.** Reverting restores the previous behaviour on both paths. Nothing is written differently in the meantime, so there's nothing to unwind.

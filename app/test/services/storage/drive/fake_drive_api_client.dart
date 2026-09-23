@@ -248,7 +248,10 @@ class FakeDriveApiClient implements DriveApiClient {
 
   /// Drops all but the first [keep] root folders with this name, the way
   /// someone tidying a duplicate out of their Drive would.
-  void removeFolders(String name, {int keep = 0}) {
+  /// Removes root folders named [name], keeping the first [keep] — or, with
+  /// [keepLast], every one but the last, the way a user deletes the original
+  /// and keeps the copy.
+  void removeFolders(String name, {int keep = 0, bool keepLast = false}) {
     final ids = _nodes.entries
         .where(
           (e) =>
@@ -258,6 +261,11 @@ class FakeDriveApiClient implements DriveApiClient {
         )
         .map((e) => e.key)
         .toList();
+    if (keepLast) {
+      ids.removeLast();
+      ids.forEach(_nodes.remove);
+      return;
+    }
     for (final id in ids.skip(keep)) {
       _nodes.remove(id);
     }

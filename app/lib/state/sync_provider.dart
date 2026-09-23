@@ -34,6 +34,7 @@ enum SyncStatus {
   needsReauth,
   remoteSchemaNewer,
   ambiguousFolder,
+  cutoverNeeded,
   error,
   disconnected,
 }
@@ -130,16 +131,13 @@ class SyncController extends _$SyncController {
     await _prepareAndSync();
   }
 
-  /// The ambiguous-folder row's action, once the extra folder is gone. If
-  /// that folder stopped connect itself, no cutover approval was saved, so
-  /// preparing runs again — still from the user's tap — before the sync.
+  /// The Drive row's action when sync is waiting on the user: a duplicate
+  /// folder, or a folder no approval covers. Always prepares again, because
+  /// the app can't say which folder the user kept, and re-approving the one
+  /// folder Drive holds now is what this tap authorizes.
   Future<void> syncAgain() async {
-    if (ref.read(appPrefsProvider).driveCutoverApproval == null) {
-      state = state.copyWith(status: SyncStatus.idle);
-      await _prepareAndSync();
-    } else {
-      await syncNow();
-    }
+    state = state.copyWith(status: SyncStatus.idle);
+    await _prepareAndSync();
   }
 
   /// Reached only from an explicit Drive gesture. Preparing records the
@@ -154,6 +152,7 @@ class SyncController extends _$SyncController {
         status: switch (stopped) {
           SyncOutcome.ambiguousFolder => SyncStatus.ambiguousFolder,
           SyncOutcome.needsReauth => SyncStatus.needsReauth,
+          SyncOutcome.offline => SyncStatus.offline,
           _ => SyncStatus.error,
         },
       );
@@ -216,6 +215,10 @@ class SyncController extends _$SyncController {
         // folder is still there on the next run, and only the user can clear
         // it. Pending changes stay pending and go up once it's gone.
         state = state.copyWith(status: SyncStatus.ambiguousFolder);
+      case SyncOutcome.cutoverNeeded:
+        // No retry: only the user's tap can approve the folder Drive holds
+        // now. Pending changes stay pending until they do.
+        state = state.copyWith(status: SyncStatus.cutoverNeeded);
       case SyncOutcome.needsReauth:
         // No retry on purpose: the grant will not come back on its own, and a
         // timer would only spend battery rediscovering that.

@@ -124,10 +124,26 @@ void main() {
         await local.saveRoutine(_routine());
         await queue.markRoutinesDirty();
 
-        expect(await sync.sync(), SyncOutcome.failed);
+        expect(await sync.sync(), SyncOutcome.cutoverNeeded);
+        // Only the user's tap can approve a cutover, so no timer should
+        // retry against it.
+        expect(queue.backoff, Duration.zero);
         expect(api.mutations, isEmpty);
         expect(await queue.routinesDirty, isTrue);
         expect(await local.getRoutine(_routineId), isNotNull);
+      },
+    );
+
+    test(
+      'preparing reports an unreadable response instead of throwing',
+      () async {
+        // A captive portal answers 2xx with HTML. Preparing is reached from an
+        // unawaited tap, so whatever goes wrong has to come back as an outcome.
+        approval = null;
+        api.failNextWith = const FormatException('<html>');
+
+        expect(await sync.prepareCutover(), SyncOutcome.failed);
+        expect(approval, isNull);
       },
     );
 
@@ -744,6 +760,26 @@ void main() {
       expect(await sync.prepareCutover(), SyncOutcome.ambiguousFolder);
       expect(approval, isNull);
     });
+
+    test(
+      'removing the approved folder waits for the user, then recovers',
+      () async {
+        // The app can't say which folder is the extra one, so the user may well
+        // delete the one the approval points at.
+        await local.saveRoutine(_routine());
+        await queue.markRoutinesDirty();
+        expect(await sync.sync(), SyncOutcome.synced);
+        api.seedFolder(DriveLayout.folderName);
+        expect(await sync.sync(), SyncOutcome.ambiguousFolder);
+
+        api.removeFolders(DriveLayout.folderName, keepLast: true);
+
+        expect(await sync.sync(), SyncOutcome.cutoverNeeded);
+        expect(queue.backoff, Duration.zero);
+        expect(await sync.prepareCutover(), isNull);
+        expect(await sync.sync(), SyncOutcome.synced);
+      },
+    );
 
     test('records the duplicate without accumulating backoff', () async {
       api.seedFolder(DriveLayout.folderName);

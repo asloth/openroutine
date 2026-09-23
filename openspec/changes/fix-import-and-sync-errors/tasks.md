@@ -40,3 +40,13 @@
 - [x] 5.6 Add a widget test asserting the Drive row offers "Sync now" in `ambiguousFolder` and calls `syncAgain`, and verify it fails; add `driveSyncNow` to both ARB files and `SyncController.syncAgain`, which re-runs the cutover when connect never saved one
 - [x] 5.7 Keep letters in any script in export file names, and drop `@visibleForTesting` from `fileNameFor`
 - [x] 5.8 Run analyze and the full suite, and verify both pass (625 tests)
+
+## 6. Audit follow-up, second pass
+
+- [x] 6.1 Add a test where the user removes the approved folder and keeps the copy, asserting sync reports `SyncOutcome.cutoverNeeded` with no backoff and recovers after preparing again, and verify it fails
+- [x] 6.2 Add `SyncOutcome.cutoverNeeded` and `SyncStatus.cutoverNeeded`, raise it from the preflight's approval check, record it without backoff, and verify 6.1 passes
+- [x] 6.3 Make `SyncController.syncAgain` always prepare before syncing, and offer "Sync now" for `cutoverNeeded` in Settings, with a widget test and `syncStatusCutoverNeeded` in both ARB files
+- [x] 6.4 Add a test asserting `prepareCutover()` reports a non-JSON response as `SyncOutcome.failed`, and make its catch total
+- [x] 6.5 Map an offline cutover to `SyncStatus.offline` instead of `error`
+- [x] 6.6 Add scenarios for the connect path, the sync-again action, and the approval wait to `specs/failure-reporting/spec.md`
+- [x] 6.7 Run analyze and the full suite, and verify both pass (628 tests)

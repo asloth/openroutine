@@ -43,6 +43,11 @@ Pending local changes SHALL stay pending and SHALL be uploaded on the first run 
 - **WHEN** a sync runs and folder discovery matches more than one folder
 - **THEN** sync reports the ambiguous-folder outcome, and Settings shows a message naming the duplicate as the cause
 
+#### Scenario: Two folders share the app's name when connecting
+
+- **WHEN** the user connects Google Drive and folder discovery matches more than one folder
+- **THEN** connecting reports the ambiguous-folder outcome, and Settings shows the same message instead of reporting the app as up to date
+
 #### Scenario: The duplicate is still there
 
 - **GIVEN** a sync that stopped on an ambiguous folder
@@ -54,6 +59,28 @@ Pending local changes SHALL stay pending and SHALL be uploaded on the first run 
 - **GIVEN** local changes that were waiting while the folder was ambiguous
 - **WHEN** a later sync finds a single folder
 - **THEN** those changes are uploaded
+
+#### Scenario: The user asks to sync again
+
+- **GIVEN** Settings showing the ambiguous-folder message
+- **WHEN** the user selects the Drive row
+- **THEN** the app offers to sync rather than disconnect, and selecting it approves the one folder Drive now holds and syncs, whichever of the two folders the user kept
+
+### Requirement: A Drive folder no approval covers waits for the user
+
+When no cutover approval covers the folder Drive holds, because it was removed or replaced, sync SHALL stop with an outcome of its own. It SHALL NOT retry on a timer, because only the user can approve a folder, and Settings SHALL offer the action that does.
+
+#### Scenario: The approved folder is gone
+
+- **GIVEN** an approval for a folder that no longer exists
+- **WHEN** a sync runs
+- **THEN** sync reports that it's waiting for approval, schedules no retry, and keeps pending changes pending
+
+#### Scenario: The user approves the folder
+
+- **GIVEN** Settings showing that sync is waiting for approval
+- **WHEN** the user selects Sync now
+- **THEN** the app approves the folder Drive holds now, creating it if none exists, and syncs
 
 ### Requirement: Untrusted values are escaped before they become routes or file names
 
