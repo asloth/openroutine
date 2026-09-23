@@ -246,6 +246,31 @@ class FakeDriveApiClient implements DriveApiClient {
     _nodes[_id()] = _Node(name: name, parentId: parentId, content: content);
   }
 
+  /// Drops all but the first [keep] root folders with this name, the way
+  /// someone tidying a duplicate out of their Drive would.
+  /// Removes root folders named [name], keeping the first [keep] — or, with
+  /// [keepLast], every one but the last, the way a user deletes the original
+  /// and keeps the copy.
+  void removeFolders(String name, {int keep = 0, bool keepLast = false}) {
+    final ids = _nodes.entries
+        .where(
+          (e) =>
+              e.value.isFolder &&
+              e.value.name == name &&
+              e.value.parentId == null,
+        )
+        .map((e) => e.key)
+        .toList();
+    if (keepLast) {
+      ids.removeLast();
+      ids.forEach(_nodes.remove);
+      return;
+    }
+    for (final id in ids.skip(keep)) {
+      _nodes.remove(id);
+    }
+  }
+
   void seedFolder(String name, {String? parentId}) {
     _nodes[_id()] = _Node(name: name, parentId: parentId, isFolder: true);
   }

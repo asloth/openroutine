@@ -33,6 +33,8 @@ enum SyncStatus {
   offline,
   needsReauth,
   remoteSchemaNewer,
+  ambiguousFolder,
+  cutoverNeeded,
   error,
   disconnected,
 }
@@ -126,11 +128,34 @@ class SyncController extends _$SyncController {
       return;
     }
     state = state.copyWith(status: SyncStatus.idle);
-    // This method is reached only from the explicit Drive-connect gesture.
-    // Preparing records the user's confirmation that every known old writer is
-    // upgraded, disconnected, or revoked before any folder/data mutation.
-    if (!await (await _syncer()).prepareCutover()) {
-      state = state.copyWith(status: SyncStatus.error);
+    await _prepareAndSync();
+  }
+
+  /// The Drive row's action when sync is waiting on the user: a duplicate
+  /// folder, or a folder no approval covers. Always prepares again, because
+  /// the app can't say which folder the user kept, and re-approving the one
+  /// folder Drive holds now is what this tap authorizes.
+  Future<void> syncAgain() async {
+    state = state.copyWith(status: SyncStatus.idle);
+    await _prepareAndSync();
+  }
+
+  /// Reached only from an explicit Drive gesture. Preparing records the
+  /// user's confirmation that every known old writer is upgraded,
+  /// disconnected, or revoked before any folder/data mutation.
+  Future<void> _prepareAndSync() async {
+    final stopped = await (await _syncer()).prepareCutover();
+    if (stopped != null) {
+      // No retry for any of these: a retry runs sync, and sync refuses to
+      // write without the approval this run never saved.
+      state = state.copyWith(
+        status: switch (stopped) {
+          SyncOutcome.ambiguousFolder => SyncStatus.ambiguousFolder,
+          SyncOutcome.needsReauth => SyncStatus.needsReauth,
+          SyncOutcome.offline => SyncStatus.offline,
+          _ => SyncStatus.error,
+        },
+      );
       return;
     }
     await ref.read(syncQueueProvider).markRoutinesDirty();
@@ -185,6 +210,15 @@ class SyncController extends _$SyncController {
         // app is updated, never on a timer. pendingChanges is left as it is —
         // the edits really are still waiting, and saying so is the point.
         state = state.copyWith(status: SyncStatus.remoteSchemaNewer);
+      case SyncOutcome.ambiguousFolder:
+        // No retry, for the same reason as remoteSchemaNewer: the duplicate
+        // folder is still there on the next run, and only the user can clear
+        // it. Pending changes stay pending and go up once it's gone.
+        state = state.copyWith(status: SyncStatus.ambiguousFolder);
+      case SyncOutcome.cutoverNeeded:
+        // No retry: only the user's tap can approve the folder Drive holds
+        // now. Pending changes stay pending until they do.
+        state = state.copyWith(status: SyncStatus.cutoverNeeded);
       case SyncOutcome.needsReauth:
         // No retry on purpose: the grant will not come back on its own, and a
         // timer would only spend battery rediscovering that.

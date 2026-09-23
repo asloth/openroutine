@@ -100,6 +100,8 @@ class SettingsScreen extends ConsumerWidget {
               title: Text(switch (sync.status) {
                 SyncStatus.disconnected ||
                 SyncStatus.needsReauth => l10n.driveConnect,
+                SyncStatus.ambiguousFolder ||
+                SyncStatus.cutoverNeeded => l10n.driveSyncNow,
                 _ => l10n.driveDisconnect,
               }),
               subtitle: Text(_syncLabel(l10n, sync)),
@@ -109,6 +111,9 @@ class SettingsScreen extends ConsumerWidget {
                   case SyncStatus.disconnected:
                   case SyncStatus.needsReauth:
                     controller.connect();
+                  case SyncStatus.ambiguousFolder:
+                  case SyncStatus.cutoverNeeded:
+                    controller.syncAgain();
                   default:
                     controller.disconnect();
                 }
@@ -203,6 +208,8 @@ class SettingsScreen extends ConsumerWidget {
       SyncStatus.offline => l10n.syncStatusOffline,
       SyncStatus.needsReauth => l10n.syncStatusNeedsReauth,
       SyncStatus.remoteSchemaNewer => l10n.syncStatusNewerSchema,
+      SyncStatus.ambiguousFolder => l10n.syncStatusAmbiguousFolder,
+      SyncStatus.cutoverNeeded => l10n.syncStatusCutoverNeeded,
       SyncStatus.error => l10n.syncStatusError,
       SyncStatus.idle when sync.pendingChanges => l10n.syncStatusPending,
       SyncStatus.idle when sync.lastSyncAt != null => l10n.syncLastSynced(

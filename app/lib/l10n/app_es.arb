@@ -379,6 +379,7 @@
 
   "driveConnect": "Conectar Google Drive",
   "driveDisconnect": "Desconectar Google Drive",
+  "driveSyncNow": "Sincronizar ahora",
   "driveUnavailable": "No disponible en esta versión",
   "driveExplainer": "OpenRoutine va a crear una carpeta llamada \"OpenRoutine\" en tu Google Drive y guardar ahí tus rutinas. No puede ver ningún otro archivo.",
   "syncStatusDisconnected": "Sin conectar",
@@ -388,6 +389,8 @@
   "syncStatusPending": "Hay cambios sin sincronizar",
   "syncStatusNeedsReauth": "Toca para reconectar Google Drive",
   "syncStatusNewerSchema": "Tu carpeta de Drive necesita una versión más reciente de OpenRoutine. Los cambios se quedan en este dispositivo hasta que actualices.",
+  "syncStatusAmbiguousFolder": "Hay más de una carpeta llamada OpenRoutine en tu Drive. Quita la que sobra y sincroniza otra vez.",
+  "syncStatusCutoverNeeded": "Drive espera tu confirmación para sincronizar esta carpeta. Toca Sincronizar ahora para continuar.",
   "syncStatusError": "Falló la sincronización — se reintenta",
   "syncLastSynced": "Última sincronización: {time}",
   "@syncLastSynced": {

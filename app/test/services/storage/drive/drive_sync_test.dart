@@ -124,10 +124,26 @@ void main() {
         await local.saveRoutine(_routine());
         await queue.markRoutinesDirty();
 
-        expect(await sync.sync(), SyncOutcome.failed);
+        expect(await sync.sync(), SyncOutcome.cutoverNeeded);
+        // Only the user's tap can approve a cutover, so no timer should
+        // retry against it.
+        expect(queue.backoff, Duration.zero);
         expect(api.mutations, isEmpty);
         expect(await queue.routinesDirty, isTrue);
         expect(await local.getRoutine(_routineId), isNotNull);
+      },
+    );
+
+    test(
+      'preparing reports an unreadable response instead of throwing',
+      () async {
+        // A captive portal answers 2xx with HTML. Preparing is reached from an
+        // unawaited tap, so whatever goes wrong has to come back as an outcome.
+        approval = null;
+        api.failNextWith = const FormatException('<html>');
+
+        expect(await sync.prepareCutover(), SyncOutcome.failed);
+        expect(approval, isNull);
       },
     );
 
@@ -135,7 +151,7 @@ void main() {
       await local.saveRoutine(_routine());
       await queue.markRoutinesDirty();
 
-      expect(await sync.prepareCutover(), isTrue);
+      expect(await sync.prepareCutover(), isNull);
       expect(approval?.targetSchemaVersion, '2.0.0');
       expect(await sync.sync(), SyncOutcome.synced);
       expect(api.exists(DriveLayout.routinesFile), isTrue);
@@ -719,6 +735,76 @@ void main() {
           .map((line) => jsonDecode(line)['id'])
           .toList();
       expect(ids, containsAll(['c-first', 'c-during-upload']));
+    });
+  });
+
+  group('two folders share the app name', () {
+    test('sync stops on its own outcome instead of throwing', () async {
+      // A copy of the folder inside Drive is enough. Discovery can't tell
+      // which one is theirs, and neither can the app.
+      api.seed(path: DriveLayout.routinesFile, content: _remoteBundle([]));
+      api.seedFolder(DriveLayout.folderName);
+      await local.saveRoutine(_routine());
+      await queue.markRoutinesDirty();
+
+      expect(await sync.sync(), SyncOutcome.ambiguousFolder);
+    });
+
+    test('connecting reports it rather than throwing', () async {
+      // Connect prepares the cutover before any sync runs, and preparing
+      // discovers the folder too. It has to stop the same way sync does.
+      approval = null;
+      api.seed(path: DriveLayout.routinesFile, content: _remoteBundle([]));
+      api.seedFolder(DriveLayout.folderName);
+
+      expect(await sync.prepareCutover(), SyncOutcome.ambiguousFolder);
+      expect(approval, isNull);
+    });
+
+    test(
+      'removing the approved folder waits for the user, then recovers',
+      () async {
+        // The app can't say which folder is the extra one, so the user may well
+        // delete the one the approval points at.
+        await local.saveRoutine(_routine());
+        await queue.markRoutinesDirty();
+        expect(await sync.sync(), SyncOutcome.synced);
+        api.seedFolder(DriveLayout.folderName);
+        expect(await sync.sync(), SyncOutcome.ambiguousFolder);
+
+        api.removeFolders(DriveLayout.folderName, keepLast: true);
+
+        expect(await sync.sync(), SyncOutcome.cutoverNeeded);
+        expect(queue.backoff, Duration.zero);
+        expect(await sync.prepareCutover(), isNull);
+        expect(await sync.sync(), SyncOutcome.synced);
+      },
+    );
+
+    test('records the duplicate without accumulating backoff', () async {
+      api.seedFolder(DriveLayout.folderName);
+      await queue.markRoutinesDirty();
+
+      await sync.sync();
+
+      expect(await queue.lastError, contains(DriveLayout.folderName));
+      // Like a newer remote schema: no timer clears a duplicate folder, so
+      // the queue must not back off against it.
+      expect(queue.backoff, Duration.zero);
+      expect(api.uploads, isEmpty);
+      expect(await queue.routinesDirty, isTrue);
+    });
+
+    test('uploads what was waiting once the duplicate is gone', () async {
+      api.seedFolder(DriveLayout.folderName);
+      await local.saveRoutine(_routine());
+      await queue.markRoutinesDirty();
+      expect(await sync.sync(), SyncOutcome.ambiguousFolder);
+
+      api.removeFolders(DriveLayout.folderName, keep: 1);
+
+      expect(await sync.sync(), SyncOutcome.synced);
+      expect(await queue.routinesDirty, isFalse);
     });
   });
 }

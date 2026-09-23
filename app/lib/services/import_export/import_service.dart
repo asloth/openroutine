@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 
 import '../../models/export_bundle.dart';
 import '../../models/import_preview.dart';
+import '../schema_version.dart';
 import '../storage/storage_adapter.dart';
 import 'schema_validator.dart';
 
@@ -67,7 +68,21 @@ class ImportService {
       );
     }
 
-    return ExportBundle.fromJson(decoded);
+    // Schema validation covers what the schema can express. The models parse
+    // on top of that, so this boundary has to be total: a value that gets
+    // past the schema and defeats a model is still the file's problem, and
+    // the screen can only show it if it arrives as an ImportException.
+    try {
+      return ExportBundle.fromJson(decoded);
+    } on UnsupportedSchemaVersionException {
+      // A bundle from a newer build has its own answer on the screen, and
+      // this subclasses FormatException, so it has to pass through first.
+      rethrow;
+    } on FormatException catch (e) {
+      throw ImportException(ImportFailureReason.schemaViolation, e.message);
+    } on ArgumentError catch (e) {
+      throw ImportException(ImportFailureReason.schemaViolation, '$e');
+    }
   }
 
   Future<ImportPreview> preview(ExportBundle bundle) =>

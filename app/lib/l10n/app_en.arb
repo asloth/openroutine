@@ -645,6 +645,10 @@
     "description": "Action that grants the app access to a folder in the user's Drive. Never phrased as 'Sign in with Google' — the app has no account concept (docs/SPEC.md §6, §14)."
   },
   "driveDisconnect": "Disconnect Google Drive",
+  "driveSyncNow": "Sync now",
+  "@driveSyncNow": {
+    "description": "Drive row action while two Drive folders share the app's name. Runs a sync once the user has removed the extra folder."
+  },
   "driveUnavailable": "Not available in this build",
   "@driveUnavailable": {
     "description": "Shown instead of the connect action when the build carries no OAuth client IDs, e.g. a fresh clone of the public repo."
@@ -665,6 +669,14 @@
   "syncStatusNewerSchema": "Your Drive folder needs a newer OpenRoutine. Changes here stay on this device until you update.",
   "@syncStatusNewerSchema": {
     "description": "Shown when the Drive folder was written by a newer version of the app. Per docs/SPEC.md §4 this build must keep reading that folder but must not write it, so it says plainly that local edits are not being uploaded and what fixes it."
+  },
+  "syncStatusAmbiguousFolder": "More than one folder in your Drive is named OpenRoutine. Remove the extra one, then sync again.",
+  "@syncStatusAmbiguousFolder": {
+    "description": "Sync status when Drive holds two folders with the app's name, so the app can't tell which one holds the user's routines."
+  },
+  "syncStatusCutoverNeeded": "Drive is waiting for your OK to sync this folder. Select Sync now to continue.",
+  "@syncStatusCutoverNeeded": {
+    "description": "Sync status when no approval covers the Drive folder: it was removed, or the user kept the copy of a duplicate. Syncing resumes once they select Sync now."
   },
   "syncStatusError": "Sync failed — will retry",
   "syncLastSynced": "Last synced {time}",

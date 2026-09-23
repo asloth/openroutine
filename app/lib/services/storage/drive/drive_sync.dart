@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../../../models/completion_log.dart';
 import '../../../models/export_bundle.dart';
@@ -17,7 +18,15 @@ import 'sync_queue.dart';
 /// this, so `offline`, `needsReauth` and `remoteSchemaNewer` are first-class
 /// results rather than flavours of failure — none of them is something the
 /// user did wrong, and only one of them is worth retrying on a timer.
-enum SyncOutcome { synced, offline, needsReauth, remoteSchemaNewer, failed }
+enum SyncOutcome {
+  synced,
+  offline,
+  needsReauth,
+  remoteSchemaNewer,
+  ambiguousFolder,
+  cutoverNeeded,
+  failed,
+}
 
 /// Reconciles the local drift database with the `OpenRoutine` folder in the
 /// user's Drive (docs/SPEC.md §5).
@@ -73,19 +82,39 @@ class DriveSync {
 
   /// The caller invokes this only after the human has confirmed that every
   /// known writer is upgraded, disconnected, or revoked.
-  Future<bool> prepareCutover() async {
-    if (_readApproval == null || _saveApproval == null) return false;
-    final folderId =
-        await _api.discoverFolder(DriveLayout.folderName) ??
-        await _api.ensureFolder(DriveLayout.folderName);
-    await _saveApproval(
-      DriveCutoverApproval(
-        folderId: folderId,
-        targetSchemaVersion: SchemaVersion.currentValue,
-        confirmedAt: nowUtc(),
-      ),
-    );
-    return true;
+  ///
+  /// Returns null once the approval is saved, or the outcome that stopped it.
+  /// Preparing discovers the folder, so it meets the same failures [sync]
+  /// does, and it's reached from an unawaited tap: it has to report them
+  /// rather than throw.
+  Future<SyncOutcome?> prepareCutover() async {
+    if (_readApproval == null || _saveApproval == null) {
+      return SyncOutcome.failed;
+    }
+    try {
+      final folderId =
+          await _api.discoverFolder(DriveLayout.folderName) ??
+          await _api.ensureFolder(DriveLayout.folderName);
+      await _saveApproval(
+        DriveCutoverApproval(
+          folderId: folderId,
+          targetSchemaVersion: SchemaVersion.currentValue,
+          confirmedAt: nowUtc(),
+        ),
+      );
+      return null;
+    } on DriveAmbiguousDiscovery {
+      return SyncOutcome.ambiguousFolder;
+    } on DriveAuthExpired {
+      return SyncOutcome.needsReauth;
+    } on DriveOffline {
+      return SyncOutcome.offline;
+    } on Object catch (e) {
+      // Anything else — a 2xx that isn't JSON, from a captive portal or a
+      // proxy — is still a failed attempt, not an error for the tap to drop.
+      debugPrint('Drive cutover failed: $e');
+      return SyncOutcome.failed;
+    }
   }
 
   Future<SyncOutcome> sync() {
@@ -117,6 +146,23 @@ class DriveSync {
         return SyncOutcome.failed;
       }
       return _refuseToWrite(e.version);
+    } on _CutoverNeeded {
+      // No approval, or one for a folder that's gone: the user removed the
+      // folder, or kept the copy of a duplicate. Only their tap can approve
+      // what's there now, so this waits for it rather than retrying.
+      await _queue.recordUnwritableRemote(
+        'Drive cutover requires explicit approval',
+      );
+      return SyncOutcome.cutoverNeeded;
+    } on DriveAmbiguousDiscovery catch (e) {
+      // Two folders carry the app's name, and nothing here can tell which one
+      // holds their routines. Recorded like a newer remote schema rather than
+      // as a retryable failure: only the user can clear this, so a timer would
+      // spend battery rediscovering the same answer.
+      await _queue.recordUnwritableRemote(
+        'More than one folder in Drive is named ${e.name}',
+      );
+      return SyncOutcome.ambiguousFolder;
     } on DriveAuthExpired catch (e) {
       await _queue.recordAuthExpired(e.toString());
       return SyncOutcome.needsReauth;
@@ -166,7 +212,7 @@ class DriveSync {
       if (approval != null && folderId != approval.folderId) {
         await _saveApproval?.call(null);
       }
-      throw const FormatException('Drive cutover requires explicit approval');
+      throw const _CutoverNeeded();
     }
     _folderId = folderId;
     _meta = await _api.readTextFile(
@@ -371,4 +417,9 @@ class DriveSync {
       }
     }
   }
+}
+
+/// Thrown by the preflight when no approval covers the folder Drive holds now.
+class _CutoverNeeded implements Exception {
+  const _CutoverNeeded();
 }
