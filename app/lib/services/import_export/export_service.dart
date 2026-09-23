@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:share_plus/share_plus.dart';
 
 import '../../models/export_bundle.dart';
@@ -51,11 +50,11 @@ class ExportService {
   /// Keeps the part of a routine name a file name can carry, and drops the
   /// rest. Sharing builds a temp path from this, so a name is data here, not
   /// a path — and a name that leaves nothing behind still has to produce a
-  /// file someone can find.
-  @visibleForTesting
+  /// file someone can find. Letters in any script stay, so "Rutina mañana"
+  /// reads the same on the file.
   static String fileNameFor(String routineName) {
     final kept = routineName
-        .replaceAll(RegExp(r'[^A-Za-z0-9 _-]+'), '-')
+        .replaceAll(RegExp(r'[^\p{L}\p{M}\p{N} _-]+', unicode: true), '-')
         .replaceAll(RegExp(r'[-\s]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
     return kept.isEmpty ? 'export' : kept;

@@ -13,4 +13,8 @@ void main() {
   test('a name with nothing usable left still produces a file name', () {
     expect(ExportService.fileNameFor('///'), 'export');
   });
+
+  test('a name with accented letters keeps them', () {
+    expect(ExportService.fileNameFor('Rutina mañana'), 'Rutina-mañana');
+  });
 }

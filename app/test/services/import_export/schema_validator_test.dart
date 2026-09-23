@@ -105,6 +105,18 @@ void main() {
     );
   });
 
+  test('a well-shaped id from another uuid version is rejected', () {
+    // The format override checks shape only; the v7 guarantee lives in the
+    // schemas' pattern. This pins that the two together still hold it.
+    final bundle = _validBundle();
+    (bundle['routines'] as List).first['id'] =
+        '019c0000-0000-4000-8000-000000000001';
+    expect(
+      () => validator.validateExportBundle(bundle),
+      throwsA(isA<SchemaValidationException>()),
+    );
+  });
+
   test('the public schemas no longer describe moments', () {
     expect(File('../schemas/trigger.schema.json').existsSync(), isFalse);
     expect(File('assets/schemas/trigger.schema.json').existsSync(), isFalse);
