@@ -8,6 +8,7 @@ import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/services/import_export/import_service.dart';
 import 'package:openroutine/services/import_export/schema_validator.dart';
+import 'package:openroutine/services/schema_version.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
@@ -113,7 +114,9 @@ void main() {
         deletedAt: null,
       ),
     );
-    final exported = jsonEncode(await adapter.exportAll().then((b) => b.toJson()));
+    final exported = jsonEncode(
+      await adapter.exportAll().then((b) => b.toJson()),
+    );
 
     final bundle = service.validateJsonString(exported);
     expect(bundle.routines.single.name, 'Morning');
@@ -133,6 +136,64 @@ void main() {
           (e) => e.reason,
           'reason',
           ImportFailureReason.schemaViolation,
+        ),
+      ),
+    );
+  });
+
+  test('a value outside a model enum is reported, not thrown raw', () {
+    // An unknown enum value throws ArgumentError rather than FormatException,
+    // so it has a catch clause of its own at the parse boundary.
+    final permissive = SchemaValidator.forTesting(JsonSchema.create(true));
+    final unguarded = ImportService(adapter, permissive);
+    const unknownMode = '''
+    {
+      "schema_version": "2.0.0",
+      "exported_at": "2026-01-01T00:00:00Z",
+      "routines": [{
+        "id": "019c0000-0000-7000-8000-000000000001",
+        "name": "Morning",
+        "schedule": {"mode": "sometimes", "days": []},
+        "step_ids": [],
+        "created_at": "2026-01-01T00:00:00Z",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }],
+      "steps": []
+    }
+    ''';
+
+    expect(
+      () => unguarded.validateJsonString(unknownMode),
+      throwsA(
+        isA<ImportException>().having(
+          (e) => e.reason,
+          'reason',
+          ImportFailureReason.schemaViolation,
+        ),
+      ),
+    );
+  });
+
+  test('a schema version too large to parse is newer, not a crash', () async {
+    // The schema bounds the version's shape but not its digits, so this gets
+    // past validation. Previewing it has to end in the screen's "newer
+    // version" answer rather than a raw FormatException.
+    final bundle = service.validateJsonString('''
+    {
+      "schema_version": "99999999999999999999.0.0",
+      "exported_at": "2026-01-01T00:00:00Z",
+      "routines": [],
+      "steps": []
+    }
+    ''');
+
+    await expectLater(
+      service.preview(bundle),
+      throwsA(
+        isA<UnsupportedSchemaVersionException>().having(
+          (e) => e.isNewer,
+          'isNewer',
+          isTrue,
         ),
       ),
     );

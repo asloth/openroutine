@@ -47,6 +47,20 @@ void main() {
       );
     });
 
+    test('classifies a version too large to parse as newer', () {
+      // The schema's pattern bounds the shape, not the digits, so a component
+      // past int's range reaches here. It can only be from a later build.
+      const version = '99999999999999999999.0.0';
+      expect(
+        () => SchemaVersion.parseSupported(version),
+        throwsA(
+          isA<UnsupportedSchemaVersionException>()
+              .having((error) => error.version, 'version', version)
+              .having((error) => error.isNewer, 'isNewer', isTrue),
+        ),
+      );
+    });
+
     test('refuses malformed versions as format errors', () {
       expect(
         () => SchemaVersion.parseSupported('one.one'),
