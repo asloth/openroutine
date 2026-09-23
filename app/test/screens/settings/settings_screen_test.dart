@@ -21,7 +21,18 @@ class _FixedSync extends SyncController {
 
   @override
   SyncSnapshot build() => _snapshot;
+
+  int syncAgainCalls = 0;
+  int disconnectCalls = 0;
+
+  @override
+  Future<void> syncAgain() async => syncAgainCalls++;
+
+  @override
+  Future<void> disconnect() async => disconnectCalls++;
 }
+
+_FixedSync? _lastSync;
 
 Future<void> _pump(
   WidgetTester tester,
@@ -36,7 +47,9 @@ Future<void> _pump(
           // The Drive section only renders when a build has OAuth ids, and a
           // test build never does.
           driveAvailableProvider.overrideWithValue(true),
-          syncControllerProvider.overrideWith(() => _FixedSync(sync)),
+          syncControllerProvider.overrideWith(
+            () => _lastSync = _FixedSync(sync),
+          ),
         ],
       ],
       child: MaterialApp(
@@ -149,4 +162,32 @@ void main() {
     final l10n = AppLocalizations.of(context)!;
     expect(find.text(l10n.syncStatusAmbiguousFolder), findsOneWidget);
   });
+
+  testWidgets(
+    'with a duplicate folder, the row offers to sync, not disconnect',
+    (tester) async {
+      // The message tells them to remove the extra folder and sync again, so
+      // the row has to be the way to do that.
+      tester.view.physicalSize = const Size(800, 2000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({'storage_mode': 'drive'});
+      final prefs = await SharedPreferences.getInstance();
+      await _pump(
+        tester,
+        prefs,
+        sync: const SyncSnapshot(status: SyncStatus.ambiguousFolder),
+      );
+
+      final context = tester.element(find.byType(SettingsScreen));
+      final l10n = AppLocalizations.of(context)!;
+      expect(find.text(l10n.driveDisconnect), findsNothing);
+
+      await tester.tap(find.text(l10n.driveSyncNow));
+      expect(_lastSync!.syncAgainCalls, 1);
+      expect(_lastSync!.disconnectCalls, 0);
+    },
+  );
 }

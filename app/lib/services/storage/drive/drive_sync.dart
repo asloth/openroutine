@@ -80,19 +80,36 @@ class DriveSync {
 
   /// The caller invokes this only after the human has confirmed that every
   /// known writer is upgraded, disconnected, or revoked.
-  Future<bool> prepareCutover() async {
-    if (_readApproval == null || _saveApproval == null) return false;
-    final folderId =
-        await _api.discoverFolder(DriveLayout.folderName) ??
-        await _api.ensureFolder(DriveLayout.folderName);
-    await _saveApproval(
-      DriveCutoverApproval(
-        folderId: folderId,
-        targetSchemaVersion: SchemaVersion.currentValue,
-        confirmedAt: nowUtc(),
-      ),
-    );
-    return true;
+  ///
+  /// Returns null once the approval is saved, or the outcome that stopped it.
+  /// Preparing discovers the folder, so it meets the same failures [sync]
+  /// does, and it's reached from an unawaited tap: it has to report them
+  /// rather than throw.
+  Future<SyncOutcome?> prepareCutover() async {
+    if (_readApproval == null || _saveApproval == null) {
+      return SyncOutcome.failed;
+    }
+    try {
+      final folderId =
+          await _api.discoverFolder(DriveLayout.folderName) ??
+          await _api.ensureFolder(DriveLayout.folderName);
+      await _saveApproval(
+        DriveCutoverApproval(
+          folderId: folderId,
+          targetSchemaVersion: SchemaVersion.currentValue,
+          confirmedAt: nowUtc(),
+        ),
+      );
+      return null;
+    } on DriveAmbiguousDiscovery {
+      return SyncOutcome.ambiguousFolder;
+    } on DriveAuthExpired {
+      return SyncOutcome.needsReauth;
+    } on DriveOffline {
+      return SyncOutcome.offline;
+    } on DriveApiException {
+      return SyncOutcome.failed;
+    }
   }
 
   Future<SyncOutcome> sync() {

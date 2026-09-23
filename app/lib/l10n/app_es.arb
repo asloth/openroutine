@@ -379,6 +379,7 @@
 
   "driveConnect": "Conectar Google Drive",
   "driveDisconnect": "Desconectar Google Drive",
+  "driveSyncNow": "Sincronizar ahora",
   "driveUnavailable": "No disponible en esta versión",
   "driveExplainer": "OpenRoutine va a crear una carpeta llamada \"OpenRoutine\" en tu Google Drive y guardar ahí tus rutinas. No puede ver ningún otro archivo.",
   "syncStatusDisconnected": "Sin conectar",

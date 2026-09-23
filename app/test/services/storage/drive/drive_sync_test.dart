@@ -135,7 +135,7 @@ void main() {
       await local.saveRoutine(_routine());
       await queue.markRoutinesDirty();
 
-      expect(await sync.prepareCutover(), isTrue);
+      expect(await sync.prepareCutover(), isNull);
       expect(approval?.targetSchemaVersion, '2.0.0');
       expect(await sync.sync(), SyncOutcome.synced);
       expect(api.exists(DriveLayout.routinesFile), isTrue);
@@ -732,6 +732,17 @@ void main() {
       await queue.markRoutinesDirty();
 
       expect(await sync.sync(), SyncOutcome.ambiguousFolder);
+    });
+
+    test('connecting reports it rather than throwing', () async {
+      // Connect prepares the cutover before any sync runs, and preparing
+      // discovers the folder too. It has to stop the same way sync does.
+      approval = null;
+      api.seed(path: DriveLayout.routinesFile, content: _remoteBundle([]));
+      api.seedFolder(DriveLayout.folderName);
+
+      expect(await sync.prepareCutover(), SyncOutcome.ambiguousFolder);
+      expect(approval, isNull);
     });
 
     test('records the duplicate without accumulating backoff', () async {

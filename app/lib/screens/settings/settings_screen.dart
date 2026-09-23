@@ -100,6 +100,7 @@ class SettingsScreen extends ConsumerWidget {
               title: Text(switch (sync.status) {
                 SyncStatus.disconnected ||
                 SyncStatus.needsReauth => l10n.driveConnect,
+                SyncStatus.ambiguousFolder => l10n.driveSyncNow,
                 _ => l10n.driveDisconnect,
               }),
               subtitle: Text(_syncLabel(l10n, sync)),
@@ -109,6 +110,8 @@ class SettingsScreen extends ConsumerWidget {
                   case SyncStatus.disconnected:
                   case SyncStatus.needsReauth:
                     controller.connect();
+                  case SyncStatus.ambiguousFolder:
+                    controller.syncAgain();
                   default:
                     controller.disconnect();
                 }

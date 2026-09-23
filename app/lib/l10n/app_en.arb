@@ -645,6 +645,10 @@
     "description": "Action that grants the app access to a folder in the user's Drive. Never phrased as 'Sign in with Google' — the app has no account concept (docs/SPEC.md §6, §14)."
   },
   "driveDisconnect": "Disconnect Google Drive",
+  "driveSyncNow": "Sync now",
+  "@driveSyncNow": {
+    "description": "Drive row action while two Drive folders share the app's name. Runs a sync once the user has removed the extra folder."
+  },
   "driveUnavailable": "Not available in this build",
   "@driveUnavailable": {
     "description": "Shown instead of the connect action when the build carries no OAuth client IDs, e.g. a fresh clone of the public repo."

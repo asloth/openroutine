@@ -29,3 +29,14 @@
 - [x] 4.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes at or above the current 604 baseline (618 after this change)
 - [x] 4.3 Run `openspec validate fix-import-and-sync-errors --type change --strict` and verify it passes
 - [x] 4.4 Verify the diff stays within the 400-line review budget
+
+## 5. Audit follow-up
+
+- [x] 5.1 Add a test importing a bundle whose `schema_version` has a 20-digit major, asserting `preview()` throws `UnsupportedSchemaVersionException` with `isNewer`, and verify it fails with a raw `FormatException`
+- [x] 5.2 Parse version components with `int.tryParse` in `SchemaVersion.parseSupported`, treat an unparseable major as newer, and verify 5.1 passes
+- [x] 5.3 Add tests pinning the `ArgumentError` branch at the parse boundary and rejecting a well-shaped non-v7 id
+- [x] 5.4 Add a test asserting `prepareCutover()` with a duplicate folder returns `SyncOutcome.ambiguousFolder` and saves no approval, and verify it fails with an uncaught `DriveAmbiguousDiscovery`
+- [x] 5.5 Report Drive failures from `prepareCutover()` as outcomes, map them in `SyncController.connect`, and verify 5.4 passes
+- [x] 5.6 Add a widget test asserting the Drive row offers "Sync now" in `ambiguousFolder` and calls `syncAgain`, and verify it fails; add `driveSyncNow` to both ARB files and `SyncController.syncAgain`, which re-runs the cutover when connect never saved one
+- [x] 5.7 Keep letters in any script in export file names, and drop `@visibleForTesting` from `fileNameFor`
+- [x] 5.8 Run analyze and the full suite, and verify both pass (625 tests)

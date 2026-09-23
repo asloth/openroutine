@@ -127,11 +127,36 @@ class SyncController extends _$SyncController {
       return;
     }
     state = state.copyWith(status: SyncStatus.idle);
-    // This method is reached only from the explicit Drive-connect gesture.
-    // Preparing records the user's confirmation that every known old writer is
-    // upgraded, disconnected, or revoked before any folder/data mutation.
-    if (!await (await _syncer()).prepareCutover()) {
-      state = state.copyWith(status: SyncStatus.error);
+    await _prepareAndSync();
+  }
+
+  /// The ambiguous-folder row's action, once the extra folder is gone. If
+  /// that folder stopped connect itself, no cutover approval was saved, so
+  /// preparing runs again — still from the user's tap — before the sync.
+  Future<void> syncAgain() async {
+    if (ref.read(appPrefsProvider).driveCutoverApproval == null) {
+      state = state.copyWith(status: SyncStatus.idle);
+      await _prepareAndSync();
+    } else {
+      await syncNow();
+    }
+  }
+
+  /// Reached only from an explicit Drive gesture. Preparing records the
+  /// user's confirmation that every known old writer is upgraded,
+  /// disconnected, or revoked before any folder/data mutation.
+  Future<void> _prepareAndSync() async {
+    final stopped = await (await _syncer()).prepareCutover();
+    if (stopped != null) {
+      // No retry for any of these: a retry runs sync, and sync refuses to
+      // write without the approval this run never saved.
+      state = state.copyWith(
+        status: switch (stopped) {
+          SyncOutcome.ambiguousFolder => SyncStatus.ambiguousFolder,
+          SyncOutcome.needsReauth => SyncStatus.needsReauth,
+          _ => SyncStatus.error,
+        },
+      );
       return;
     }
     await ref.read(syncQueueProvider).markRoutinesDirty();
