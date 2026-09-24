@@ -5,6 +5,7 @@
 - [x] 1.3 Render every move at its start, middle, and end, and verify the feet show no seam and the smile shows in celebrate, step done, jump, and bounce
 - [x] 1.4 Click the body, a side tuft, the curl, the lower edge, and an empty corner with `--pointer`, and verify `tap` fires on the pet only
 - [x] 1.5 Render with a dark-theme body and accent, and verify the shading and shadow still read
+- [x] 1.6 Run `build/fix_leg_ledge.py` to drop the inward shelf at the top of each foot, which the higher fur edge left showing as a bar between the legs on a jump's landing, and render every leg move to verify it's gone
 
 ## 2. App
 
