@@ -16,14 +16,19 @@ HomeWidgetPublisher homeWidgetPublisher(Ref ref) => HomeWidgetPublisher();
 ///
 /// Hung off `routinesProvider` rather than off each mutation, for the same
 /// reason the reminders are: create, rename, delete, reorder and a Drive sync
-/// pulling another device's change all surface here, so no call site has to
-/// remember to refresh the widget. Kept alive and watched from the root widget
-/// so it also covers changes that arrive while the routines list is off screen.
+/// pulling another device's change all surface here, as do the accent and
+/// theme settings, so no call site has to remember to refresh the widget.
+/// Kept alive and watched from the root widget so it also covers changes that
+/// arrive while the routines list is off screen.
 @Riverpod(keepAlive: true)
 Future<void> homeWidgetSync(Ref ref) async {
   final routines = await ref.watch(routinesProvider.future);
   final l10n = lookupAppLocalizations(
     _localeFor(ref.watch(localeOverrideSettingProvider)),
+  );
+  final theme = WidgetTheme.of(
+    ref.watch(accentSettingProvider),
+    ref.watch(themeModeSettingProvider),
   );
 
   await ref
@@ -36,6 +41,7 @@ Future<void> homeWidgetSync(Ref ref) async {
           openApp: l10n.widgetOpenApp,
           steps: l10n.routinesStepCount,
         ),
+        theme: theme,
       );
 }
 

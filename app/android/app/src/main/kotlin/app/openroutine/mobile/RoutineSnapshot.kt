@@ -15,6 +15,8 @@ data class RoutineSnapshot(
     val title: String,
     val empty: String,
     val routines: List<RoutineRow>,
+    /** Null means the colors built into the resources. */
+    val colors: WidgetColors? = null,
 ) {
   companion object {
     /** Must match `HomeWidgetPublisher.dataKey`. */
@@ -65,6 +67,7 @@ data class RoutineSnapshot(
             title = strings?.optString("title")?.takeIf { it.isNotEmpty() } ?: fallback.title,
             empty = strings?.optString("empty")?.takeIf { it.isNotEmpty() } ?: fallback.empty,
             routines = rows,
+            colors = WidgetColors.parse(document.optJSONObject("theme")),
         )
       } catch (error: Exception) {
         fallback

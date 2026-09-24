@@ -274,7 +274,7 @@ class _OpenRoutineAppState extends ConsumerState<OpenRoutineApp> {
     if (!mounted) return;
     final route = widgetLaunchRoute(uri);
     if (route == null) return;
-    ref.read(goRouterProvider).go(route);
+    openWidgetRoute(ref.read(goRouterProvider), route);
   }
 
   @override

@@ -229,18 +229,19 @@ This **replaces the foreground service** this section originally called for. Han
 
 ### 8.1 Android home screen widget (added after M5)
 
-A resizable Android app widget lists the user's routines — start time, name, and step count, ordered the same way the in-app list orders them. Tapping a row opens the app at `/routines/:routineId/timer` and starts the run. That's the widget's whole job: the app exists to lower the cost of starting a routine, and the launch path was the last expensive part of it.
+A resizable Android app widget lists the user's routines — start time, name, and step count, ordered the same way the in-app list orders them. Tapping a row opens the app at `/routines/:routineId/timer`, on top of the routine list so Close and Back have somewhere to go, and starts the run. That's the widget's whole job: the app exists to lower the cost of starting a routine, and the launch path was the last expensive part of it.
 
 **The widget never reads the database.** `HomeWidgetPublisher` (`app/lib/services/home_widget/`) denormalizes the routine list into a versioned JSON snapshot and pushes it through the `home_widget` plugin into the widget's `SharedPreferences`. The native `RoutineWidgetProvider` and `RoutineListService` only render what they're given. Reimplementing drift's schema — soft deletes, flattened schedule columns, JSON-encoded step lists — in Kotlin would fork the storage contract into a second language and open a second SQLite connection against a live one.
 
-The payload is **internal**, and it's deliberately absent from `schemas/`, the public agent contract (§9). It carries `{v, routines: [{id, name, startTime?, steps}], strings}`:
+The payload is **internal**, and it's deliberately absent from `schemas/`, the public agent contract (§9). It carries `{v, routines: [{id, name, startTime?, steps}], strings, theme?}`:
 
 - `startTime` is the schema's raw local `"HH:MM"`. The widget formats it natively so it follows the phone's 12/24-hour setting, which can change long after publishing.
 - `steps` is the already-pluralised, already-localised subtitle, and `strings` carries the header and empty state — the copy stays in `app_en.arb`/`app_es.arb` rather than forking into a native `values-es/strings.xml`.
+- `theme` is `{mode, light, dark}`: your theme setting (`system`, `light`, or `dark`) and your palette's background, text, secondary text, accent, and divider colors as ARGB ints for each brightness. Both schemes always go, so on Android 12 and later the widget follows the system's dark mode while the app is closed. Without `theme`, the widget keeps the colors in its resources.
 
-Publishing hangs off `routinesProvider`, so a create, rename, delete, reorder, or a Drive sync that pulls in another device's change all reach the widget without any call site needing to remember to push it. `updatePeriodMillis` is `0`, since there's nothing for a poll to discover.
+Publishing hangs off `routinesProvider` and the accent and theme settings, so a palette change, a create, rename, delete, reorder, or a Drive sync that pulls in another device's change all reach the widget without any call site needing to remember to push it. `updatePeriodMillis` is `0`, since there's nothing for a poll to discover.
 
-**Android only.** The iOS project has no App Group and no WidgetKit extension, and neither one compiles or runs from the Linux development machine — an iOS widget is a follow-up, not a half-shipped Swift file. Two other follow-ups stay open: the widget uses the default warm-paper palette rather than a custom one chosen in Settings, and it starts full runs only, since Low Mode stays in the app.
+**Android only.** The iOS project has no App Group and no WidgetKit extension, and neither one compiles or runs from the Linux development machine — an iOS widget is a follow-up, not a half-shipped Swift file. One other follow-up stays open: the widget starts full runs only, since Low Mode stays in the app.
 
 ---
 
