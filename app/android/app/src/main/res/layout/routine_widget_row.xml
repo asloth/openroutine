@@ -49,8 +49,9 @@
     </LinearLayout>
 </LinearLayout>
 
-    <!-- Drawn by each row, so it can take your palette's color. -->
-    <View
+    <!-- Drawn by each row, so it can take your palette's color. A FrameLayout,
+         because widgets can't inflate a plain View. -->
+    <FrameLayout
         android:id="@+id/row_divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
