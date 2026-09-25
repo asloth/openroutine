@@ -14,16 +14,47 @@ import '../../state/storage_provider.dart';
 import '../../widgets/tinted/soft_back_button.dart';
 import '../../widgets/tinted/soft_circle_button.dart';
 
+/// What a draft-mode [StepFormScreen] hands back when it closes.
+sealed class StepDraftResult {
+  const StepDraftResult();
+}
+
+/// The step as you left it, ready for the routine form to hold.
+final class StepDraftSaved extends StepDraftResult {
+  const StepDraftSaved(this.step);
+
+  final RoutineStep step;
+}
+
+/// You deleted the drafted step.
+final class StepDraftRemoved extends StepDraftResult {
+  const StepDraftRemoved();
+}
+
 /// docs/SPEC.md §7 screens 5 (Add step) and 6 (Edit step), combined into one
 /// screen: the same form serves both, with a template picker shown only
 /// when creating.
 class StepFormScreen extends ConsumerStatefulWidget {
-  const StepFormScreen({super.key, required this.routineId, this.stepId});
+  const StepFormScreen({super.key, required this.routineId, this.stepId})
+    : isDraft = false,
+      initial = null;
+
+  /// Draft mode: the routine form owns the steps until you save the routine,
+  /// so this never touches storage. Save pops a [StepDraftSaved], Delete pops
+  /// a [StepDraftRemoved], and backing out pops nothing.
+  const StepFormScreen.draft({super.key, required this.routineId, this.initial})
+    : isDraft = true,
+      stepId = null;
 
   final String routineId;
 
-  /// Null means create; non-null means edit that step.
+  /// Null means create; non-null means edit that stored step.
   final String? stepId;
+
+  final bool isDraft;
+
+  /// The drafted step being edited. Null means a new one.
+  final RoutineStep? initial;
 
   @override
   ConsumerState<StepFormScreen> createState() => _StepFormScreenState();
@@ -45,13 +76,20 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
   bool _loaded = false;
   bool _saving = false;
 
-  bool get _isEditing => widget.stepId != null;
+  bool get _isEditing => widget.stepId != null || widget.initial != null;
 
   /// Fixed one-tap duration choices. When `_minutes` isn't one of these —
   /// an edited step, or a template that seeded an odd value — it's added
   /// as an extra chip rather than snapped to the nearest preset, so opening
   /// the picker never silently changes what's stored.
   static const _durationPresets = [1, 2, 3, 5, 10, 15, 20, 30, 45, 60];
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial != null) _loadFrom(initial);
+  }
 
   @override
   void dispose() {
@@ -155,11 +193,43 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
       );
       return;
     }
-    setState(() => _saving = true);
-
-    final storage = ref.read(storageAdapterProvider);
     final now = nowUtc();
     final durationSeconds = _noExplicitTime ? null : _minutes * 60;
+
+    if (widget.isDraft) {
+      final name = _nameController.text.trim();
+      final remindDuring = _remindDuring && !_noExplicitTime;
+      final initial = widget.initial;
+      // The routine form assigns `order` and `updatedAt` when it saves, so
+      // a new step's values here are placeholders.
+      final step = initial == null
+          ? RoutineStep(
+              id: newId(),
+              routineId: widget.routineId,
+              name: name,
+              emoji: _emoji!,
+              durationSeconds: durationSeconds,
+              order: 0,
+              noExplicitTime: _noExplicitTime,
+              isCore: _isCore,
+              remindDuring: remindDuring,
+              createdAt: now,
+              updatedAt: now,
+            )
+          : initial.copyWith(
+              name: name,
+              emoji: _emoji!,
+              durationSeconds: durationSeconds,
+              noExplicitTime: _noExplicitTime,
+              isCore: _isCore,
+              remindDuring: remindDuring,
+            );
+      context.pop(StepDraftSaved(step));
+      return;
+    }
+
+    setState(() => _saving = true);
+    final storage = ref.read(storageAdapterProvider);
 
     if (_isEditing) {
       final existing = await ref.read(
@@ -219,7 +289,12 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
+
+    if (widget.isDraft) {
+      context.pop(const StepDraftRemoved());
+      return;
+    }
 
     await ref.read(storageAdapterProvider).deleteStep(widget.stepId!);
     ref.invalidate(routineStepsProvider(widget.routineId));
@@ -235,7 +310,7 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
         : ref.watch(stepTemplateCategoriesProvider);
     final emojiCategoriesAsync = ref.watch(emojiCategoriesProvider);
 
-    final stepAsync = _isEditing
+    final stepAsync = widget.stepId != null
         ? ref.watch(stepProvider(widget.routineId, widget.stepId!))
         : null;
     if (stepAsync != null) {

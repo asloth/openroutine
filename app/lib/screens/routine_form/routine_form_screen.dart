@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,17 +6,21 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
+import '../../models/step.dart';
 import '../../services/id_generator.dart';
+import '../../services/routines/estimate.dart';
 import '../../services/storage/storage_adapter.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../theme/theme.dart';
+import '../../widgets/step_list.dart';
 import '../../widgets/tinted/soft_back_button.dart';
 import '../routines_list/home/home_ink.dart';
+import '../step_form/step_form_screen.dart';
 
-/// docs/SPEC.md §7 screen 4. Only routine-level fields — steps are added
-/// afterward from Routine Detail, since this screen's field list (name,
-/// days, mode, start time) never mentions steps.
+/// docs/SPEC.md §7 screen 4, which also owns the routine's steps: they're
+/// held in memory and written with the routine on Save, so backing out
+/// leaves nothing behind and a routine can't be saved without a step.
 class RoutineFormScreen extends ConsumerStatefulWidget {
   const RoutineFormScreen({super.key, this.routineId, this.initialMode});
 
@@ -41,7 +46,41 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
   String? _daysError;
   String? _startTimeError;
 
+  /// Assigned up front, so draft steps carry it before the routine exists.
+  late final String _routineId = widget.routineId ?? newId();
+  final List<RoutineStep> _steps = [];
+
+  /// What's in storage, for working out what Save has to write.
+  List<RoutineStep> _storedSteps = const [];
+
+  /// The form as it opened, for telling whether backing out loses anything.
+  late _Snapshot _opened;
+
   bool get _isEditing => widget.routineId != null;
+
+  _Snapshot _snapshot() => (
+    name: _nameController.text.trim(),
+    mode: _mode,
+    days: Set.of(_days),
+    startTime: _startTime,
+    steps: List.of(_steps),
+  );
+
+  bool get _isDirty {
+    final now = _snapshot();
+    return now.name != _opened.name ||
+        now.mode != _opened.mode ||
+        now.startTime != _opened.startTime ||
+        !setEquals(now.days, _opened.days) ||
+        !listEquals(now.steps, _opened.steps);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Take the untouched snapshot now, before any edit can change the fields.
+    _opened = _snapshot();
+  }
 
   @override
   void dispose() {
@@ -49,7 +88,7 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
     super.dispose();
   }
 
-  void _loadFrom(Routine routine) {
+  void _loadFrom(Routine routine, List<RoutineStep> steps) {
     if (_loaded) return;
     _loaded = true;
     _nameController.text = routine.name;
@@ -58,6 +97,73 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
       ..clear()
       ..addAll(routine.schedule.days);
     _startTime = routine.schedule.startTime;
+    _storedSteps = steps;
+    _steps
+      ..clear()
+      ..addAll(steps);
+    _opened = _snapshot();
+  }
+
+  /// Opens the step form in draft mode: [index] edits that step, null adds
+  /// one. Nothing is written until the routine is saved.
+  Future<void> _openStep([int? index]) async {
+    final result = await context.push<StepDraftResult>(
+      '/routines/$_routineId/steps/draft',
+      extra: index == null ? null : _steps[index],
+    );
+    if (!mounted || result == null) return;
+    setState(() {
+      switch (result) {
+        case StepDraftSaved(:final step):
+          index == null ? _steps.add(step) : _steps[index] = step;
+        case StepDraftRemoved():
+          if (index != null) _steps.removeAt(index);
+      }
+    });
+  }
+
+  void _reorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      _steps.insert(newIndex, _steps.removeAt(oldIndex));
+    });
+  }
+
+  Future<void> _confirmLeave() async {
+    if (_isDirty) {
+      final l10n = AppLocalizations.of(context)!;
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            _isEditing
+                ? l10n.routineFormDiscardEditTitle
+                : l10n.routineFormDiscardNewTitle,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.routineFormKeepEditing),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.routineFormDiscard),
+            ),
+          ],
+        ),
+      );
+      if (discard != true) return;
+    }
+    if (mounted) context.pop();
+  }
+
+  String _saveLabel(AppLocalizations l10n) {
+    if (_steps.isEmpty) return l10n.commonSave;
+    final seconds = routineEstimate(_steps).inSeconds;
+    final summary = seconds == 0
+        ? l10n.routinesStepCount(_steps.length)
+        : l10n.routineFormStepsSummary(_steps.length, (seconds / 60).ceil());
+    return l10n.routineFormSaveWith(l10n.commonSave, summary);
   }
 
   Future<void> _pickStartTime() async {
@@ -133,47 +239,55 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
       days: _days.toList(),
       startTime: _mode == ScheduleMode.scheduled ? _startTime : null,
     );
+    final stepIds = [for (final step in _steps) step.id];
 
-    String? createdId;
+    final Routine routine;
     if (_isEditing) {
-      final existing = await ref.read(
-        routineProvider(widget.routineId!).future,
-      );
-      final updated = existing!.copyWith(
+      final existing = await ref.read(routineProvider(_routineId).future);
+      routine = existing!.copyWith(
         name: _nameController.text.trim(),
         schedule: schedule,
+        stepIds: stepIds,
         updatedAt: now,
       );
-      await storage.saveRoutine(updated);
-      ref.invalidate(routineProvider(widget.routineId!));
     } else {
-      final routine = Routine(
-        id: newId(),
+      routine = Routine(
+        id: _routineId,
         name: _nameController.text.trim(),
         schedule: schedule,
-        stepIds: const [],
+        stepIds: stepIds,
         createdAt: now,
         updatedAt: now,
       );
-      await storage.saveRoutine(routine);
-      createdId = routine.id;
     }
+
+    // Only what changed gets a new `updatedAt`: bumping an untouched step
+    // would let it win sync merges it has no business winning.
+    final stored = {for (final step in _storedSteps) step.id: step};
+    final changed = <RoutineStep>[];
+    for (final (index, step) in _steps.indexed) {
+      final placed = step.copyWith(order: index);
+      final before = stored[step.id];
+      if (placed == before) continue;
+      changed.add(
+        placed.copyWith(
+          createdAt: before == null ? now : placed.createdAt,
+          updatedAt: now,
+        ),
+      );
+    }
+    final removed = stored.keys.toSet().difference(stepIds.toSet());
+
+    await storage.saveRoutineWithSteps(
+      routine,
+      changed,
+      removedStepIds: removed,
+    );
     ref.invalidate(routinesProvider);
+    ref.invalidate(routineProvider(_routineId));
+    ref.invalidate(routineStepsProvider(_routineId));
 
-    if (!mounted) return;
-
-    if (createdId == null) {
-      context.pop();
-      return;
-    }
-
-    // A brand-new routine has no steps, and a routine with no steps cannot be
-    // run — so "saved" is never the end of the job here. Replace this form
-    // with the routine (so Back doesn't return to a form you already
-    // submitted) and open the step form on top of it. Closing that leaves you
-    // on the routine, where Add step is waiting for the rest.
-    context.pushReplacement('/routines/$createdId');
-    context.push('/routines/$createdId/steps/new');
+    if (mounted) context.pop();
   }
 
   @override
@@ -181,12 +295,16 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     final routineAsync = _isEditing
-        ? ref.watch(routineProvider(widget.routineId!))
+        ? ref.watch(routineProvider(_routineId))
         : null;
-    if (routineAsync != null) {
+    final stepsAsync = _isEditing
+        ? ref.watch(routineStepsProvider(_routineId))
+        : null;
+    if (routineAsync != null && stepsAsync != null) {
       final routine = routineAsync.value;
-      if (routine != null) _loadFrom(routine);
-      if (routineAsync.isLoading && !_loaded) {
+      final steps = stepsAsync.value;
+      if (routine != null && steps != null) _loadFrom(routine, steps);
+      if ((routineAsync.isLoading || stepsAsync.isLoading) && !_loaded) {
         return Scaffold(
           appBar: AppBar(
             leading: SoftBackButton.asAppBarLeading(),
@@ -195,7 +313,7 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
           body: const Center(child: CircularProgressIndicator()),
         );
       }
-      if (routineAsync.hasError) {
+      if (routineAsync.hasError || stepsAsync.hasError) {
         return Scaffold(
           appBar: AppBar(
             leading: SoftBackButton.asAppBarLeading(),
@@ -217,82 +335,156 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
 
     final ink = HomeInk.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: SoftBackButton.asAppBarLeading(),
-        leadingWidth: SoftBackButton.appBarLeadingWidth,
-        title: Text(
-          _isEditing ? l10n.routineFormEditTitle : l10n.routineFormCreateTitle,
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmLeave();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: SoftBackButton.asAppBarLeading(),
+          leadingWidth: SoftBackButton.appBarLeadingWidth,
+          title: Text(
+            _isEditing
+                ? l10n.routineFormEditTitle
+                : l10n.routineFormCreateTitle,
+          ),
         ),
-      ),
-      // The button is the point of the screen, so it sits under the content
-      // at full width rather than hiding as a checkmark in the bar.
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        child: _SaveButton(
-          label: l10n.commonSave,
-          saving: _saving,
-          onPressed: _saving ? null : _save,
+        // The button is the point of the screen, so it sits under the content
+        // at full width rather than hiding as a checkmark in the bar.
+        bottomNavigationBar: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: _SaveButton(
+            key: const Key('routine-form-save'),
+            label: _saveLabel(l10n),
+            saving: _saving,
+            onPressed: _saving || _steps.isEmpty ? null : _save,
+          ),
         ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          children: [
-            TextFormField(
-              controller: _nameController,
-              style: TextStyle(
-                fontFamily: AppTypography.display,
-                fontSize: 26,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.4,
-                color: ink.ink,
-              ),
-              decoration: InputDecoration(
-                hintText: l10n.routineFormNameHint,
-                hintStyle: TextStyle(
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            children: [
+              TextFormField(
+                controller: _nameController,
+                style: TextStyle(
                   fontFamily: AppTypography.display,
                   fontSize: 26,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.4,
-                  color: ink.muted(0.4),
+                  color: ink.ink,
                 ),
-                // Nothing but a rule under it: the name is the title of the
-                // screen once it is filled in, not a field among fields.
-                filled: false,
-                isDense: true,
-                contentPadding: const EdgeInsets.only(bottom: 10),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: ink.muted(0.18)),
+                decoration: InputDecoration(
+                  hintText: l10n.routineFormNameHint,
+                  hintStyle: TextStyle(
+                    fontFamily: AppTypography.display,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.4,
+                    color: ink.muted(0.4),
+                  ),
+                  // Nothing but a rule under it: the name is the title of the
+                  // screen once it is filled in, not a field among fields.
+                  filled: false,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.only(bottom: 10),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: ink.muted(0.18)),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: ink.accent, width: 2),
+                  ),
                 ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: ink.accent, width: 2),
-                ),
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? l10n.routineFormNameRequired
+                    : null,
               ),
-              validator: (value) => (value == null || value.trim().isEmpty)
-                  ? l10n.routineFormNameRequired
-                  : null,
-            ),
-            const SizedBox(height: 22),
-            _ScheduleCard(
-              mode: _mode,
-              onModeChanged: (mode) => setState(() => _mode = mode),
-              startTimeText: _startTimeText(context),
-              onEarlier: () => _nudgeStartTime(-15),
-              onLater: () => _nudgeStartTime(15),
-              onPickTime: _pickStartTime,
-              startTimeError: _startTimeError,
-              days: _days,
-              dayLabel: (day) => _dayLabel(l10n, day),
-              dayName: (day) => _dayName(l10n, day),
-              onDayToggled: (day, selected) => setState(() {
-                selected ? _days.add(day) : _days.remove(day);
-                if (_days.isNotEmpty) _daysError = null;
-              }),
-              daysError: _daysError,
-            ),
-          ],
+              const SizedBox(height: 22),
+              _ScheduleCard(
+                mode: _mode,
+                onModeChanged: (mode) => setState(() => _mode = mode),
+                startTimeText: _startTimeText(context),
+                onEarlier: () => _nudgeStartTime(-15),
+                onLater: () => _nudgeStartTime(15),
+                onPickTime: _pickStartTime,
+                startTimeError: _startTimeError,
+                days: _days,
+                dayLabel: (day) => _dayLabel(l10n, day),
+                dayName: (day) => _dayName(l10n, day),
+                onDayToggled: (day, selected) => setState(() {
+                  selected ? _days.add(day) : _days.remove(day);
+                  if (_days.isNotEmpty) _daysError = null;
+                }),
+                daysError: _daysError,
+              ),
+              const SizedBox(height: 22),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      l10n.routineDetailSteps,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.display,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _openStep,
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.routineDetailAddStep),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_steps.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    l10n.routineFormStepsEmpty,
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                )
+              else
+                StepListShell(
+                  child: ReorderableListView(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    proxyDecorator: (child, index, animation) =>
+                        Material(type: MaterialType.transparency, child: child),
+                    onReorder: _reorder,
+                    children: [
+                      for (final (index, step) in _steps.indexed)
+                        StepRow(
+                          key: ValueKey(step.id),
+                          step: step,
+                          onTap: () => _openStep(index),
+                          isLast: index == _steps.length - 1,
+                          handle: _steps.length < 2
+                              ? null
+                              : ReorderableDragStartListener(
+                                  index: index,
+                                  child: Tooltip(
+                                    message: l10n.routineDetailReorderHandle,
+                                    child: const SizedBox.square(
+                                      dimension: 48,
+                                      child: Icon(Icons.drag_handle),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -634,6 +826,7 @@ class _Stepper extends StatelessWidget {
 /// The screen's one filled action, full width at the bottom.
 class _SaveButton extends StatelessWidget {
   const _SaveButton({
+    super.key,
     required this.label,
     required this.saving,
     required this.onPressed,
@@ -687,3 +880,11 @@ class _SaveButton extends StatelessWidget {
     );
   }
 }
+
+typedef _Snapshot = ({
+  String name,
+  ScheduleMode mode,
+  Set<DayOfWeek> days,
+  String? startTime,
+  List<RoutineStep> steps,
+});

@@ -79,6 +79,19 @@ class DriveAdapter implements StorageAdapter {
       _mutate(() => _local.saveStep(step));
 
   @override
+  Future<void> saveRoutineWithSteps(
+    Routine routine,
+    List<RoutineStep> steps, {
+    Set<String> removedStepIds = const {},
+  }) => _mutate(
+    () => _local.saveRoutineWithSteps(
+      routine,
+      steps,
+      removedStepIds: removedStepIds,
+    ),
+  );
+
+  @override
   Future<void> reorderSteps(
     String routineId,
     List<String> orderedStepIds, {

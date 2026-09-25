@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'l10n/app_localizations.dart';
+import 'models/step.dart';
 import 'services/app_prefs.dart';
 import 'services/home_widget/widget_launch.dart';
 import 'services/notifications/notification_launch.dart';
@@ -169,6 +170,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           context,
           key: state.pageKey,
           child: StepFormScreen(routineId: state.pathParameters['routineId']!),
+        ),
+      ),
+      GoRoute(
+        path: '/routines/:routineId/steps/draft',
+        pageBuilder: (context, state) => appPage(
+          context,
+          key: state.pageKey,
+          child: StepFormScreen.draft(
+            routineId: state.pathParameters['routineId']!,
+            initial: state.extra as RoutineStep?,
+          ),
         ),
       ),
       GoRoute(

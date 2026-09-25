@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
+import 'package:openroutine/models/step.dart';
 import 'package:openroutine/screens/routine_form/routine_form_screen.dart';
+import 'package:openroutine/screens/step_form/step_form_screen.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
-    hide Routine;
+    hide Routine, RoutineStep;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/state/storage_provider.dart';
@@ -29,8 +31,50 @@ GoRouter _routerTo({String? routineId, ScheduleMode? initialMode}) {
         builder: (context, state) =>
             RoutineFormScreen(routineId: routineId, initialMode: initialMode),
       ),
+      // Stands in for the step form's draft mode: these tests are about the
+      // routine's own fields, and a routine can't be saved without a step.
+      GoRoute(
+        path: '/routines/:routineId/steps/draft',
+        builder: (context, state) => Scaffold(
+          body: TextButton(
+            onPressed: () => context.pop(
+              StepDraftSaved(_step(state.pathParameters['routineId']!)),
+            ),
+            child: const Text('fake-save'),
+          ),
+        ),
+      ),
     ],
   );
+}
+
+const _saveKey = Key('routine-form-save');
+
+RoutineStep _step(String routineId) {
+  final now = DateTime.utc(2026, 1, 1);
+  return RoutineStep(
+    id: 's1',
+    routineId: routineId,
+    name: 'Stretch',
+    emoji: '🧘',
+    durationSeconds: 300,
+    order: 0,
+    noExplicitTime: false,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+Future<void> _addStep(WidgetTester tester, AppLocalizations l10n) async {
+  await tester.scrollUntilVisible(
+    find.text(l10n.routineDetailAddStep),
+    100,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(find.text(l10n.routineDetailAddStep));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('fake-save'));
+  await tester.pumpAndSettle();
 }
 
 /// `alwaysUse24HourFormat` overrides the ambient MediaQuery so a test can pin
@@ -63,6 +107,7 @@ Future<AppDatabase> _seededDb(Routine routine) async {
   final db = AppDatabase(NativeDatabase.memory());
   final adapter = LocalAdapter(db);
   await adapter.saveRoutine(routine);
+  await adapter.saveStep(_step(routine.id));
   return db;
 }
 
@@ -108,7 +153,8 @@ void main() {
       final l10n = AppLocalizations.of(
         tester.element(find.byType(Scaffold).first),
       )!;
-      await tester.tap(find.text(l10n.commonSave));
+      await _addStep(tester, l10n);
+      await tester.tap(find.byKey(_saveKey));
       await tester.pumpAndSettle();
 
       expect(find.text(l10n.routineFormNameRequired), findsOneWidget);
@@ -169,7 +215,8 @@ void main() {
       // day picked before it can save.
       await tester.tap(find.byKey(const Key('day-mon')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.commonSave));
+      await _addStep(tester, l10n);
+      await tester.tap(find.byKey(_saveKey));
       await tester.pumpAndSettle();
 
       final rows = await db.select(db.routines).get();
@@ -327,7 +374,7 @@ void main() {
         final l10n = AppLocalizations.of(
           tester.element(find.byType(Scaffold).first),
         )!;
-        await tester.tap(find.text(l10n.commonSave));
+        await tester.tap(find.byKey(_saveKey));
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.routineFormDaysRequired), findsOneWidget);
@@ -367,7 +414,7 @@ void main() {
         final l10n = AppLocalizations.of(
           tester.element(find.byType(Scaffold).first),
         )!;
-        await tester.tap(find.text(l10n.commonSave));
+        await tester.tap(find.byKey(_saveKey));
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.routineFormStartTimeRequired), findsOneWidget);
@@ -405,7 +452,7 @@ void main() {
       final l10n = AppLocalizations.of(
         tester.element(find.byType(Scaffold).first),
       )!;
-      await tester.tap(find.text(l10n.commonSave));
+      await tester.tap(find.byKey(_saveKey));
       await tester.pumpAndSettle();
       expect(find.text(l10n.routineFormDaysRequired), findsOneWidget);
 
@@ -435,7 +482,8 @@ void main() {
         // Flexible is the default mode — a flexible routine still needs
         // days, so saving without picking any must fail the same way a
         // scheduled routine does.
-        await tester.tap(find.text(l10n.commonSave));
+        await _addStep(tester, l10n);
+        await tester.tap(find.byKey(_saveKey));
         await tester.pumpAndSettle();
 
         expect(find.text(l10n.routineFormDaysRequired), findsOneWidget);
@@ -460,7 +508,8 @@ void main() {
         await tester.enterText(find.byType(TextFormField).first, 'Reading');
         await tester.tap(find.byKey(const Key('day-mon')));
         await tester.pumpAndSettle();
-        await tester.tap(find.text(l10n.commonSave));
+        await _addStep(tester, l10n);
+        await tester.tap(find.byKey(_saveKey));
         await tester.pumpAndSettle();
 
         final rows = await db.select(db.routines).get();
@@ -536,7 +585,7 @@ void main() {
         )!;
         await tester.tap(find.text(l10n.routinesTabFlexible));
         await tester.pumpAndSettle();
-        await tester.tap(find.text(l10n.commonSave));
+        await tester.tap(find.byKey(_saveKey));
         await tester.pumpAndSettle();
 
         final rows = await db.select(db.routines).get();

@@ -407,6 +407,21 @@
     "description": "Save button with what the routine adds up to, e.g. 'Save · 2 steps, 5 min'.",
     "placeholders": {"save": {"type": "String"}, "summary": {"type": "String"}}
   },
+  "routineFormStepsSummary": "{steps, plural, =1{1 step} other{{steps} steps}}, {minutes} min",
+  "@routineFormStepsSummary": {
+    "description": "What the routine adds up to, shown on the Save button.",
+    "placeholders": {"steps": {"type": "int"}, "minutes": {"type": "int"}}
+  },
+  "routineFormStepsEmpty": "Add a step to save this routine.",
+  "@routineFormStepsEmpty": {"description": "Under the empty steps list, explaining why Save is off."},
+  "routineFormDiscardNewTitle": "Discard this routine?",
+  "@routineFormDiscardNewTitle": {"description": "Asked when backing out of a new routine with unsaved changes."},
+  "routineFormDiscardEditTitle": "Discard your changes?",
+  "@routineFormDiscardEditTitle": {"description": "Asked when backing out of an edited routine with unsaved changes."},
+  "routineFormKeepEditing": "Keep editing",
+  "@routineFormKeepEditing": {"description": "Closes the discard prompt and stays on the form."},
+  "routineFormDiscard": "Discard",
+  "@routineFormDiscard": {"description": "Confirms leaving the form without saving."},
   "routineFormCreateTitle": "New routine",
   "routineFormEditTitle": "Edit routine",
   "routineFormNameLabel": "Name",

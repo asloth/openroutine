@@ -13,6 +13,7 @@ import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../state/timer_provider.dart';
 import '../../theme/theme.dart';
+import '../../widgets/step_list.dart';
 import '../../widgets/tinted/tinted.dart';
 
 /// docs/SPEC.md §7 screen 3. The last-7-day dots read the CompletionLogs that
@@ -250,16 +251,18 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                             child: Text(l10n.routineDetailNoSteps),
                           )
                         else if (steps.length == 1)
-                          _StepListShell(
-                            child: _StepRow(
+                          StepListShell(
+                            child: StepRow(
                               key: ValueKey(steps.single.id),
                               step: steps.single,
-                              routineId: routineId,
+                              onTap: () => context.push(
+                                '/routines/$routineId/steps/${steps.single.id}/edit',
+                              ),
                               isLast: true,
                             ),
                           )
                         else
-                          _StepListShell(
+                          StepListShell(
                             child: ReorderableListView(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
@@ -272,10 +275,12 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                               onReorder: _savingOrder ? (_, _) {} : _reorder,
                               children: [
                                 for (final (index, step) in steps.indexed)
-                                  _StepRow(
+                                  StepRow(
                                     key: ValueKey(step.id),
                                     step: step,
-                                    routineId: routineId,
+                                    onTap: () => context.push(
+                                      '/routines/$routineId/steps/${step.id}/edit',
+                                    ),
                                     isLast: index == steps.length - 1,
                                     handle: ReorderableDragStartListener(
                                       index: index,
@@ -412,119 +417,6 @@ class _SummaryLabel extends StatelessWidget {
       text.toUpperCase(),
       style: AppTypography.sectionLabel.copyWith(
         color: context.routineCardColors.onFill.withValues(alpha: 0.8),
-      ),
-    );
-  }
-}
-
-/// The bordered, clipped shell every step row renders inside — one container
-/// whether there's one step or several, so a divider between rows (owned by
-/// each `_StepRow`) reads as one continuous list rather than a stack of
-/// separate cards.
-class _StepListShell extends StatelessWidget {
-  const _StepListShell({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: AppRadius.heroBorder,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: child,
-    );
-  }
-}
-
-class _StepRow extends StatelessWidget {
-  const _StepRow({
-    super.key,
-    required this.step,
-    required this.routineId,
-    required this.isLast,
-    this.handle,
-  });
-
-  final RoutineStep step;
-  final String routineId;
-
-  /// The last row in the shell draws no divider below it.
-  final bool isLast;
-  final Widget? handle;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final content = Row(
-      children: [
-        Text(step.emoji, style: const TextStyle(fontSize: 28)),
-        const SizedBox(width: AppSpacing.element),
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                step.name,
-                style: const TextStyle(
-                  fontFamily: AppTypography.display,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                step.noExplicitTime
-                    ? l10n.routineDetailNoExplicitTime
-                    : l10n.stepDurationMinutes(
-                        ((step.durationSeconds ?? 0) / 60).ceil(),
-                      ),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: colorScheme.onSurfaceVariant,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
-      ],
-    );
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 72),
-      decoration: BoxDecoration(
-        border: isLast
-            ? null
-            : Border(
-                bottom: BorderSide(color: colorScheme.surfaceContainerHigh),
-              ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: InkWell(
-              onTap: () =>
-                  context.push('/routines/$routineId/steps/${step.id}/edit'),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: handle == null ? 16 : 0,
-                ),
-                child: content,
-              ),
-            ),
-          ),
-          ?handle,
-        ],
       ),
     );
   }
