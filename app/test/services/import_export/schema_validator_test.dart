@@ -77,6 +77,46 @@ void main() {
     );
   });
 
+  test('a timestamp that is not a date-time is rejected', () {
+    final bundle = _validBundle()..['exported_at'] = 'yesterday';
+    expect(
+      () => validator.validateExportBundle(bundle),
+      throwsA(isA<SchemaValidationException>()),
+    );
+  });
+
+  test('a v7 id passes the uuid format the schemas declare', () {
+    // json_schema's own uuid check stops at version 5, so enforcing formats
+    // without an override would reject every id this app writes.
+    final bundle = _validBundle();
+    expect(
+      (bundle['routines'] as List).first['id'],
+      matches(RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-7')),
+    );
+    expect(() => validator.validateExportBundle(bundle), returnsNormally);
+  });
+
+  test('an id that is not a uuid at all is rejected', () {
+    final bundle = _validBundle();
+    (bundle['routines'] as List).first['id'] = 'not-a-uuid';
+    expect(
+      () => validator.validateExportBundle(bundle),
+      throwsA(isA<SchemaValidationException>()),
+    );
+  });
+
+  test('a well-shaped id from another uuid version is rejected', () {
+    // The format override checks shape only; the v7 guarantee lives in the
+    // schemas' pattern. This pins that the two together still hold it.
+    final bundle = _validBundle();
+    (bundle['routines'] as List).first['id'] =
+        '019c0000-0000-4000-8000-000000000001';
+    expect(
+      () => validator.validateExportBundle(bundle),
+      throwsA(isA<SchemaValidationException>()),
+    );
+  });
+
   test('the public schemas no longer describe moments', () {
     expect(File('../schemas/trigger.schema.json').existsSync(), isFalse);
     expect(File('assets/schemas/trigger.schema.json').existsSync(), isFalse);

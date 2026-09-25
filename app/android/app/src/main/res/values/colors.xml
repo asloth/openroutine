@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The warm-paper palette, lifted from app/lib/theme/colors.dart. The widget
-    cannot read the app's theme, so these are a copy; they follow the default
-    palette, not a custom one chosen in Settings.
+    The warm-paper palette, lifted from app/lib/theme/colors.dart. They only
+    show until the app first publishes: after that, the widget draws with the
+    palette chosen in Settings (see WidgetColors.kt).
 -->
 <resources>
     <color name="widget_background">#F6F1E9</color>

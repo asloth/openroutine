@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/models/routine.dart';
 import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/services/home_widget/home_widget_publisher.dart';
+import 'package:openroutine/theme/palette.dart';
 
 /// Captures what the publisher would hand to the plugin, so these tests never
 /// touch a platform channel.
@@ -145,6 +147,31 @@ void main() {
     );
 
     expect(_routines(sink).map((r) => r['id']), ['a', 'b']);
+  });
+
+  test('carries the palette you chose, for light and for dark', () async {
+    final palette = Palette.builtIns.last;
+    await publisher.publish(
+      routines: const [],
+      copy: _copy,
+      theme: WidgetTheme.of(palette, ThemeMode.dark),
+    );
+
+    final theme = _published(sink)['theme'] as Map<String, dynamic>;
+    expect(theme['mode'], 'dark');
+    final light = palette.scheme(Brightness.light);
+    final dark = palette.scheme(Brightness.dark);
+    expect(theme['light'], {
+      'background': light.surface.toARGB32(),
+      'onSurface': light.onSurface.toARGB32(),
+      'onSurfaceVariant': light.onSurfaceVariant.toARGB32(),
+      'accent': light.primary.toARGB32(),
+      'divider': light.outlineVariant.toARGB32(),
+    });
+    expect(
+      (theme['dark'] as Map<String, dynamic>)['accent'],
+      dark.primary.toARGB32(),
+    );
   });
 
   test('carries the localized copy the widget renders', () async {

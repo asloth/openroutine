@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 
 import '../../models/routine.dart';
 import '../../models/schedule.dart';
+import '../../theme/palette.dart';
 
 /// The localised text the home screen widget renders. Resolved app-side and
 /// pushed with the data, the same shape `ReminderCopy` uses — the widget has
@@ -32,6 +34,45 @@ class WidgetCopy {
     'title': title,
     'empty': empty,
     'openApp': openApp,
+  };
+}
+
+/// The colors the widget draws with: your palette in light and in dark, and
+/// which of the two your theme setting picks. The widget can't read the app's
+/// theme, so the app resolves it and sends the result along with the data.
+///
+/// Both schemes go every time, rather than only the one showing now, so the
+/// widget can follow the system's dark mode while the app is closed.
+class WidgetTheme {
+  const WidgetTheme({
+    required this.mode,
+    required this.light,
+    required this.dark,
+  });
+
+  factory WidgetTheme.of(Palette palette, ThemeMode mode) => WidgetTheme(
+    mode: mode,
+    light: palette.scheme(Brightness.light),
+    dark: palette.scheme(Brightness.dark),
+  );
+
+  final ThemeMode mode;
+  final ColorScheme light;
+  final ColorScheme dark;
+
+  Map<String, Object> toJson() => {
+    'mode': mode.name,
+    'light': _colors(light),
+    'dark': _colors(dark),
+  };
+
+  /// ARGB ints, which Kotlin reads straight into a color.
+  static Map<String, int> _colors(ColorScheme scheme) => {
+    'background': scheme.surface.toARGB32(),
+    'onSurface': scheme.onSurface.toARGB32(),
+    'onSurfaceVariant': scheme.onSurfaceVariant.toARGB32(),
+    'accent': scheme.primary.toARGB32(),
+    'divider': scheme.outlineVariant.toARGB32(),
   };
 }
 
@@ -78,7 +119,8 @@ class HomeWidgetPublisher {
   /// Must match the `AppWidgetProvider` class name in the Android manifest.
   static const androidProviderName = 'RoutineWidgetProvider';
 
-  /// Writes the snapshot and asks Android to redraw.
+  /// Writes the snapshot and asks Android to redraw. Without a [theme], the
+  /// widget keeps the colors built into its resources.
   ///
   /// Never throws. A missing widget host, a platform channel that is not
   /// there, a launcher that has gone away — none of it should surface in an
@@ -87,6 +129,7 @@ class HomeWidgetPublisher {
   Future<void> publish({
     required List<Routine> routines,
     required WidgetCopy copy,
+    WidgetTheme? theme,
   }) async {
     if (defaultTargetPlatform != TargetPlatform.android) return;
 
@@ -96,6 +139,7 @@ class HomeWidgetPublisher {
         routines,
       ).map((routine) => _encode(routine, copy)).toList(),
       'strings': copy.toJson(),
+      'theme': ?theme?.toJson(),
     });
 
     try {

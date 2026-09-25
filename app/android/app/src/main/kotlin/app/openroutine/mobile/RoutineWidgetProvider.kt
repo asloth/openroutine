@@ -33,6 +33,16 @@ class RoutineWidgetProvider : HomeWidgetProvider() {
             setTextViewText(R.id.widget_title, snapshot.title)
             setTextViewText(R.id.widget_empty, snapshot.empty)
 
+            snapshot.colors?.let { colors ->
+              // The background is a white rounded shape, tinted here, so the
+              // corners survive whichever color it takes.
+              colors.apply(context, this, R.id.widget_background, "setColorFilter") { it.background }
+              colors.apply(context, this, R.id.widget_title, "setTextColor") { it.accent }
+              colors.apply(context, this, R.id.widget_empty, "setTextColor") {
+                it.onSurfaceVariant
+              }
+            }
+
             setRemoteAdapter(R.id.routine_list, collectionIntent(context, widgetId))
             setEmptyView(R.id.routine_list, R.id.widget_empty)
 

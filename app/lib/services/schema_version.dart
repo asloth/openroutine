@@ -35,9 +35,12 @@ enum SchemaVersion {
       throw FormatException('Malformed schema version: $value');
     }
 
-    final major = int.parse(match.group(1)!);
-    final minor = int.parse(match.group(2)!);
-    final patch = int.parse(match.group(3)!);
+    // The shape is bounded but the digits aren't, so a component can be past
+    // int's range. It matches no supported version below, and a major that
+    // large can only come from a later build.
+    final major = int.tryParse(match.group(1)!);
+    final minor = int.tryParse(match.group(2)!);
+    final patch = int.tryParse(match.group(3)!);
     if (major == 1) {
       // 1.0 shipped before this gate existed, so every 1.0 patch release is
       // readable. Each minor since is purely additive and pinned to patch 0;
@@ -52,7 +55,7 @@ enum SchemaVersion {
       // Anything rejected from major 1 on claims a revision written after one
       // we understand, so the import screen can tell the user to update. Only
       // an older major predates the format entirely.
-      isNewer: major >= 1,
+      isNewer: major == null || major >= 1,
     );
   }
 }
