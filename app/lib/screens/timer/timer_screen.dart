@@ -11,6 +11,7 @@ import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../state/timer_provider.dart';
 import '../../theme/typography.dart';
+import '../../widgets/confetti_burst.dart';
 import '../../widgets/mascot_slot.dart';
 import '../../widgets/tinted/tinted.dart';
 import 'run/run_parts.dart';
@@ -464,143 +465,168 @@ class _SummaryState extends ConsumerState<_Summary> {
     final suggestion = abandoned ? null : _suggestions.firstOrNull;
     final scheme = theme.colorScheme;
     final muted = scheme.onSurface.withValues(alpha: 0.6);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(22, 56, 22, 24),
-      children: [
-        // The pet, not a tick. A finished routine is the one moment this app
-        // gets to be warm about, and `abandoned` deliberately gets a resting
-        // pet rather than a sad one — stopping early isn't a failure here.
-        Center(
-          child: MascotSlot(
-            mood: abandoned ? MascotMood.resting : MascotMood.cheering,
-            size: _mascotSize,
-          ),
-        ),
-        const SizedBox(height: 26),
-        Text(
-          abandoned
-              ? l10n.timerAbandonedTitle
-              : state.mode == RunMode.low
-              ? l10n.timerLowModeCompleteTitle
-              : l10n.timerCompleteTitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: AppTypography.display,
-            fontSize: 36,
-            height: 1.1,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.7,
-            color: scheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          state.mode == RunMode.low
-              ? l10n.timerLowModeCompleteSummary(completed, total, _format(ran))
-              : l10n.timerCompleteSummary(completed, total, _format(ran)),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: AppTypography.body,
-            fontSize: 15,
-            height: 1.45,
-            color: muted,
-          ),
-        ),
-        if (skipped > 0)
-          Text(
-            l10n.timerCompleteSkipped(skipped),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppTypography.body,
-              fontSize: 14,
-              color: muted,
-            ),
-          ),
-        if (suggestion != null && _approval == null && !_dismissed) ...[
-          const SizedBox(height: 24),
-          Semantics(
-            container: true,
-            label: l10n.timerCalibrationTitle,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerLowest,
-                borderRadius: const BorderRadius.all(Radius.circular(22)),
-                border: Border.all(
-                  color: scheme.onSurface.withValues(alpha: 0.07),
+    final mascot = MascotSlot(
+      mood: abandoned ? MascotMood.resting : MascotMood.cheering,
+      size: _mascotSize,
+    );
+    // The summary sits in the middle of the screen when it fits, and
+    // scrolls when the calibration card or a big text size makes it taller.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // The pet, not a tick. A finished routine is the one moment this app
+              // gets to be warm about, so it gets a small party. `abandoned`
+              // deliberately gets a resting pet and no confetti rather than a sad
+              // pet — stopping early isn't a failure here, but it isn't a party
+              // either. Reduced motion keeps the pet and drops the confetti.
+              Center(
+                child: abandoned || MediaQuery.disableAnimationsOf(context)
+                    ? mascot
+                    : ConfettiBurst(child: mascot),
+              ),
+              const SizedBox(height: 26),
+              Text(
+                abandoned
+                    ? l10n.timerAbandonedTitle
+                    : state.mode == RunMode.low
+                    ? l10n.timerLowModeCompleteTitle
+                    : l10n.timerCompleteTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTypography.display,
+                  fontSize: 36,
+                  height: 1.1,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.7,
+                  color: scheme.onSurface,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    l10n.timerCalibrationTitle,
-                    style: theme.textTheme.titleMedium,
+              const SizedBox(height: 10),
+              Text(
+                state.mode == RunMode.low
+                    ? l10n.timerLowModeCompleteSummary(
+                        completed,
+                        total,
+                        _format(ran),
+                      )
+                    : l10n.timerCompleteSummary(completed, total, _format(ran)),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTypography.body,
+                  fontSize: 15,
+                  height: 1.45,
+                  color: muted,
+                ),
+              ),
+              if (skipped > 0)
+                Text(
+                  l10n.timerCompleteSkipped(skipped),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: AppTypography.body,
+                    fontSize: 14,
+                    color: muted,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    l10n.timerCalibrationSummary(
-                      _format(
-                        Duration(seconds: suggestion.actualDurationSeconds),
-                      ),
-                      _format(
-                        Duration(seconds: suggestion.sourceDurationSeconds),
+                ),
+              if (suggestion != null && _approval == null && !_dismissed) ...[
+                const SizedBox(height: 24),
+                Semantics(
+                  container: true,
+                  label: l10n.timerCalibrationTitle,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerLowest,
+                      borderRadius: const BorderRadius.all(Radius.circular(22)),
+                      border: Border.all(
+                        color: scheme.onSurface.withValues(alpha: 0.07),
                       ),
                     ),
-                    style: TextStyle(
-                      fontFamily: AppTypography.body,
-                      fontSize: 14,
-                      height: 1.4,
-                      color: muted,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: () => _approve(suggestion),
-                      child: Text(
-                        l10n.timerCalibrationApprove(
-                          _format(
-                            Duration(
-                              seconds: suggestion.suggestedDurationSeconds,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          l10n.timerCalibrationTitle,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          l10n.timerCalibrationSummary(
+                            _format(
+                              Duration(
+                                seconds: suggestion.actualDurationSeconds,
+                              ),
+                            ),
+                            _format(
+                              Duration(
+                                seconds: suggestion.sourceDurationSeconds,
+                              ),
+                            ),
+                          ),
+                          style: TextStyle(
+                            fontFamily: AppTypography.body,
+                            fontSize: 14,
+                            height: 1.4,
+                            color: muted,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 48,
+                          child: FilledButton(
+                            onPressed: () => _approve(suggestion),
+                            child: Text(
+                              l10n.timerCalibrationApprove(
+                                _format(
+                                  Duration(
+                                    seconds:
+                                        suggestion.suggestedDurationSeconds,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        SizedBox(
+                          height: 48,
+                          child: TextButton(
+                            onPressed: () => setState(() => _dismissed = true),
+                            child: Text(l10n.timerCalibrationNotNow),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(
-                    height: 48,
-                    child: TextButton(
-                      onPressed: () => setState(() => _dismissed = true),
-                      child: Text(l10n.timerCalibrationNotNow),
-                    ),
+                ),
+              ],
+              if (_approval != null) ...[
+                const SizedBox(height: 24),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    _approval == CalibrationApproval.applied
+                        ? l10n.timerCalibrationApplied
+                        : l10n.timerCalibrationStale,
+                    textAlign: TextAlign.center,
                   ),
-                ],
+                ),
+              ],
+              const SizedBox(height: 32),
+              RunButton(
+                label: l10n.timerCloseSummary,
+                onPressed: () => context.pop(),
+                primary: true,
               ),
-            ),
+            ],
           ),
-        ],
-        if (_approval != null) ...[
-          const SizedBox(height: 24),
-          Semantics(
-            liveRegion: true,
-            child: Text(
-              _approval == CalibrationApproval.applied
-                  ? l10n.timerCalibrationApplied
-                  : l10n.timerCalibrationStale,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-        const SizedBox(height: 32),
-        RunButton(
-          label: l10n.timerCloseSummary,
-          onPressed: () => context.pop(),
-          primary: true,
         ),
-      ],
+      ),
     );
   }
 
