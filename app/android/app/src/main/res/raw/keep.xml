@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Nothing in Kotlin references the reminder sound; the app names it by
+    string from Dart. Keep it so resource shrinking in a release build doesn't
+    drop it and leave reminders silent.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/ochi_hello" />

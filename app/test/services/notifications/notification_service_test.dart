@@ -80,4 +80,27 @@ void main() {
       expect(id, lessThan(ReminderSchedule.idBase));
     }
   });
+
+  test('routine reminders say hello in Ochi\'s voice on a new channel', () {
+    final details = NotificationService.routineReminderDetails(
+      channelName: 'Routine reminders',
+      channelDescription: 'When a routine is about to start.',
+    );
+
+    final android = details.android!;
+    // A channel's sound is fixed once it exists on a device, so a new sound
+    // needs a new channel id.
+    expect(android.channelId, 'routine_reminder_v2');
+    expect(
+      android.channelId,
+      isNot(isIn(NotificationService.retiredChannelIds)),
+    );
+    expect(android.playSound, isTrue);
+    expect(android.sound, isA<RawResourceAndroidNotificationSound>());
+    expect(android.sound!.sound, 'ochi_hello');
+    expect(
+      NotificationService.retiredChannelIds,
+      contains('routine_reminder_v1'),
+    );
+  });
 }
