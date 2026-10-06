@@ -62,6 +62,25 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('the Sounds switch is on by default and turns sounds off', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    await _pump(tester, prefs);
+    final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+
+    final toggle = find.widgetWithText(SwitchListTile, l10n.settingsSounds);
+    await tester.scrollUntilVisible(toggle, 200);
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(prefs.getBool('sounds_enabled'), isFalse);
+  });
+
   testWidgets('the app bar leads with a SoftBackButton, not the stock arrow', (
     tester,
   ) async {

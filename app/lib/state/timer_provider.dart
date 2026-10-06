@@ -6,7 +6,9 @@ import '../models/completion_log.dart';
 import '../models/step.dart';
 import '../services/id_generator.dart';
 import '../services/notifications/notification_service.dart';
+import '../services/sounds/app_sounds.dart';
 import '../services/timer/timer_machine.dart';
+import 'sound_provider.dart';
 import 'stats_provider.dart';
 import 'storage_provider.dart';
 
@@ -103,7 +105,17 @@ class RoutineTimer extends _$RoutineTimer {
 
   void pause() => _apply(state.pause(DateTime.now()));
   void resume() => _apply(state.resume(DateTime.now()));
-  void completeStep() => _apply(state.completeStep(DateTime.now()));
+
+  /// Pops when the next step comes up. The last step's sound is the
+  /// routine's party instead, which [_apply] plays.
+  void completeStep() {
+    final before = state;
+    _apply(state.completeStep(DateTime.now()));
+    if (!identical(before, state) && state.isActive) {
+      unawaited(ref.read(appSoundsProvider).play(AppSound.stepDone));
+    }
+  }
+
   void skip() => _apply(state.skip(DateTime.now()));
   void back() => _apply(state.back(DateTime.now()));
   void postpone() => _apply(state.postpone(DateTime.now()));
@@ -121,6 +133,9 @@ class RoutineTimer extends _$RoutineTimer {
     // Terminal edge, entered exactly once: persist the run's log.
     if (wasActive && next.phase == TimerPhase.complete) {
       unawaited(_persist(next));
+      if (next.outcome != CompletionOutcome.abandoned) {
+        unawaited(ref.read(appSoundsProvider).play(AppSound.routineFinished));
+      }
     }
   }
 

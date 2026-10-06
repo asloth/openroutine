@@ -799,6 +799,8 @@
     }
   },
 
+  "settingsSounds": "Sounds",
+  "settingsSoundsSubtitle": "A pop when you finish a step and a little party when you finish a routine.",
   "settingsReminderExplainer": "Routines with set days and a start time remind you automatically.",
 
   "reminderChannelName": "Routine reminders",

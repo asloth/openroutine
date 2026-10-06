@@ -9,11 +9,13 @@ import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
 import 'package:openroutine/screens/timer/timer_screen.dart';
 import 'package:openroutine/services/notifications/notification_service.dart';
+import 'package:openroutine/services/sounds/app_sounds.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/services/timer/timer_machine.dart';
+import 'package:openroutine/state/sound_provider.dart';
 import 'package:openroutine/state/stats_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
@@ -84,6 +86,7 @@ Widget _wrap(
   return ProviderScope(
     overrides: [
       storageAdapterProvider.overrideWithValue(adapter),
+      appSoundsProvider.overrideWithValue(const SilentAppSounds()),
       notificationServiceProvider.overrideWithValue(
         notifications ?? _NoopNotificationService(),
       ),
@@ -1014,6 +1017,7 @@ void main() {
       ProviderScope(
         overrides: [
           storageAdapterProvider.overrideWithValue(adapter),
+          appSoundsProvider.overrideWithValue(const SilentAppSounds()),
           notificationServiceProvider.overrideWithValue(
             _NoopNotificationService(),
           ),

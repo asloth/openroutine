@@ -41,17 +41,21 @@ void main() {
     // A separate channel id is the whole point: Android will not let an
     // existing channel become audible after creation, so reusing the boundary
     // channel would silently do nothing on any device that has posted on it.
-    expect(android.channelId, 'step_progress_nudge_v1');
+    expect(android.channelId, 'step_progress_nudge_v2');
     expect(android.channelId, isNot(NotificationService.stepBoundaryChannelId));
     expect(android.importance, Importance.high);
     expect(android.priority, Priority.high);
     expect(android.category, AndroidNotificationCategory.reminder);
-    // Left at their defaults rather than set: default sound and vibration is
-    // exactly what this channel wants, and naming no `sound` means the
-    // system's own notification tone.
+    // v2 swaps the system tone for Ochi's bip bip boo. A channel's sound is
+    // fixed once it exists, so the old id is retired rather than reused.
     expect(android.playSound, isTrue);
     expect(android.enableVibration, isTrue);
-    expect(android.sound, isNull);
+    expect(android.sound, isA<RawResourceAndroidNotificationSound>());
+    expect(android.sound!.sound, 'ochi_bip_bip_boo');
+    expect(
+      NotificationService.retiredChannelIds,
+      contains('step_progress_nudge_v1'),
+    );
     // Unset, so it falls back to the initialization default (on), unlike the
     // boundary channel which silences itself explicitly.
     expect(ios.presentSound, isNull);
@@ -63,7 +67,7 @@ void main() {
       channelDescription: 'Un aviso a mitad de un paso.',
     );
 
-    expect(details.android!.channelId, 'step_progress_nudge_v1');
+    expect(details.android!.channelId, 'step_progress_nudge_v2');
     expect(details.android!.channelName, 'Avisos a mitad de paso');
   });
 

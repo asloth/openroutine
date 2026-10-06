@@ -427,6 +427,8 @@
   "settingsReminderLead": "Recordarme",
   "reminderLeadAtStart": "A la hora de inicio",
   "reminderLeadMinutesBefore": "{minutes} min antes",
+  "settingsSounds": "Sonidos",
+  "settingsSoundsSubtitle": "Un pop al terminar un paso y una pequeña fiesta al terminar una rutina.",
   "settingsReminderExplainer": "Las rutinas con días y hora de inicio te avisan automáticamente.",
   "reminderChannelName": "Recordatorios de rutina",
   "reminderChannelDescription": "Un aviso poco antes de que empiece una rutina programada.",

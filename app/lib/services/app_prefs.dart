@@ -31,6 +31,7 @@ class AppPrefs {
   static const _accentKey = 'accent_color';
   static const _themeModeKey = 'theme_mode';
   static const _reminderLeadKey = 'reminder_lead_minutes';
+  static const _soundsEnabledKey = 'sounds_enabled';
   static const _installClientIdKey = 'install_client_id';
   static const _driveCutoverFolderIdKey = 'drive_cutover_folder_id';
   static const _driveCutoverVersionKey = 'drive_cutover_version';
@@ -138,4 +139,11 @@ class AppPrefs {
 
   Future<void> setReminderLeadMinutes(int minutes) =>
       _prefs.setInt(_reminderLeadKey, minutes);
+
+  /// Whether the app plays its own sounds, like the pop when you finish a
+  /// step. On until you turn it off.
+  bool get soundsEnabled => _prefs.getBool(_soundsEnabledKey) ?? true;
+
+  Future<void> setSoundsEnabled(bool enabled) =>
+      _prefs.setBool(_soundsEnabledKey, enabled);
 }

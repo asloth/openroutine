@@ -68,12 +68,13 @@ class NotificationService {
   // audible would be silently ignored on every device that has already posted
   // on it. Its own id also lets someone mute mid-step nudges in system
   // settings without losing the quiet boundary marker.
-  static const stepNudgeChannelId = 'step_progress_nudge_v1';
+  //
+  // v2 swaps the system tone for Ochi's bip bip boo
+  // (`res/raw/ochi_bip_bip_boo.ogg`), so v1 joins [retiredChannelIds].
+  static const stepNudgeChannelId = 'step_progress_nudge_v2';
 
-  /// Deliberately names no `sound` and sets neither `playSound` nor
-  /// `enableVibration`: both default to on, which gives the system's own
-  /// notification tone plus vibration — exactly what is wanted, and nothing to
-  /// bundle. Same shape as [routineReminderDetails] for the same reason.
+  /// Sound and vibration both stay on: this is the notification whose job is
+  /// to get your attention.
   static NotificationDetails stepNudgeDetails({
     required String channelName,
     required String channelDescription,
@@ -85,6 +86,7 @@ class NotificationService {
       importance: Importance.high,
       priority: Priority.high,
       category: AndroidNotificationCategory.reminder,
+      sound: const RawResourceAndroidNotificationSound('ochi_bip_bip_boo'),
     ),
     iOS: const DarwinNotificationDetails(),
   );
@@ -283,7 +285,10 @@ class NotificationService {
 
   /// Channels an older build created and this one no longer posts to. They're
   /// deleted at startup so Settings doesn't list a dead duplicate.
-  static const retiredChannelIds = ['routine_reminder_v1'];
+  static const retiredChannelIds = [
+    'routine_reminder_v1',
+    'step_progress_nudge_v1',
+  ];
 
   static NotificationDetails routineReminderDetails({
     required String channelName,
