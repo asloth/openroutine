@@ -89,7 +89,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.commonSave));
+    await tester.tap(find.byKey(const Key('step-form-save')));
     await tester.pumpAndSettle();
 
     final saved = (await result)! as StepDraftSaved;
@@ -112,7 +112,7 @@ void main() {
       find.widgetWithText(TextFormField, 'Stretch'),
       'Yoga',
     );
-    await tester.tap(find.byTooltip(l10n.commonSave));
+    await tester.tap(find.byKey(const Key('step-form-save')));
     await tester.pumpAndSettle();
 
     final saved = (await result)! as StepDraftSaved;

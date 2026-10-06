@@ -13,6 +13,7 @@ import '../../services/storage/storage_adapter.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../theme/theme.dart';
+import '../../widgets/form_save_button.dart';
 import '../../widgets/step_list.dart';
 import '../../widgets/tinted/soft_back_button.dart';
 import '../routines_list/home/home_ink.dart';
@@ -356,7 +357,7 @@ class _RoutineFormScreenState extends ConsumerState<RoutineFormScreen> {
         // at full width rather than hiding as a checkmark in the bar.
         bottomNavigationBar: SafeArea(
           minimum: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: _SaveButton(
+          child: FormSaveButton(
             key: const Key('routine-form-save'),
             label: _saveLabel(l10n),
             saving: _saving,
@@ -817,64 +818,6 @@ class _Stepper extends StatelessWidget {
           width: 44,
           height: 44,
           child: Icon(icon, size: 18, color: ink.muted(0.6)),
-        ),
-      ),
-    );
-  }
-}
-
-/// The screen's one filled action, full width at the bottom.
-class _SaveButton extends StatelessWidget {
-  const _SaveButton({
-    super.key,
-    required this.label,
-    required this.saving,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool saving;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = HomeInk.of(context);
-    final enabled = onPressed != null;
-    return Material(
-      color: enabled ? ink.action : ink.muted(0.12),
-      borderRadius: const BorderRadius.all(Radius.circular(16)),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: const BorderRadius.all(Radius.circular(16)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
-          // heightFactor, or the Center fills every pixel the Scaffold offers
-          // its bottom bar and leaves the form no room at all.
-          child: Center(
-            heightFactor: 1,
-            child: saving
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: ink.onAction,
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: AppTypography.display,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w600,
-                        color: enabled ? ink.onAction : ink.muted(0.5),
-                      ),
-                    ),
-                  ),
-          ),
         ),
       ),
     );

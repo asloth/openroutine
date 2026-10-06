@@ -67,6 +67,10 @@ Widget _wrap(LocalAdapter adapter, GoRouter router) => ProviderScope(
 /// name the one it means — a bare `find.byType` matches two widgets and fails.
 Finder _switch(String label) => find.widgetWithText(SwitchListTile, label);
 
+final _save = find.byKey(const Key('step-form-save'));
+final _noTime = find.byKey(const Key('step-form-no-time'));
+Finder _tile(int minutes) => find.byKey(Key('duration-$minutes'));
+
 void main() {
   late AppDatabase database;
   late LocalAdapter adapter;
@@ -109,9 +113,10 @@ void main() {
     expect(find.byType(SoftBackButton), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back), findsNothing);
     expect(find.byIcon(Icons.arrow_back_ios), findsNothing);
-    // The step form's own actions — save and delete — don't move.
-    expect(find.byIcon(Icons.check), findsOneWidget);
+    // Delete stays in the bar; save moved to the bottom button.
+    expect(find.byIcon(Icons.check), findsNothing);
     expect(find.byTooltip(l10n.commonDelete), findsOneWidget);
+    expect(_save, findsOneWidget);
   });
 
   testWidgets('edit mode app bar uses SoftCircleButton actions', (
@@ -126,7 +131,7 @@ void main() {
         (widget) =>
             widget is SoftCircleButton && widget.tooltip == l10n.commonSave,
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byWidgetPredicate(
@@ -155,13 +160,13 @@ void main() {
     }
 
     final l10n = await pumpForm(tester, '/step');
-    final checkbox = find.byType(CheckboxListTile);
-    expect(tester.widget<CheckboxListTile>(checkbox).onChanged, isNotNull);
-    await tester.tap(checkbox);
+    final essential = _switch(l10n.stepFormCoreLabel);
+    expect(tester.widget<SwitchListTile>(essential).onChanged, isNotNull);
+    await tester.tap(essential);
     await tester.pump();
-    expect(tester.widget<CheckboxListTile>(checkbox).value, isTrue);
+    expect(tester.widget<SwitchListTile>(essential).value, isTrue);
 
-    await tester.tap(find.byTooltip(l10n.commonSave));
+    await tester.tap(_save);
     await tester.pumpAndSettle();
 
     final savedStep = (await adapter.getSteps(
@@ -197,7 +202,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.commonSave));
+      await tester.tap(_save);
       await tester.pumpAndSettle();
 
       final saved = await adapter.getSteps('r1');
@@ -236,7 +241,7 @@ void main() {
         isTrue,
       );
 
-      await tester.tap(find.byTooltip(l10n.commonSave));
+      await tester.tap(_save);
       await tester.pumpAndSettle();
 
       final saved = (await adapter.getSteps(
@@ -258,7 +263,7 @@ void main() {
       await tester.tap(_switch(l10n.stepFormRemindDuringLabel));
       await tester.pump();
 
-      await tester.tap(find.byTooltip(l10n.commonSave));
+      await tester.tap(_save);
       await tester.pumpAndSettle();
 
       final saved = (await adapter.getSteps(
@@ -275,8 +280,9 @@ void main() {
       final l10n = await pumpForm(tester, '/step');
       expect(_switch(l10n.stepFormRemindDuringLabel), findsOneWidget);
 
-      await tester.tap(_switch(l10n.stepFormNoExplicitTime));
+      await tester.tap(_noTime);
       await tester.pumpAndSettle();
+      expect(_tile(1), findsNothing, reason: 'no estimate, no minutes');
 
       expect(
         _switch(l10n.stepFormRemindDuringLabel),
@@ -289,7 +295,7 @@ void main() {
         reason: 'the guidance goes with the control it explains',
       );
 
-      await tester.tap(find.byTooltip(l10n.commonSave));
+      await tester.tap(_save);
       await tester.pumpAndSettle();
 
       final saved = (await adapter.getSteps(
@@ -307,18 +313,42 @@ void main() {
   });
 
   group('the duration picker', () {
-    testWidgets('renders a chip for every preset', (tester) async {
+    testWidgets('renders a tile for every preset', (tester) async {
       await adapter.saveStep(_step('s4', 3, isCore: false));
 
       final l10n = await pumpForm(tester, '/step');
 
       for (final minutes in [1, 2, 3, 5, 10, 15, 20, 30, 45, 60]) {
         expect(
-          find.widgetWithText(ChoiceChip, l10n.stepDurationMinutes(minutes)),
+          _tile(minutes),
           findsOneWidget,
-          reason: 'the $minutes-minute preset should have its own chip',
+          reason: 'the $minutes-minute preset should have its own tile',
         );
       }
+      expect(find.text(l10n.stepFormHowLong.toUpperCase()), findsOneWidget);
+      expect(find.text(l10n.stepFormMinutesCaption), findsOneWidget);
+    });
+
+    testWidgets('selects the tile you tap and saves its minutes', (
+      tester,
+    ) async {
+      await adapter.saveStep(_step('s4', 3, isCore: false));
+
+      await pumpForm(tester, '/step');
+      expect(tester.widget<Semantics>(_tile(1)).properties.selected, isTrue);
+
+      await tester.tap(_tile(20));
+      await tester.pump();
+      expect(tester.widget<Semantics>(_tile(20)).properties.selected, isTrue);
+      expect(tester.widget<Semantics>(_tile(1)).properties.selected, isFalse);
+
+      await tester.tap(_save);
+      await tester.pumpAndSettle();
+
+      final saved = (await adapter.getSteps(
+        'r1',
+      )).singleWhere((step) => step.id == 's4');
+      expect(saved.durationSeconds, 20 * 60);
     });
 
     testWidgets(
@@ -328,20 +358,45 @@ void main() {
           _step('s4', 3, isCore: false, durationSeconds: 7 * 60),
         );
 
-        final l10n = await pumpForm(tester, '/step');
+        await pumpForm(tester, '/step');
 
-        final chip = find.widgetWithText(
-          ChoiceChip,
-          l10n.stepDurationMinutes(7),
-        );
         expect(
-          chip,
+          _tile(7),
           findsOneWidget,
           reason: 'a 7-minute step is not one of the fixed presets',
         );
-        expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
+        expect(tester.widget<Semantics>(_tile(7)).properties.selected, isTrue);
       },
     );
+  });
+
+  group('the save button', () {
+    testWidgets('waits for a name, then saves', (tester) async {
+      await adapter.saveStep(_step('s4', 3, isCore: false));
+
+      final l10n = await pumpForm(tester, '/step');
+      expect(find.text(l10n.commonSave), findsOneWidget);
+
+      await tester.enterText(find.byType(TextFormField), '   ');
+      await tester.pump();
+      expect(
+        find.descendant(of: _save, matching: find.text(l10n.stepFormNameFirst)),
+        findsOneWidget,
+      );
+      await tester.tap(_save);
+      await tester.pumpAndSettle();
+      expect(
+        (await adapter.getSteps('r1')).single.name,
+        'Step s4',
+        reason: 'a blank name is not saved',
+      );
+
+      await tester.enterText(find.byType(TextFormField), 'Stretch');
+      await tester.pump();
+      await tester.tap(_save);
+      await tester.pumpAndSettle();
+      expect((await adapter.getSteps('r1')).single.name, 'Stretch');
+    });
   });
 
   group('the name field', () {
