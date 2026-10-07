@@ -208,6 +208,7 @@ class HomeTextAction extends StatelessWidget {
             child: Text(
               label,
               style: HomeInk.label.copyWith(color: ink.accent),
+              textAlign: TextAlign.center,
             ),
           ),
         ),
