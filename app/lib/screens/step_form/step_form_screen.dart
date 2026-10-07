@@ -11,6 +11,9 @@ import '../../services/storage/storage_adapter.dart';
 import '../../state/reference_data_provider.dart';
 import '../../state/routines_provider.dart';
 import '../../state/storage_provider.dart';
+import '../routines_list/home/home_ink.dart';
+import '../../theme/theme.dart';
+import '../../widgets/form_save_button.dart';
 import '../../widgets/tinted/soft_back_button.dart';
 import '../../widgets/tinted/soft_circle_button.dart';
 
@@ -87,9 +90,13 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
   @override
   void initState() {
     super.initState();
+    // The save button's label and enabled state follow the name.
+    _nameController.addListener(_onNameChanged);
     final initial = widget.initial;
     if (initial != null) _loadFrom(initial);
   }
+
+  void _onNameChanged() => setState(() {});
 
   @override
   void dispose() {
@@ -345,6 +352,9 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
       }
     }
 
+    final ink = HomeInk.of(context);
+    final hasName = _nameController.text.trim().isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         leading: SoftBackButton.asAppBarLeading(),
@@ -361,19 +371,23 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
             ),
             const SizedBox(width: 8),
           ],
-          SoftCircleButton(
-            icon: Icons.check,
-            tooltip: l10n.commonSave,
-            style: SoftCircleButtonStyle.accent,
-            onPressed: _saving ? null : _save,
-          ),
-          const SizedBox(width: 8),
         ],
+      ),
+      // Same as the routine form: the button is the point of the screen, and
+      // until there's a name it says what's missing instead of failing.
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: FormSaveButton(
+          key: const Key('step-form-save'),
+          label: hasName ? l10n.commonSave : l10n.stepFormNameFirst,
+          saving: _saving,
+          onPressed: _saving || !hasName ? null : _save,
+        ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
             Row(
               children: [
@@ -381,23 +395,35 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
                   onTap: () => emojiCategoriesAsync.value != null
                       ? _pickEmoji(emojiCategoriesAsync.value!)
                       : null,
-                  borderRadius: BorderRadius.circular(28),
+                  customBorder: const CircleBorder(),
                   child: CircleAvatar(
-                    radius: 28,
+                    radius: 24,
+                    backgroundColor: ink.muted(0.06),
                     child: Text(
                       _emoji ?? '➕',
-                      style: const TextStyle(fontSize: 24),
+                      style: const TextStyle(fontSize: 22),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: TextFormField(
                     controller: _nameController,
                     maxLength: 50,
+                    style: _nameStyle.copyWith(color: ink.ink),
                     decoration: InputDecoration(
-                      labelText: l10n.stepFormNameLabel,
+                      hintText: l10n.stepFormNameHint,
+                      hintStyle: _nameStyle.copyWith(color: ink.muted(0.4)),
                       counterText: '',
+                      filled: false,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.only(bottom: 10),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: ink.muted(0.18)),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: ink.accent, width: 2),
+                      ),
                     ),
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
@@ -428,56 +454,220 @@ class _StepFormScreenState extends ConsumerState<StepFormScreen> {
                 error: (_, _) => const SizedBox.shrink(),
               ),
             ],
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.stepFormNoExplicitTime),
-              value: _noExplicitTime,
-              onChanged: (value) => setState(() => _noExplicitTime = value),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.stepFormHowLong.toUpperCase(),
+                    style: HomeInk.label.copyWith(
+                      fontSize: 11,
+                      letterSpacing: 0.9,
+                      color: ink.muted(0.5),
+                    ),
+                  ),
+                ),
+                _NoSetTimeToggle(
+                  key: const Key('step-form-no-time'),
+                  label: l10n.stepFormNoExplicitTime,
+                  on: _noExplicitTime,
+                  onTap: () =>
+                      setState(() => _noExplicitTime = !_noExplicitTime),
+                ),
+              ],
             ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.stepFormCoreLabel),
-              subtitle: Text(l10n.stepFormCoreGuidance),
-              value: _isCore,
-              onChanged: (value) => setState(() => _isCore = value ?? false),
-            ),
-            // Both the toggle and the duration chips live behind this
+            // The minutes and the mid-step reminder both live behind this
             // condition: a reminder at half of no estimate is not a moment,
             // so the control is unavailable rather than present and ignored.
             if (!_noExplicitTime) ...[
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.stepFormRemindDuringLabel),
-                subtitle: Text(l10n.stepFormRemindDuringGuidance),
-                value: _remindDuring,
-                onChanged: (value) => setState(() => _remindDuring = value),
+              const SizedBox(height: 10),
+              _DurationGrid(
+                minutes: ({..._durationPresets, _minutes}.toList()..sort()),
+                selected: _minutes,
+                onSelected: (minutes) => setState(() => _minutes = minutes),
               ),
               const SizedBox(height: 8),
               Text(
-                l10n.stepFormDurationLabel,
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final minutes in ({
-                    ..._durationPresets,
-                    _minutes,
-                  }.toList()..sort()))
-                    ChoiceChip(
-                      label: Text(l10n.stepDurationMinutes(minutes)),
-                      selected: minutes == _minutes,
-                      onSelected: (_) => setState(() => _minutes = minutes),
-                    ),
-                ],
+                l10n.stepFormMinutesCaption,
+                style: HomeInk.detail.copyWith(
+                  fontSize: 12.5,
+                  color: ink.muted(0.5),
+                ),
               ),
             ],
+            const SizedBox(height: 22),
+            Material(
+              color: ink.card,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(20)),
+                side: BorderSide(color: ink.hairline),
+              ),
+              child: Column(
+                children: [
+                  if (!_noExplicitTime) ...[
+                    SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      title: Text(l10n.stepFormRemindDuringLabel),
+                      subtitle: Text(l10n.stepFormRemindDuringGuidance),
+                      value: _remindDuring,
+                      onChanged: (value) =>
+                          setState(() => _remindDuring = value),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: ink.hairline,
+                    ),
+                  ],
+                  SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    title: Text(l10n.stepFormCoreLabel),
+                    subtitle: Text(l10n.stepFormCoreGuidance),
+                    value: _isCore,
+                    onChanged: (value) => setState(() => _isCore = value),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  static const _nameStyle = TextStyle(
+    fontFamily: AppTypography.display,
+    fontSize: 26,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.4,
+  );
+}
+
+/// "No set time", on the right of the How long heading. A text toggle rather
+/// than a switch, so it reads as an answer to "how long?" instead of a
+/// setting of its own.
+class _NoSetTimeToggle extends StatelessWidget {
+  const _NoSetTimeToggle({
+    super.key,
+    required this.label,
+    required this.on,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Semantics(
+      button: true,
+      toggled: on,
+      child: Material(
+        color: on ? ink.accent : Colors.transparent,
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 36),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  label,
+                  style: HomeInk.label.copyWith(
+                    fontSize: 13,
+                    color: on ? ink.onAction : ink.muted(0.6),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The minute choices as a five-column grid of tiles.
+class _DurationGrid extends StatelessWidget {
+  const _DurationGrid({
+    required this.minutes,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  static const _columns = 5;
+  static const _gap = 8.0;
+
+  final List<int> minutes;
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final ink = HomeInk.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = (constraints.maxWidth - _gap * (_columns - 1)) / _columns;
+        return Wrap(
+          spacing: _gap,
+          runSpacing: _gap,
+          children: [
+            for (final value in minutes)
+              Semantics(
+                key: Key('duration-$value'),
+                button: true,
+                selected: value == selected,
+                label: l10n.stepDurationMinutes(value),
+                excludeSemantics: true,
+                child: Material(
+                  color: value == selected ? ink.accent : ink.card,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    side: BorderSide(
+                      color: value == selected
+                          ? Colors.transparent
+                          : ink.hairline,
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: () => onSelected(value),
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    child: SizedBox(
+                      width: width,
+                      height: 46,
+                      child: Center(
+                        child: Text(
+                          '$value',
+                          style: TextStyle(
+                            fontFamily: AppTypography.display,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: value == selected ? ink.onAction : ink.ink,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

@@ -9,14 +9,17 @@ import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
 import 'package:openroutine/screens/timer/timer_screen.dart';
 import 'package:openroutine/services/notifications/notification_service.dart';
+import 'package:openroutine/services/sounds/app_sounds.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/services/timer/timer_machine.dart';
+import 'package:openroutine/state/sound_provider.dart';
 import 'package:openroutine/state/stats_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
 import 'package:openroutine/state/timer_provider.dart';
+import 'package:openroutine/widgets/confetti_burst.dart';
 import 'package:openroutine/widgets/mascot_slot.dart';
 import 'package:openroutine/widgets/tinted/tinted.dart';
 
@@ -83,6 +86,7 @@ Widget _wrap(
   return ProviderScope(
     overrides: [
       storageAdapterProvider.overrideWithValue(adapter),
+      appSoundsProvider.overrideWithValue(const SilentAppSounds()),
       notificationServiceProvider.overrideWithValue(
         notifications ?? _NoopNotificationService(),
       ),
@@ -1013,6 +1017,7 @@ void main() {
       ProviderScope(
         overrides: [
           storageAdapterProvider.overrideWithValue(adapter),
+          appSoundsProvider.overrideWithValue(const SilentAppSounds()),
           notificationServiceProvider.overrideWithValue(
             _NoopNotificationService(),
           ),
@@ -1034,5 +1039,91 @@ void main() {
       isEmpty,
     );
     await _disposeCleanly(tester);
+  });
+  group('the finished screen', () {
+    /// A phone-shaped surface, so the summary fits without scrolling and
+    /// there's room to center it.
+    void usePhoneSurface(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.625;
+      addTearDown(tester.view.reset);
+    }
+
+    Future<void> finish(WidgetTester tester) async {
+      final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+      await tester.tap(find.text(l10n.timerFinish));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    testWidgets('centers Ochi and the summary on the screen', (tester) async {
+      usePhoneSurface(tester);
+      final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      await finish(tester);
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+      final top = tester.getTopLeft(find.byType(MascotSlot)).dy;
+      final bottom = tester.getBottomLeft(find.text(l10n.timerCloseSummary)).dy;
+      final safe = tester.getRect(find.byType(SafeArea));
+      expect((top + bottom) / 2, closeTo(safe.center.dy, 24));
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('throws a burst of confetti around Ochi', (tester) async {
+      usePhoneSurface(tester);
+      final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      await finish(tester);
+
+      expect(find.byType(ConfettiBurst), findsOneWidget);
+      // The party is a moment, not a loop, so the screen still settles.
+      await tester.pumpAndSettle();
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('skips the confetti when the run was stopped', (tester) async {
+      final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.timerAbandonConfirmAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.timerAbandonedTitle), findsOneWidget);
+      expect(find.byType(ConfettiBurst), findsNothing);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('skips the confetti when animations are turned off', (
+      tester,
+    ) async {
+      usePhoneSurface(tester);
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      final adapter = await _seed(steps: [_step('s1', order: 0)]);
+
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      await finish(tester);
+
+      expect(find.byType(ConfettiBurst), findsNothing);
+
+      await _disposeCleanly(tester);
+    });
   });
 }

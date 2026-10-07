@@ -68,12 +68,13 @@ class NotificationService {
   // audible would be silently ignored on every device that has already posted
   // on it. Its own id also lets someone mute mid-step nudges in system
   // settings without losing the quiet boundary marker.
-  static const stepNudgeChannelId = 'step_progress_nudge_v1';
+  //
+  // v2 swaps the system tone for Ochi's bip bip boo
+  // (`res/raw/ochi_bip_bip_boo.ogg`), so v1 joins [retiredChannelIds].
+  static const stepNudgeChannelId = 'step_progress_nudge_v2';
 
-  /// Deliberately names no `sound` and sets neither `playSound` nor
-  /// `enableVibration`: both default to on, which gives the system's own
-  /// notification tone plus vibration — exactly what is wanted, and nothing to
-  /// bundle. Same shape as [routineReminderDetails] for the same reason.
+  /// Sound and vibration both stay on: this is the notification whose job is
+  /// to get your attention.
   static NotificationDetails stepNudgeDetails({
     required String channelName,
     required String channelDescription,
@@ -85,6 +86,7 @@ class NotificationService {
       importance: Importance.high,
       priority: Priority.high,
       category: AndroidNotificationCategory.reminder,
+      sound: const RawResourceAndroidNotificationSound('ochi_bip_bip_boo'),
     ),
     iOS: const DarwinNotificationDetails(),
   );
@@ -117,10 +119,22 @@ class NotificationService {
         onDidReceiveNotificationResponse: _handleResponse,
       );
       _ready = true;
+      await _retireOldChannels();
       return true;
     } catch (error, stack) {
       debugPrint('Notifications unavailable: $error\n$stack');
       return false;
+    }
+  }
+
+  Future<void> _retireOldChannels() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android == null) return;
+    for (final id in retiredChannelIds) {
+      await android.deleteNotificationChannel(channelId: id);
     }
   }
 
@@ -264,7 +278,17 @@ class NotificationService {
   // routine starting, where the step-end channel is a calm nudge during one.
   // Same reasoning as the comment above — a channel's settings are immutable
   // once created, so the two must not share.
-  static const routineReminderChannelId = 'routine_reminder_v1';
+  //
+  // v2 carries Ochi's hello (`res/raw/ochi_hello.ogg`), so a reminder sounds
+  // like Ochi saying it's time for your routine. v1 used the system default.
+  static const routineReminderChannelId = 'routine_reminder_v2';
+
+  /// Channels an older build created and this one no longer posts to. They're
+  /// deleted at startup so Settings doesn't list a dead duplicate.
+  static const retiredChannelIds = [
+    'routine_reminder_v1',
+    'step_progress_nudge_v1',
+  ];
 
   static NotificationDetails routineReminderDetails({
     required String channelName,
@@ -277,6 +301,8 @@ class NotificationService {
       importance: Importance.high,
       priority: Priority.high,
       category: AndroidNotificationCategory.reminder,
+      playSound: true,
+      sound: const RawResourceAndroidNotificationSound('ochi_hello'),
     ),
     iOS: const DarwinNotificationDetails(),
   );

@@ -10,6 +10,7 @@ import '../../state/app_prefs_provider.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/package_info_provider.dart';
 import '../../state/reminder_provider.dart';
+import '../../state/sound_provider.dart';
 import '../../state/sync_provider.dart';
 import '../../widgets/accent_picker.dart';
 import '../../widgets/tinted/soft_back_button.dart';
@@ -36,6 +37,7 @@ class SettingsScreen extends ConsumerWidget {
     final packageInfoAsync = ref.watch(packageInfoProvider);
     final driveAvailable = ref.watch(driveAvailableProvider);
     final reminderLead = ref.watch(reminderLeadSettingProvider);
+    final soundsEnabled = ref.watch(soundsEnabledSettingProvider);
     final sync = ref.watch(syncControllerProvider);
 
     return Scaffold(
@@ -135,6 +137,15 @@ class SettingsScreen extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.volume_up_outlined),
+            title: Text(l10n.settingsSounds),
+            subtitle: Text(l10n.settingsSoundsSubtitle),
+            value: soundsEnabled,
+            onChanged: (enabled) => ref
+                .read(soundsEnabledSettingProvider.notifier)
+                .setEnabled(enabled),
           ),
           const Divider(),
           _SectionHeader(l10n.settingsAppearanceSection),

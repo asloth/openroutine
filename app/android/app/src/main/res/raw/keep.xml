@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Nothing in Kotlin references these notification sounds; the app names them by
+    string from Dart. Keep them so resource shrinking in a release build doesn't
+    drop them and leave reminders silent.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/ochi_hello,@raw/ochi_bip_bip_boo" />
