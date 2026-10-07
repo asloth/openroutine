@@ -66,7 +66,7 @@ Phone screenshots, 1080 x 1920 or larger, in both languages. Play requires at le
 |---|---|---|
 | 1 | Today list with the greeting and routines for the day | Start your day with a plan that's yours. |
 | 2 | Timer Mode mid-step with the visual countdown | One step at a time, with a timer you can see. |
-| 3 | Low Mode entry on a routine, with essential steps marked | Low-capacity day? Run just the essentials. |
+| 3 | Low Mode entry on a routine, with essential steps marked | Low-capacity day? Run only the essentials. |
 | 4 | Routine editor with the step templates sheet open | Build a routine from ready-made steps. |
 | 5 | Finish screen with Ochi and confetti | Finish, and Ochi throws a little party. |
 | 6 | Streaks and statistics screen | See how far you've come, without the guilt. |
