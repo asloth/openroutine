@@ -229,15 +229,17 @@ class _TimelineCard extends StatelessWidget {
                   ),
                 ),
               ],
-              Row(
+              // A Wrap, not a Row: at large text scales the action drops to its
+              // own line instead of overflowing.
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        item.summary(l10n),
-                        style: HomeInk.detail.copyWith(color: ink.muted(0.55)),
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      item.summary(l10n),
+                      style: HomeInk.detail.copyWith(color: ink.muted(0.55)),
                     ),
                   ),
                   if (item.hasCoreSteps)
