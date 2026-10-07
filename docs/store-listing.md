@@ -178,7 +178,6 @@ Android permissions that end up in the release build (the manifest file plus wha
 | `VIBRATE` | Merged from plugins | Vibrates with step reminders. | Normal. |
 | `WAKE_LOCK` | Merged from plugins | Lets the system wake the app briefly to post a scheduled notification. | Normal. |
 | `FOREGROUND_SERVICE` | Merged from plugins | Declared by a library the app uses. The app doesn't start a foreground service of its own. | Normal. If Play asks, say the app uses no foreground service types. |
-| `USE_BIOMETRIC`, `USE_FINGERPRINT` | Merged from plugins | Declared by Google's sign-in library. The app has no biometric feature. | Normal. Consider removing them with `tools:node="remove"` so the form stays simple. |
 
 What the app doesn't request: location, contacts, camera, microphone, photos, files and media, SMS, phone, accessibility, or "all files access".
 
