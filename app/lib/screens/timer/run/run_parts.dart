@@ -25,7 +25,7 @@ int minutesLeftInRun(
   return (seconds / 60).ceil();
 }
 
-/// Whole minutes to go once an opted-in step reaches its midpoint, or `null`
+/// Minutes to go, to the nearest one, once an opted-in step reaches its midpoint, or `null`
 /// when the halfway banner shouldn't show: before the midpoint, from the
 /// estimate on, or for a step that didn't ask for mid-step reminders.
 int? halfwayMinutesLeft(RoutineStep step, Duration elapsed) {
@@ -34,7 +34,10 @@ int? halfwayMinutesLeft(RoutineStep step, Duration elapsed) {
   if (target <= 0) return null;
   final spent = elapsed.inSeconds;
   if (spent * 2 < target || spent >= target) return null;
-  return ((target - spent) / 60).ceil();
+  // Zero under a minute, so the banner says "under a minute" instead of
+  // rounding 30s up to a minute that isn't there.
+  final left = target - spent;
+  return left < 60 ? 0 : (left / 60).round();
 }
 
 /// One step's time, filling toward its estimate.
@@ -104,7 +107,13 @@ class HalfwayBanner extends StatelessWidget {
             const SizedBox(width: 11),
             Expanded(
               child: Text(
-                AppLocalizations.of(context)!.timerHalfway(step.name, minutes),
+                minutes == 0
+                    ? AppLocalizations.of(
+                        context,
+                      )!.timerHalfwayUnderAMinute(step.name)
+                    : AppLocalizations.of(
+                        context,
+                      )!.timerHalfway(step.name, minutes),
                 style: TextStyle(
                   fontFamily: AppTypography.body,
                   fontSize: 13.5,
