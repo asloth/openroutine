@@ -90,6 +90,8 @@ class RoutineTimer extends _$RoutineTimer {
     required String nudgeChannelDescription,
   }) async {
     if (state.phase != TimerPhase.idle) return;
+    // Loading takes longer than a pop lasts, so do it before the first one.
+    unawaited(ref.read(appSoundsProvider).preload());
     _notificationBody = notificationBody;
     _notificationChannelName = notificationChannelName;
     _notificationChannelDescription = notificationChannelDescription;
@@ -106,21 +108,22 @@ class RoutineTimer extends _$RoutineTimer {
   void pause() => _apply(state.pause(DateTime.now()));
   void resume() => _apply(state.resume(DateTime.now()));
 
-  /// Pops when the next step comes up. The last step's sound is the
-  /// routine's party instead, which [_apply] plays.
-  void completeStep() {
-    final before = state;
-    _apply(state.completeStep(DateTime.now()));
-    if (!identical(before, state) && state.isActive) {
-      unawaited(ref.read(appSoundsProvider).play(AppSound.stepDone));
-    }
-  }
-
-  void skip() => _apply(state.skip(DateTime.now()));
+  void completeStep() => _moveOn(state.completeStep(DateTime.now()));
+  void skip() => _moveOn(state.skip(DateTime.now()));
   void back() => _apply(state.back(DateTime.now()));
   void postpone() => _apply(state.postpone(DateTime.now()));
   void resetStep() => _apply(state.resetStep(DateTime.now()));
   void abandon() => _apply(state.abandon(DateTime.now()));
+
+  /// Pops when the next step comes up. The last step's sound is the
+  /// routine's party instead, which [_apply] plays.
+  void _moveOn(TimerState next) {
+    final before = state;
+    _apply(next);
+    if (!identical(before, state) && state.isActive) {
+      unawaited(ref.read(appSoundsProvider).play(AppSound.stepDone));
+    }
+  }
 
   void _apply(TimerState next) {
     if (identical(next, state)) return;
