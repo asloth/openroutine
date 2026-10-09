@@ -15,6 +15,10 @@ import 'package:openroutine/state/timer_provider.dart';
 
 class _FakeSounds implements AppSounds {
   final played = <AppSound>[];
+  var preloads = 0;
+
+  @override
+  Future<void> preload() async => preloads++;
 
   @override
   Future<void> play(AppSound sound) async => played.add(sound);
@@ -126,11 +130,18 @@ void main() {
     await pumpEventQueue();
   });
 
-  test('skipping a step makes no sound', () async {
+  test('starting a run loads the sounds before the first one plays', () async {
+    await started();
+
+    expect(sounds.preloads, 1);
+    expect(sounds.played, isEmpty);
+  });
+
+  test('skipping a step pops, like finishing one', () async {
     final timer = await started();
 
     timer.skip();
-    expect(sounds.played, isEmpty);
+    expect(sounds.played, [AppSound.stepDone]);
   });
 
   test('stopping early makes no sound', () async {
