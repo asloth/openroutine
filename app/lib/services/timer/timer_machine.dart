@@ -130,18 +130,20 @@ abstract class TimerState with _$TimerState {
     return now.add(left);
   }
 
-  /// Shortest estimate worth interrupting partway through.
+  /// Shortest estimate worth a second nudge past halfway.
   ///
-  /// Below two minutes the 50% and 80% marks are seconds apart from each other
-  /// and from the end — a ninety-second step would buzz at 0:45, 1:12 and
-  /// 1:30. That is not a reminder, it is a nuisance, so such a step gets none.
+  /// Below two minutes the 80% mark lands seconds after the halfway one and
+  /// seconds before the end — a ninety-second step would buzz at 0:45, 1:12
+  /// and 1:30. So a short step keeps its halfway nudge, which the screen
+  /// shows anyway, and skips the rest.
   static const nudgeFloor = Duration(minutes: 2);
 
   /// How long from [now] until the current step reaches [fraction] of its
   /// estimate, or null when there is no such moment to schedule.
   ///
   /// Null when the step did not opt in, has no explicit time, is estimated
-  /// under [nudgeFloor], the run is not running, or the mark has already gone
+  /// under [nudgeFloor] and the mark is past halfway, the run is not running,
+  /// or the mark has already gone
   /// past — which is what makes resuming mid-step drop the marks behind it
   /// instead of firing them late.
   ///
@@ -160,7 +162,8 @@ abstract class TimerState with _$TimerState {
     if (left == null) return null;
 
     final target = Duration(seconds: step.durationSeconds ?? 0);
-    if (target < nudgeFloor) return null;
+    if (target == Duration.zero) return null;
+    if (fraction > 0.5 && target < nudgeFloor) return null;
 
     final untilMark = left - target * (1 - fraction);
     return untilMark > Duration.zero ? untilMark : null;

@@ -250,12 +250,15 @@ void main() {
       expect(state.remainingUntilFraction(0.8, _t0), isNull);
     });
 
-    test('has no marks for a step estimated under two minutes', () {
-      final state = _nudging(durationSeconds: 119).start(_t0);
+    test('a step under two minutes gets the halfway mark only', () {
+      final state = _nudging(durationSeconds: 60).start(_t0);
 
-      // 119s would buzz at 0:59 and 1:35 and then end at 1:59 — three alerts
-      // inside two minutes, which is a nuisance rather than a reminder.
-      expect(state.remainingUntilFraction(0.5, _t0), isNull);
+      // The banner says "halfway" on a one-minute step, so the sound should
+      // too. An 80% mark 18s later would be a nuisance, though.
+      expect(
+        state.remainingUntilFraction(0.5, _t0),
+        const Duration(seconds: 30),
+      );
       expect(state.remainingUntilFraction(0.8, _t0), isNull);
     });
 

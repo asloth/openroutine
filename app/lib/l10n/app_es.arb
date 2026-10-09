@@ -331,7 +331,7 @@
   "stepFormCoreGuidance": "Elige 2 o 3 esenciales para los días con menos energía. Puedes cambiarlo cuando quieras.",
   "stepFormCoreLimit": "Guárdalo para otro día o desmarca primero un paso esencial.",
   "stepFormRemindDuringLabel": "Recuérdamelo durante este paso",
-  "stepFormRemindDuringGuidance": "Te avisa a mitad del paso y cerca del final. Los pasos de menos de 2 minutos no avisan.",
+  "stepFormRemindDuringGuidance": "Te avisa a mitad del paso. En los de 2 minutos o más, también cerca del final.",
 
   "stepTemplateCategoryMorning": "Mañana",
   "stepTemplateCategoryEvening": "Noche",
@@ -459,5 +459,6 @@
   "timerMinutesLeft": "Quedan {minutes} min",
   "timerStepMinutes": "{minutes} min",
   "timerHalfway": "Vas por la mitad de {step}, quedan {minutes} min.",
+  "timerHalfwayUnderAMinute": "Vas por la mitad de {step}, queda menos de un minuto.",
   "routinesAnytime": "Cuando quieras"
 }

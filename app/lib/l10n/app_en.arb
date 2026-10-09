@@ -603,7 +603,7 @@
   "stepFormCoreGuidance": "Choose 2 or 3 essentials for lower-capacity days. You can change this anytime.",
   "stepFormCoreLimit": "Keep this one for another day, or unmark an essential first.",
   "stepFormRemindDuringLabel": "Remind me during this step",
-  "stepFormRemindDuringGuidance": "Nudges you halfway through and near the end. Steps under 2 minutes stay quiet.",
+  "stepFormRemindDuringGuidance": "Nudges you halfway through. Steps of 2 minutes or more also nudge you near the end.",
 
   "stepTemplateCategoryMorning": "Morning",
   "stepTemplateCategoryEvening": "Evening",
@@ -905,6 +905,11 @@
   "@timerHalfway": {
     "description": "Banner shown from the middle of a step that opted into mid-step reminders.",
     "placeholders": {"step": {"type": "String"}, "minutes": {"type": "int"}}
+  },
+  "timerHalfwayUnderAMinute": "Halfway through {step}, under a minute to go.",
+  "@timerHalfwayUnderAMinute": {
+    "description": "The halfway banner when less than a minute of the step is left.",
+    "placeholders": {"step": {"type": "String"}}
   },
   "routinesAnytime": "Anytime",
   "@routinesAnytime": {"description": "Where a flexible routine's start time would be, in the Routines list."}
