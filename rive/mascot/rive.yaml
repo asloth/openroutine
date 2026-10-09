@@ -1,0 +1,7 @@
+name: mascot
+logs:
+  file: build/rive.log
+  problems: build/problems.log
+main: "only-mascot"
+push:
+  fileId: 2501937
