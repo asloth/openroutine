@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/l10n/app_localizations.dart';
 import 'package:openroutine/screens/settings/settings_screen.dart';
+import 'package:openroutine/services/feedback/feedback_email.dart';
 import 'package:openroutine/state/app_prefs_provider.dart';
+import 'package:openroutine/state/feedback_provider.dart';
+import 'package:openroutine/state/package_info_provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:openroutine/state/sync_provider.dart';
 import 'package:openroutine/widgets/tinted/soft_back_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,11 +42,21 @@ Future<void> _pump(
   WidgetTester tester,
   SharedPreferences prefs, {
   SyncSnapshot? sync,
+  UrlOpener? openUrl,
 }) {
   return tester.pumpWidget(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        if (openUrl != null) urlOpenerProvider.overrideWithValue(openUrl),
+        packageInfoProvider.overrideWith(
+          (ref) async => PackageInfo(
+            appName: 'OpenRoutine',
+            packageName: 'app.openroutine.mobile',
+            version: '1.2.0',
+            buildNumber: '7',
+          ),
+        ),
         if (sync != null) ...[
           // The Drive section only renders when a build has OAuth ids, and a
           // test build never does.
@@ -234,4 +248,56 @@ void main() {
       expect(_lastSync!.disconnectCalls, 0);
     },
   );
+
+  group('Send feedback', () {
+    Future<Finder> feedbackRow(WidgetTester tester) async {
+      final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+      final row = find.widgetWithText(ListTile, l10n.settingsSendFeedback);
+      await tester.scrollUntilVisible(row, 200);
+      return row;
+    }
+
+    testWidgets('opens an email draft to the feedback address', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final opened = <Uri>[];
+      await _pump(
+        tester,
+        prefs,
+        openUrl: (uri) async {
+          opened.add(uri);
+          return true;
+        },
+      );
+
+      await tester.tap(await feedbackRow(tester));
+      await tester.pumpAndSettle();
+
+      expect(opened, hasLength(1));
+      expect(opened.single.scheme, 'mailto');
+      expect(opened.single.path, feedbackAddress);
+      expect(opened.single.queryParameters['body'], contains('1.2.0 (7)'));
+    });
+
+    testWidgets('with no email app, shows the address with Copy', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await _pump(tester, prefs, openUrl: (_) async => false);
+      final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+
+      await tester.tap(await feedbackRow(tester));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(l10n.feedbackNoEmailApp(feedbackAddress)),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(SnackBarAction, l10n.feedbackCopyAddress),
+        findsOneWidget,
+      );
+    });
+  });
 }

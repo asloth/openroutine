@@ -907,5 +907,17 @@
     "placeholders": {"step": {"type": "String"}, "minutes": {"type": "int"}}
   },
   "routinesAnytime": "Anytime",
-  "@routinesAnytime": {"description": "Where a flexible routine's start time would be, in the Routines list."}
+  "@routinesAnytime": {"description": "Where a flexible routine's start time would be, in the Routines list."},
+  "settingsSendFeedback": "Send feedback",
+  "@settingsSendFeedback": {"description": "Settings \u203a About row that opens an email draft to the developer."},
+  "settingsSendFeedbackSubtitle": "Opens your email app. You see everything before you send it.",
+  "@settingsSendFeedbackSubtitle": {"description": "Under Send feedback. Reassures that the app sends nothing itself."},
+  "feedbackEmailSubject": "OpenRoutine feedback",
+  "@feedbackEmailSubject": {"description": "Subject line of the feedback email draft."},
+  "feedbackEmailDetails": "A few details that help me understand (delete any you like):",
+  "@feedbackEmailDetails": {"description": "Label above the app version, system, and language in the feedback draft, below the space to write."},
+  "feedbackNoEmailApp": "No email app found. Write to {address}.",
+  "@feedbackNoEmailApp": {"description": "Snackbar when no app can open the feedback draft.", "placeholders": {"address": {"type": "String"}}},
+  "feedbackCopyAddress": "Copy",
+  "@feedbackCopyAddress": {"description": "Snackbar action that copies the feedback address."}
 }
