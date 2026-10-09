@@ -42,17 +42,17 @@ class SilentAppSounds implements AppSounds {
 class AudioplayersAppSounds implements AppSounds {
   // Mixes with whatever else is playing instead of pausing your music, and
   // stays quiet when the phone is on silent: these are garnish, never alarms.
-  // Built by hand because `AudioContextConfig` can't say "ambient and mix"
-  // on iOS without tripping an assert.
-  static final _context = AudioContext(
+  // Built by hand because `AudioContextConfig` asserts on iOS when you ask
+  // for silence-respecting sounds that also mix with your music.
+  @visibleForTesting
+  static final context = AudioContext(
     android: AudioContextAndroid(
       usageType: AndroidUsageType.notificationRingtone,
       audioFocus: AndroidAudioFocus.none,
     ),
-    iOS: AudioContextIOS(
-      category: AVAudioSessionCategory.ambient,
-      options: {AVAudioSessionOptions.mixWithOthers},
-    ),
+    // Ambient already mixes with other audio. The package rejects the
+    // mixWithOthers option on it, so it stays out.
+    iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
   );
 
   final _pools = <AppSound, Future<AudioPool>>{};
@@ -61,7 +61,7 @@ class AudioplayersAppSounds implements AppSounds {
     source: AssetSource(sound.asset),
     // A pop can land while the last one is still ringing out.
     maxPlayers: 2,
-    audioContext: _context,
+    audioContext: context,
     playerMode: PlayerMode.lowLatency,
   );
 
