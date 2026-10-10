@@ -1,6 +1,6 @@
 /// Where Settings › Send feedback addresses its draft. It's public by
 /// nature: it shows in the draft's To field and in this repository.
-const feedbackAddress = 'openroutine.feedback@example.com';
+const feedbackAddress = 'openroutine@sara.coffee';
 
 /// What the draft tells you about the phone it came from. The person
 /// sending it sees all of this and can delete any of it.
