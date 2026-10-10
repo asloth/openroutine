@@ -151,7 +151,7 @@ Answers for the Data safety form in Play Console. They match [`privacy-policy.md
 | Does your app collect or share any of the required user data types? | **No** | The developer never receives user data. Drive sync goes from the phone to the user's own Drive, and Play's definition of "collect" means data sent off the device to you or a third party you work with. |
 | Is all of the user data collected by your app encrypted in transit? | **Yes** | Drive calls use HTTPS. Answer this even though nothing's collected, if the console asks. |
 | Do you provide a way for users to request that their data be deleted? | **Yes** | Users delete data in the app, uninstall it, or delete the `OpenRoutine` folder in their Drive. See the policy's "Deleting your data" section. |
-| Privacy policy URL | `[privacy policy URL]` | Required. Host `docs/privacy-policy.md` first. |
+| Privacy policy URL | `https://asloth.github.io/openroutine/privacy/` | Required. Published by `.github/workflows/pages.yml`. |
 
 Data types, one by one. All are **not collected** and **not shared**:
 

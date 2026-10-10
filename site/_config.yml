@@ -1,0 +1,5 @@
+title: OpenRoutine
+description: Open-source routines. Your data lives in your own Google Drive.
+theme: jekyll-theme-primer
+# The privacy policy is copied in from docs/privacy-policy.md at build time,
+# so the repository keeps one copy of it. See .github/workflows/pages.yml.

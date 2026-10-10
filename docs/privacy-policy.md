@@ -1,6 +1,6 @@
 # OpenRoutine privacy policy
 
-**Effective date:** 2026-10-06
+**Effective date:** 2026-10-09
 
 OpenRoutine is a free, open-source routine and visual-timer app for Android and iOS. It's built so your routines stay yours. This page explains what the app does with your data, in plain language.
 
@@ -71,6 +71,12 @@ The app plays short sounds when you finish a step or a routine (you can turn thi
 
 If you export a routine or all of your data, the app hands a JSON file to your phone's share sheet, and you pick where it goes. If you import a file, you pick it from your phone. The app doesn't send or receive anything on its own.
 
+## Sending feedback
+
+If you select **Send feedback** in Settings, the app opens a draft in your own email app, addressed to openroutine@sara.coffee. The draft includes the app version, your phone's operating system and version, and the app's language, so we can reproduce problems. You see all of it before you send, and you can edit or delete any of it.
+
+Nothing is sent unless you send the email yourself. It travels through your email provider, like any other email. We use what you write only to reply and to improve OpenRoutine, and we don't add it to any mailing list. To have your emails deleted, write to the same address.
+
 ## What we don't do
 
 - We don't sell, rent, or share your data. We don't have it.
@@ -97,4 +103,4 @@ If the app's data practices change, we'll update this page and the effective dat
 
 ## Contact
 
-Questions, privacy requests, or concerns? Write to [contact email], or open an issue at [github.com/asloth/openroutine/issues](https://github.com/asloth/openroutine/issues).
+Questions, privacy requests, or concerns? Write to [openroutine@sara.coffee](mailto:openroutine@sara.coffee), or open an issue at [github.com/asloth/openroutine/issues](https://github.com/asloth/openroutine/issues).
