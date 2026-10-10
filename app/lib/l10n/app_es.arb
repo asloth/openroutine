@@ -460,5 +460,11 @@
   "timerStepMinutes": "{minutes} min",
   "timerHalfway": "Vas por la mitad de {step}, quedan {minutes} min.",
   "timerHalfwayUnderAMinute": "Vas por la mitad de {step}, queda menos de un minuto.",
-  "routinesAnytime": "Cuando quieras"
+  "routinesAnytime": "Cuando quieras",
+  "settingsSendFeedback": "Enviar comentarios",
+  "settingsSendFeedbackSubtitle": "Abre tu app de correo. Ves todo antes de enviarlo.",
+  "feedbackEmailSubject": "Comentarios sobre OpenRoutine",
+  "feedbackEmailDetails": "Algunos datos que me ayudan a entender (borra los que quieras):",
+  "feedbackNoEmailApp": "No encontramos una app de correo. Escribe a {address}.",
+  "feedbackCopyAddress": "Copiar"
 }

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -6,7 +9,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../services/app_prefs.dart';
+import '../../services/feedback/feedback_email.dart';
 import '../../state/app_prefs_provider.dart';
+import '../../state/feedback_provider.dart';
 import '../../state/import_export_provider.dart';
 import '../../state/package_info_provider.dart';
 import '../../state/reminder_provider.dart';
@@ -189,6 +194,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           ListTile(
+            leading: const Icon(Icons.mail_outline),
+            title: Text(l10n.settingsSendFeedback),
+            subtitle: Text(l10n.settingsSendFeedbackSubtitle),
+            onTap: () => _sendFeedback(context, ref, l10n),
+          ),
+          ListTile(
             leading: const Icon(Icons.code_outlined),
             title: Text(l10n.settingsViewOnGitHub),
             onTap: () => launchUrl(
@@ -205,6 +216,39 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Opens a draft in the person's own email app, so the app sends nothing
+  /// itself. With no email app, says where to write instead.
+  Future<void> _sendFeedback(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final language = Localizations.localeOf(context).toLanguageTag();
+    final info = await ref.read(packageInfoProvider.future);
+    final uri = feedbackEmailUri(
+      subject: l10n.feedbackEmailSubject,
+      detailsLabel: l10n.feedbackEmailDetails,
+      details: FeedbackDetails(
+        version: info.version,
+        buildNumber: info.buildNumber,
+        os: '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
+        language: language,
+      ),
+    );
+    if (await ref.read(urlOpenerProvider)(uri)) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.feedbackNoEmailApp(feedbackAddress)),
+        action: SnackBarAction(
+          label: l10n.feedbackCopyAddress,
+          onPressed: () =>
+              Clipboard.setData(const ClipboardData(text: feedbackAddress)),
+        ),
       ),
     );
   }
