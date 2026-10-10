@@ -79,7 +79,11 @@ enum MascotReaction {
   bounce('bounce'),
 
   /// Both arms up, feet out: something big just got done.
-  celebrate('celebrate');
+  celebrate('celebrate'),
+
+  /// A slow sip from the coffee, eye closed. Only plays while the pet holds
+  /// one (see [MascotSlot.hasCoffee]).
+  sip('sip');
 
   const MascotReaction(this.trigger);
 
@@ -123,9 +127,14 @@ class MascotSlot extends StatefulWidget {
     this.size = 120,
     this.semanticLabel,
     this.cue,
+    this.hasCoffee = false,
   });
 
   final MascotMood mood;
+
+  /// Holds a cup of coffee, for a long stretch of work. The pet brings the
+  /// mug up and holds it still; a [MascotReaction.sip] cue takes a sip.
+  final bool hasCoffee;
 
   /// Plays once each time a new cue arrives. Null means nothing to react to.
   final MascotCue? cue;
@@ -255,6 +264,7 @@ class _MascotSlotState extends State<MascotSlot> {
 
     mascot.boolean('isThinking')?.value = widget.mood == MascotMood.focused;
     mascot.boolean('isSleeping')?.value = widget.mood == MascotMood.resting;
+    mascot.boolean('hasCoffee')?.value = widget.hasCoffee;
   }
 
   @override
@@ -266,11 +276,15 @@ class _MascotSlotState extends State<MascotSlot> {
       _wake();
       _mascot?.trigger(cue.reaction.trigger)?.trigger();
     }
-    if (oldWidget.mood == widget.mood) return;
+    if (oldWidget.mood == widget.mood &&
+        oldWidget.hasCoffee == widget.hasCoffee) {
+      return;
+    }
     _apply();
-    // A mood change is worth moving for, even if the pet had already settled.
+    // A mood change, or picking up or putting down the cup, is worth moving
+    // for, even if the pet had already settled.
     _wake();
-    if (widget.mood == MascotMood.cheering) {
+    if (widget.mood == MascotMood.cheering && oldWidget.mood != widget.mood) {
       _mascot?.trigger('celebrate')?.trigger();
     }
   }

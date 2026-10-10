@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +26,17 @@ export 'run/run_parts.dart'
 /// as the same-sized companion whether it's working alongside you or
 /// celebrating with you.
 const _mascotSize = 168.0;
+
+/// A step planned for longer than this gets Ochi's coffee: a long stretch of
+/// work is worth settling in for.
+const _coffeeAfter = Duration(minutes: 5);
+
+/// How often Ochi sips while holding the coffee. Rare enough to stay out of
+/// the way, often enough to feel like company.
+const _sipEvery = Duration(seconds: 45);
+
+bool _getsCoffee(RoutineStep step) =>
+    (step.durationSeconds ?? 0) > _coffeeAfter.inSeconds;
 
 /// docs/SPEC.md §7 screen 7 — the full-screen playlist runner.
 ///
@@ -54,10 +67,44 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
   /// the running view, which rebuilds every second and would otherwise lose it.
   MascotCue? _cue;
 
+  /// Fires a sip every [_sipEvery] while a long step runs.
+  Timer? _sips;
+
+  /// The step [_sips] is sipping through, so a tick of the timer state on
+  /// the same step leaves the countdown alone.
+  String? _sipStep;
+
+  @override
+  void dispose() {
+    _sips?.cancel();
+    super.dispose();
+  }
+
+  /// Starts sipping when a long step is running and stops on anything else:
+  /// a short step, a pause, or the end of the run. Resuming starts the
+  /// countdown over, so the first sip never lands right on the resume.
+  void _syncSips(TimerState state) {
+    final step = state.currentStep;
+    final sipping =
+        state.phase == TimerPhase.running && step != null && _getsCoffee(step);
+    final key = sipping ? '${state.currentIndex}:${step.id}' : null;
+    if (key == _sipStep) return;
+    _sips?.cancel();
+    _sipStep = key;
+    _sips = key == null
+        ? null
+        : Timer.periodic(_sipEvery, (_) {
+            if (mounted) {
+              setState(() => _cue = MascotCue(MascotReaction.sip));
+            }
+          });
+  }
+
   /// Reads what just happened off the change in timer state: a new outcome is
   /// a step done or skipped, and a newly put-off step is a wave. The last
   /// step's outcome ends the run, and the finished screen celebrates instead.
   void _react(TimerState? previous, TimerState next) {
+    _syncSips(next);
     if (previous == null || next.phase == TimerPhase.complete) return;
     MascotReaction? reaction;
     if (next.outcomes.length > previous.outcomes.length) {
@@ -283,6 +330,9 @@ class _Running extends ConsumerWidget {
                 child: MascotSlot(
                   size: _mascotSize,
                   mood: paused ? MascotMood.resting : MascotMood.idle,
+                  // Coffee for a long step. Paused, the cup goes down and
+                  // the pet dozes as usual.
+                  hasCoffee: !paused && _getsCoffee(step),
                   cue: cue,
                 ),
               ),

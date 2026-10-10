@@ -368,6 +368,103 @@ void main() {
     });
   });
 
+  group('Ochi takes a coffee break on long steps', () {
+    MascotSlot mascot(WidgetTester tester) =>
+        tester.widget<MascotSlot>(find.byType(MascotSlot));
+
+    Future<AppLocalizations> start(
+      WidgetTester tester, {
+      required int firstStepSeconds,
+    }) async {
+      final adapter = await _seed(
+        steps: [
+          _step('s1', order: 0, durationSeconds: firstStepSeconds),
+          _step('s2', order: 1),
+        ],
+      );
+      await tester.pumpWidget(_wrap(adapter));
+      await tester.pumpAndSettle();
+      return AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
+    }
+
+    testWidgets('holds a coffee through a step planned over 5 minutes', (
+      tester,
+    ) async {
+      await start(tester, firstStepSeconds: 6 * 60);
+
+      expect(mascot(tester).hasCoffee, isTrue);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('a step of exactly 5 minutes gets no coffee', (tester) async {
+      await start(tester, firstStepSeconds: 5 * 60);
+
+      expect(mascot(tester).hasCoffee, isFalse);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('sips now and then while the long step runs', (tester) async {
+      await start(tester, firstStepSeconds: 6 * 60);
+
+      await tester.pump(const Duration(seconds: 46));
+      await tester.pump();
+      final first = mascot(tester).cue;
+      expect(first?.reaction, MascotReaction.sip);
+
+      await tester.pump(const Duration(seconds: 45));
+      await tester.pump();
+      expect(mascot(tester).cue?.reaction, MascotReaction.sip);
+      expect(identical(mascot(tester).cue, first), isFalse);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('never sips on a short step', (tester) async {
+      await start(tester, firstStepSeconds: 60);
+
+      await tester.pump(const Duration(seconds: 46));
+      await tester.pump();
+
+      expect(mascot(tester).cue, isNull);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('puts the cup down and stops sipping while paused', (
+      tester,
+    ) async {
+      await start(tester, firstStepSeconds: 6 * 60);
+
+      await tester.tap(find.byIcon(Icons.pause));
+      await tester.pumpAndSettle();
+      expect(mascot(tester).hasCoffee, isFalse);
+
+      await tester.pump(const Duration(seconds: 46));
+      await tester.pump();
+      expect(mascot(tester).cue, isNull);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('stops sipping once the run moves on to a short step', (
+      tester,
+    ) async {
+      final l10n = await start(tester, firstStepSeconds: 6 * 60);
+
+      await tester.tap(find.text(l10n.timerDone));
+      await tester.pumpAndSettle();
+      expect(mascot(tester).hasCoffee, isFalse);
+
+      await tester.pump(const Duration(seconds: 46));
+      await tester.pump();
+      expect(mascot(tester).cue?.reaction, MascotReaction.stepDone);
+
+      await _disposeCleanly(tester);
+    });
+  });
+
   testWidgets('shows one continuous timed count-up through the estimate', (
     tester,
   ) async {
