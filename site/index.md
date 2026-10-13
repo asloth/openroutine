@@ -1,5 +1,7 @@
 ---
 title: OpenRoutine
+# Points the theme's "Improve this page" link at this file's real location.
+path: site/index.md
 ---
 
 # OpenRoutine
