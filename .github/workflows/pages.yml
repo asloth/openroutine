@@ -25,10 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # `path` sends the theme's "Improve this page" link to the real source file.
       - name: Copy in the privacy policy
         run: |
           {
-            printf -- '---\ntitle: Privacy policy\npermalink: /privacy/\n---\n\n'
+            printf -- '---\ntitle: Privacy policy\npermalink: /privacy/\npath: docs/privacy-policy.md\n---\n\n'
             cat docs/privacy-policy.md
           } > site/privacy.md
       - uses: actions/configure-pages@v5
