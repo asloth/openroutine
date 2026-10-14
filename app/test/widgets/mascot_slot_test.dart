@@ -120,6 +120,70 @@ void main() {
     expect(loadCount, 1);
   });
 
+  group('MascotRest (when the pet comes to rest)', () {
+    late List<String> calls;
+    late MascotRest rest;
+
+    setUp(() {
+      calls = [];
+      rest = MascotRest(
+        settle: (settled) => calls.add('settled $settled'),
+        advance: (moving) => calls.add('moving $moving'),
+      );
+    });
+
+    testWidgets('eases into the still pose before it stops moving', (
+      tester,
+    ) async {
+      rest.start(reduceMotion: false);
+      expect(calls, ['settled false', 'moving true']);
+
+      await tester.pump(MascotRest.warmUp);
+      expect(calls.last, 'settled true', reason: 'still moving, so it blends');
+
+      await tester.pump(MascotRest.blend);
+      expect(calls.last, 'moving false');
+    });
+
+    testWidgets('waking clears the still pose and starts the warm-up over', (
+      tester,
+    ) async {
+      rest.start(reduceMotion: false);
+      await tester.pump(MascotRest.warmUp + MascotRest.blend);
+      calls.clear();
+
+      rest.start(reduceMotion: false);
+      expect(calls, ['settled false', 'moving true']);
+
+      await tester.pump(MascotRest.warmUp - const Duration(seconds: 1));
+      expect(calls, ['settled false', 'moving true']);
+      // Flutter checks for pending timers before tearDown runs.
+      rest.dispose();
+    });
+
+    testWidgets('a wake mid-blend never stops the pet early', (tester) async {
+      rest.start(reduceMotion: false);
+      await tester.pump(MascotRest.warmUp);
+      rest.start(reduceMotion: false);
+      calls.clear();
+
+      await tester.pump(MascotRest.blend);
+      expect(calls, isEmpty);
+      // Flutter checks for pending timers before tearDown runs.
+      rest.dispose();
+    });
+
+    testWidgets('reduced motion goes straight to the still pose', (
+      tester,
+    ) async {
+      rest.start(reduceMotion: true);
+      expect(calls, ['settled true', 'moving false']);
+
+      await tester.pump(MascotRest.warmUp + MascotRest.blend);
+      expect(calls, ['settled true', 'moving false']);
+    });
+  });
+
   test('a sip fires the sip trigger on the Rive file', () {
     expect(MascotReaction.sip.trigger, 'sip');
   });

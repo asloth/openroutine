@@ -40,6 +40,53 @@ MascotSlotVisual mascotRiveVisual(RiveState state) => switch (state) {
   RiveLoaded() => MascotSlotVisual.rive,
 };
 
+/// Brings the pet to rest after a warm-up, without freezing it mid-blink.
+///
+/// Pausing the artboard stops it on whatever frame is showing, so stopping
+/// straight away could leave the eye half shut. Instead it [settle]s first,
+/// which blends the state machine into a still pose, and only stops moving
+/// once that blend is done.
+@visibleForTesting
+class MascotRest {
+  MascotRest({required this.settle, required this.advance});
+
+  /// How long the pet moves on arrival before it settles into a still pose.
+  /// Perpetual motion in the corner of the eye is the kind of competing
+  /// stimulus this app exists to remove — see the note on [MascotSlot].
+  static const warmUp = Duration(seconds: 11);
+
+  /// How long the blend into the still pose needs before the artboard can
+  /// stop advancing. The Rive file blends over 300 ms.
+  static const blend = Duration(milliseconds: 500);
+
+  /// Sets the artboard's `isSettled` switch.
+  final void Function(bool settled) settle;
+
+  /// Runs or pauses the artboard.
+  final void Function(bool moving) advance;
+
+  Timer? _timer;
+
+  /// Moves for another warm-up, then comes to rest. Reduced motion skips
+  /// the warm-up and goes straight to the still pose.
+  void start({required bool reduceMotion}) {
+    _timer?.cancel();
+    if (reduceMotion) {
+      settle(true);
+      advance(false);
+      return;
+    }
+    settle(false);
+    advance(true);
+    _timer = Timer(warmUp, () {
+      settle(true);
+      _timer = Timer(blend, () => advance(false));
+    });
+  }
+
+  void dispose() => _timer?.cancel();
+}
+
 /// What the mascot is reacting to. Screens pass a mood, never a frame or an
 /// animation name — so the day the Rive file lands, the swap happens inside
 /// this widget and no call site changes.
@@ -158,11 +205,6 @@ class MascotSlot extends StatefulWidget {
 }
 
 class _MascotSlotState extends State<MascotSlot> {
-  /// How long the pet moves on arrival before it settles into a still pose.
-  /// Perpetual motion in the corner of the eye is the kind of competing
-  /// stimulus this app exists to remove — see the note on [MascotSlot].
-  static const _warmUp = Duration(seconds: 11);
-
   /// The decoded Rive file, loaded at most once per app run and shared by
   /// every slot. Decoding the `.riv` is slow enough to see on a phone, so
   /// only the first slot built pays that cost; every slot after — including
@@ -187,7 +229,10 @@ class _MascotSlotState extends State<MascotSlot> {
 
   RiveWidgetController? _controller;
   ViewModelInstance? _mascot;
-  Timer? _settle;
+  late final _rest = MascotRest(
+    settle: (settled) => _mascot?.boolean('isSettled')?.value = settled,
+    advance: (moving) => _controller?.active = moving,
+  );
 
   /// `flutter test` has the `rive_native` library but no renderer, and
   /// loading a file there trips a native assertion that aborts the whole test
@@ -207,7 +252,7 @@ class _MascotSlotState extends State<MascotSlot> {
 
   @override
   void dispose() {
-    _settle?.cancel();
+    _rest.dispose();
     // The file is shared across every slot in the app, so disposing it here
     // would pull it out from under every other slot still using it.
     super.dispose();
@@ -229,20 +274,11 @@ class _MascotSlotState extends State<MascotSlot> {
     }
   }
 
-  /// Stops advancing once the warm-up is over, and does not start at all when
+  /// Comes to rest once the warm-up is over, and does not start at all when
   /// the system asks for reduced motion.
   void _restAfterWarmUp() {
-    _settle?.cancel();
-    final controller = _controller;
-    if (controller == null) return;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      controller.active = false;
-      return;
-    }
-    controller.active = true;
-    _settle = Timer(_warmUp, () {
-      if (mounted) _controller?.active = false;
-    });
+    if (_controller == null) return;
+    _rest.start(reduceMotion: MediaQuery.disableAnimationsOf(context));
   }
 
   /// Pushes the mood and the theme's colours into the artboard. Cheap enough
@@ -290,10 +326,7 @@ class _MascotSlotState extends State<MascotSlot> {
   }
 
   /// Runs again for another warm-up, so a settled pet still reacts.
-  void _wake() {
-    _controller?.active = true;
-    _restAfterWarmUp();
-  }
+  void _wake() => _restAfterWarmUp();
 
   /// Renders an empty box or the placeholder for any [MascotSlotVisual] other
   /// than `rive`, which the caller builds for itself since it needs data
