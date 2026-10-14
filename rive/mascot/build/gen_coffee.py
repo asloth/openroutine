@@ -59,6 +59,8 @@ def kf(frame, value, ease=IO):
     v = round(value, 5)
     if ease is None:
         return f'<KeyFrameDouble value="{v}" interpolationType="linear" frame="{frame}"/>'
+    if ease == 'hold':
+        return f'<KeyFrameDouble value="{v}" interpolationType="hold" frame="{frame}"/>'
     x1, y1, x2, y2 = ease
     return (f'<KeyFrameDouble value="{v}" interpolationType="cubic" frame="{frame}">'
             f'<CubicEaseInterpolator x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}"/></KeyFrameDouble>')
@@ -201,7 +203,24 @@ D_HOLD = 240
 wa_y, wa_o = wisp_keys(0, D_HOLD)
 wb_y, wb_o = wisp_keys(60, D_HOLD)
 base_eye = REST['0:786'][Y]
+
+# Idle's blink: the eye squashes shut, the lid line shows while it's shut,
+# and the eye eases back open.
+EYE, EYELID = '0:1048', '0:2040'
+BLINKS = (40, 176)
+eye_blink = [(0, 1)]
+lid_blink = [(0, 0, 'hold')]
+for b in BLINKS:
+    eye_blink += [(b - 4, 1, (0.5, 0.0, 0.75, 0.3)), (b, 0.001, None),
+                  (b + 3, 0.001, (0.0, 0.0, 0.58, 1.0)), (b + 9, 1)]
+    lid_blink += [(b, 1, 'hold'), (b + 3, 0, 'hold')]
+eye_blink.append((D_HOLD, 1))
+lid_blink.append((D_HOLD, 0, 'hold'))
+
+# Loops, so Ochi keeps breathing, blinking, and steaming between sips.
 coffee_hold = animation('coffee_hold', A_HOLD, D_HOLD, {
+    EYE: {SY: eye_blink},
+    EYELID: {OPACITY: lid_blink},
     MUG: {OPACITY: [(0, 1), (D_HOLD, 1)], SX: [(0, K), (D_HOLD, K)], SY: [(0, K), (D_HOLD, K)],
           Y: [(0, MUG_Y), (60, MUG_Y - 3), (120, MUG_Y), (180, MUG_Y - 3), (D_HOLD, MUG_Y)]},
     WISP_A: {Y: wa_y, OPACITY: wa_o},
@@ -210,7 +229,7 @@ coffee_hold = animation('coffee_hold', A_HOLD, D_HOLD, {
                SX: [(0, 1), (60, 0.995), (120, 1), (180, 0.995), (D_HOLD, 1)]},
     # Mostly eyeing the cup, with a look up now and then.
     '0:786': {Y: [(0, base_eye + 4), (130, base_eye + 4), (150, base_eye - 2), (200, base_eye - 2), (D_HOLD - 10, base_eye + 4), (D_HOLD, base_eye + 4)]},
-})
+}, loop='loop')
 
 # A sip: the mug comes up to the mouth and tips, the eye closes in the happy
 # squint, a contented little sink, and back down.
