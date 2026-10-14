@@ -55,7 +55,7 @@ void main() {
           ),
         ],
         stepsById: steps,
-        now: DateTime.utc(2026, 9, 1, 12),
+        currentStreakDays: 0,
       );
 
       final accuracy = stats.estimates!;
@@ -80,7 +80,7 @@ void main() {
           ),
         ],
         stepsById: steps,
-        now: DateTime.utc(2026, 9, 1, 12),
+        currentStreakDays: 0,
       );
 
       final accuracy = stats.estimates!;
@@ -99,7 +99,7 @@ void main() {
           ),
         ],
         stepsById: steps,
-        now: DateTime.utc(2026, 9, 1, 12),
+        currentStreakDays: 0,
       );
 
       expect(stats.estimates, isNull);
@@ -119,7 +119,7 @@ void main() {
           ),
         ],
         stepsById: steps,
-        now: DateTime.utc(2026, 9, 1, 12),
+        currentStreakDays: 0,
       );
 
       expect(stats.completion.finished, 1);
@@ -128,21 +128,20 @@ void main() {
     });
 
     test('counts consecutive days that contain a finished run', () {
-      final stats = computeStatistics(
+      final streak = currentStreak(
         logs: [
           _log(id: 'c1', startedAt: DateTime.utc(2026, 9, 1, 7)),
           _log(id: 'c2', startedAt: DateTime.utc(2026, 9, 2, 7)),
           _log(id: 'c3', startedAt: DateTime.utc(2026, 9, 3, 7)),
         ],
-        stepsById: steps,
         now: DateTime.utc(2026, 9, 3, 12),
       );
 
-      expect(stats.completion.currentStreakDays, 3);
+      expect(streak, 3);
     });
 
     test('a day whose only run was abandoned does not extend the streak', () {
-      final stats = computeStatistics(
+      final streak = currentStreak(
         logs: [
           _log(id: 'c1', startedAt: DateTime.utc(2026, 9, 1, 7)),
           _log(
@@ -152,27 +151,37 @@ void main() {
           ),
           _log(id: 'c3', startedAt: DateTime.utc(2026, 9, 3, 7)),
         ],
-        stepsById: steps,
         now: DateTime.utc(2026, 9, 3, 12),
       );
 
       // The streak counts finishing, not attending, so it starts again at the
       // 3rd rather than reaching back past the abandoned 2nd.
-      expect(stats.completion.currentStreakDays, 1);
+      expect(streak, 1);
     });
 
     test('a gap day ends the streak', () {
-      final stats = computeStatistics(
+      final streak = currentStreak(
         logs: [
           _log(id: 'c1', startedAt: DateTime.utc(2026, 9, 1, 7)),
           _log(id: 'c2', startedAt: DateTime.utc(2026, 9, 3, 7)),
         ],
-        stepsById: steps,
         now: DateTime.utc(2026, 9, 3, 12),
       );
 
-      expect(stats.completion.currentStreakDays, 1);
+      expect(streak, 1);
     });
+  });
+
+  test('reports the streak it is given, not one from these runs', () {
+    // The streak always counts back from today, so a past week's runs must
+    // not be able to change it.
+    final stats = computeStatistics(
+      logs: [_log(id: 'c1', startedAt: DateTime.utc(2026, 9, 1, 7))],
+      stepsById: steps,
+      currentStreakDays: 5,
+    );
+
+    expect(stats.completion.currentStreakDays, 5);
   });
 
   group('skipped steps', () {
@@ -194,7 +203,7 @@ void main() {
           ),
         ],
         stepsById: steps,
-        now: DateTime.utc(2026, 9, 2, 12),
+        currentStreakDays: 0,
       );
 
       expect(stats.skipped.first.name, 'Breakfast');
@@ -215,7 +224,7 @@ void main() {
           ),
         ],
         stepsById: steps,
-        now: DateTime.utc(2026, 9, 1, 12),
+        currentStreakDays: 0,
       );
 
       // An identifier tells the user nothing, so a deleted step is dropped
@@ -232,7 +241,7 @@ void main() {
       final stats = computeStatistics(
         logs: [_log(id: 'c1', startedAt: started)],
         stepsById: steps,
-        now: DateTime.utc(2026, 9, 1, 12),
+        currentStreakDays: 0,
       );
 
       expect(stats.startTimes.single.hour, started.toLocal().hour);
@@ -245,7 +254,7 @@ void main() {
       final stats = computeStatistics(
         logs: const [],
         stepsById: steps,
-        now: DateTime.utc(2026, 9, 1, 12),
+        currentStreakDays: 0,
       );
 
       expect(stats.hasData, isFalse);

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../services/stats/routine_statistics.dart';
+import '../../services/stats/stats_period.dart';
 import '../../state/stats_provider.dart';
 import '../../theme/theme.dart';
 import '../../widgets/mascot_slot.dart';
@@ -28,14 +30,53 @@ const _gutter = 22.0;
 ///
 /// A destination root on the bottom nav, so there is no back target and no
 /// stock `AppBar`.
-class StatsScreen extends ConsumerWidget {
+class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends ConsumerState<StatsScreen> {
+  /// The period on screen. Starts on this week, and isn't remembered across
+  /// launches: the question people open this screen with is "how's it going",
+  /// which is about now.
+  StatsPeriod? _period;
+
+  /// The current period of [kind], with the week starting where the phone's
+  /// locale starts it.
+  StatsPeriod _current(StatsPeriodKind kind) {
+    final now = DateTime.now();
+    return switch (kind) {
+      StatsPeriodKind.week => StatsPeriod.week(
+        now,
+        firstDayOfWeek: MaterialLocalizations.of(context).firstDayOfWeekIndex,
+      ),
+      StatsPeriodKind.month => StatsPeriod.month(now),
+      StatsPeriodKind.allTime => const StatsPeriod.allTime(),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final statsAsync = ref.watch(statisticsProvider);
+    final period = _period ??= _current(StatsPeriodKind.week);
+    final statsAsync = ref.watch(statisticsProvider(period));
     final brightness = Theme.of(context).brightness;
+
+    // An empty period means one of two things: a quiet week, or someone who
+    // has never run a routine. Only the second gets the full first-run
+    // screen, because there's nothing yet to browse back through. All time is
+    // only asked for when it decides between them.
+    final periodEmpty = statsAsync.value?.hasData == false;
+    final neverRan =
+        periodEmpty &&
+        (period.kind == StatsPeriodKind.allTime ||
+            ref
+                    .watch(statisticsProvider(const StatsPeriod.allTime()))
+                    .value
+                    ?.hasData ==
+                false);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value:
@@ -52,25 +93,214 @@ class StatsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(_gutter, 16, _gutter, 0),
                 child: PageHeader(title: l10n.statsTitle),
               ),
+              if (neverRan)
+                const Expanded(child: _Empty())
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(_gutter, 16, _gutter, 0),
+                  child: _PeriodControls(
+                    period: period,
+                    onKind: (kind) => setState(() => _period = _current(kind)),
+                    onPeriod: (next) => setState(() => _period = next),
+                  ),
+                ),
+                Expanded(
+                  child: statsAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (_, _) => Center(
+                      child: Padding(
+                        padding: AppSpacing.allContainer,
+                        child: Text(
+                          l10n.routinesLoadError,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    data: (stats) => stats.hasData
+                        ? _Report(stats: stats)
+                        : const _EmptyPeriod(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Week, Month, or All time, and for the first two, arrows to step through
+/// earlier ones.
+class _PeriodControls extends StatelessWidget {
+  const _PeriodControls({
+    required this.period,
+    required this.onKind,
+    required this.onPeriod,
+  });
+
+  final StatsPeriod period;
+  final ValueChanged<StatsPeriodKind> onKind;
+  final ValueChanged<StatsPeriod> onPeriod;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final ink = HomeInk.of(context);
+
+    return Column(
+      children: [
+        _PeriodTrack(selected: period.kind, onSelected: onKind),
+        if (period.kind != StatsPeriodKind.allTime)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                IconButton(
+                  key: const Key('stats-period-previous'),
+                  tooltip: l10n.statsPeriodPrevious,
+                  color: ink.accent,
+                  icon: const Icon(Icons.chevron_left_rounded),
+                  onPressed: () => onPeriod(period.previous()),
+                ),
+                Expanded(
+                  child: Text(
+                    _label(context, period),
+                    textAlign: TextAlign.center,
+                    style: HomeInk.label.copyWith(fontSize: 14, color: ink.ink),
+                  ),
+                ),
+                IconButton(
+                  key: const Key('stats-period-next'),
+                  tooltip: l10n.statsPeriodNext,
+                  color: ink.accent,
+                  icon: const Icon(Icons.chevron_right_rounded),
+                  // Nothing has happened in the future yet.
+                  onPressed: period.isCurrent(DateTime.now())
+                      ? null
+                      : () => onPeriod(period.next()),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// "Oct 12 – Oct 18" or "October 2026", in the phone's language. A week
+  /// from another year carries its year, so last December isn't mistaken for
+  /// this one.
+  static String _label(BuildContext context, StatsPeriod period) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final start = period.range.start!;
+    final end = period.range.end!;
+    if (period.kind == StatsPeriodKind.month) {
+      return DateFormat.yMMMM(locale).format(start);
+    }
+    final last = DateTime(end.year, end.month, end.day - 1);
+    final day = start.year == DateTime.now().year && last.year == start.year
+        ? DateFormat.MMMd(locale)
+        : DateFormat.yMMMd(locale);
+    return '${day.format(start)} – ${day.format(last)}';
+  }
+}
+
+/// The three periods as one segmented track, the same shape as the duration
+/// presets on the step form.
+class _PeriodTrack extends StatelessWidget {
+  const _PeriodTrack({required this.selected, required this.onSelected});
+
+  final StatsPeriodKind selected;
+  final ValueChanged<StatsPeriodKind> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final ink = HomeInk.of(context);
+    const radius = BorderRadius.all(Radius.circular(12));
+    final options = [
+      (StatsPeriodKind.week, 'week', l10n.statsPeriodWeek),
+      (StatsPeriodKind.month, 'month', l10n.statsPeriodMonth),
+      (StatsPeriodKind.allTime, 'all-time', l10n.statsPeriodAllTime),
+    ];
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: ink.accent.withValues(alpha: 0.10),
+        borderRadius: const BorderRadius.all(Radius.circular(16)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            for (final (kind, id, label) in options)
               Expanded(
-                child: statsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => Center(
-                    child: Padding(
-                      padding: AppSpacing.allContainer,
-                      child: Text(
-                        l10n.routinesLoadError,
-                        textAlign: TextAlign.center,
+                child: Semantics(
+                  key: Key('stats-period-$id'),
+                  button: true,
+                  selected: kind == selected,
+                  label: label,
+                  excludeSemantics: true,
+                  child: Material(
+                    color: kind == selected ? ink.card : Colors.transparent,
+                    borderRadius: radius,
+                    child: InkWell(
+                      // Selecting the current kind again returns to now.
+                      onTap: () => onSelected(kind),
+                      borderRadius: radius,
+                      child: SizedBox(
+                        height: 40,
+                        child: Center(
+                          child: Text(
+                            label,
+                            style: HomeInk.label.copyWith(
+                              fontSize: 13,
+                              color: kind == selected
+                                  ? ink.ink
+                                  : ink.muted(0.6),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  data: (stats) =>
-                      stats.hasData ? _Report(stats: stats) : const _Empty(),
                 ),
               ),
-            ],
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when the selected period had no runs but others did. Short, and
+/// under the control, so the next step is obvious: go look at another one.
+class _EmptyPeriod extends StatelessWidget {
+  const _EmptyPeriod();
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = HomeInk.of(context);
+    return Align(
+      alignment: const Alignment(0, -0.4),
+      child: Padding(
+        padding: AppSpacing.allContainer,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const MascotSlot(mood: MascotMood.idle, size: 88),
+            AppSpacing.gapBase,
+            Text(
+              AppLocalizations.of(context)!.statsEmptyPeriod,
+              textAlign: TextAlign.center,
+              style: HomeInk.detail.copyWith(
+                fontSize: 14,
+                height: 1.45,
+                color: ink.muted(0.62),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -582,27 +582,24 @@ void main() {
     await tester.pumpWidget(_wrap(adapter));
     await tester.pumpAndSettle();
 
-    // Home watches statistics for its streak pill, which keeps the value
-    // cached; listening here does the same.
+    // Home watches the streak for its pill, which keeps the value cached;
+    // listening here does the same.
     final container = ProviderScope.containerOf(
       tester.element(find.byType(TimerScreen)),
     );
-    final subscription = container.listen(statisticsProvider, (_, _) {});
+    final subscription = container.listen(streakDaysProvider, (_, _) {});
     addTearDown(subscription.close);
-    await tester.runAsync(() => container.read(statisticsProvider.future));
-    expect(
-      container.read(statisticsProvider).value?.completion.currentStreakDays,
-      0,
-    );
+    await tester.runAsync(() => container.read(streakDaysProvider.future));
+    expect(container.read(streakDaysProvider).value, 0);
 
     final l10n = AppLocalizations.of(tester.element(find.byType(Scaffold)))!;
     await tester.tap(find.text(l10n.timerFinish));
     await tester.pumpAndSettle();
 
-    final stats = await tester.runAsync(
-      () => container.read(statisticsProvider.future),
+    final streak = await tester.runAsync(
+      () => container.read(streakDaysProvider.future),
     );
-    expect(stats!.completion.currentStreakDays, 1);
+    expect(streak, 1);
 
     await _disposeCleanly(tester);
   });

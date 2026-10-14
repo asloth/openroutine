@@ -155,23 +155,26 @@ class RoutineStatistics {
 /// Computes every reported figure from [logs].
 ///
 /// [stepsById] resolves step identifiers to their current names; a step that
-/// no longer exists is dropped rather than shown by identifier. [now] is
-/// injected so streaks are testable without depending on the current date.
+/// no longer exists is dropped rather than shown by identifier.
+///
+/// [currentStreakDays] comes from [currentStreak] over recent runs, not from
+/// [logs]: the streak always counts back from today, so viewing a past week
+/// mustn't change it.
 RoutineStatistics computeStatistics({
   required List<CompletionLog> logs,
   required Map<String, RoutineStep> stepsById,
-  required DateTime now,
+  required int currentStreakDays,
 }) {
   if (logs.isEmpty) {
-    return const RoutineStatistics(
+    return RoutineStatistics(
       estimates: null,
       completion: CompletionRate(
         finished: 0,
         abandoned: 0,
-        currentStreakDays: 0,
+        currentStreakDays: currentStreakDays,
       ),
-      skipped: [],
-      startTimes: [],
+      skipped: const [],
+      startTimes: const [],
       hasData: false,
     );
   }
@@ -185,7 +188,7 @@ RoutineStatistics computeStatistics({
       abandoned: logs
           .where((l) => l.outcome == CompletionOutcome.abandoned)
           .length,
-      currentStreakDays: _streak(logs, now),
+      currentStreakDays: currentStreakDays,
     ),
     skipped: _skipped(logs, stepsById),
     startTimes: _startTimes(logs),
@@ -244,7 +247,7 @@ EstimateAccuracy? _estimates(
 /// Counts finishing rather than attending: a day whose only run was abandoned
 /// breaks the streak, because a number that keeps rising while things go badly
 /// is worse than no number.
-int _streak(List<CompletionLog> logs, DateTime now) {
+int currentStreak({required List<CompletionLog> logs, required DateTime now}) {
   final finishedDays = <DateTime>{
     for (final log in logs)
       if (log.outcome == CompletionOutcome.completed) _dayOf(log.startedAt),

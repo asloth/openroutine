@@ -15,9 +15,14 @@ Future<void> _pump(
   RoutineStatistics stats, {
   Locale locale = const Locale('en'),
 }) async {
+  // A phone-height surface. The period control sits above the cards, and the
+  // default 600px test surface would push the last ones out of the list.
+  tester.view.physicalSize = const Size(800, 1000);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [statisticsProvider.overrideWith((ref) async => stats)],
+      overrides: [statisticsProvider.overrideWith((ref, _) async => stats)],
       child: MaterialApp(
         theme: AppTheme.light(),
         locale: locale,

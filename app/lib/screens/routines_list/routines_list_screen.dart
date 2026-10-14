@@ -49,8 +49,7 @@ class _RoutinesListScreenState extends ConsumerState<RoutinesListScreen> {
     final brightness = Theme.of(context).brightness;
     final routinesAsync = ref.watch(routinesProvider);
     final now = ref.watch(clockProvider);
-    final streak =
-        ref.watch(statisticsProvider).value?.completion.currentStreakDays ?? 0;
+    final streak = ref.watch(streakDaysProvider).value ?? 0;
 
     // No AppBar, so the screen sets its own status bar: dark icons over the
     // light theme, light over the dark, transparent so the paper shows.
