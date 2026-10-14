@@ -70,6 +70,12 @@ Finder _switch(String label) => find.widgetWithText(SwitchListTile, label);
 final _save = find.byKey(const Key('step-form-save'));
 final _noTime = find.byKey(const Key('step-form-no-time'));
 Finder _tile(int minutes) => find.byKey(Key('duration-$minutes'));
+final _minus = find.byKey(const Key('step-minutes-minus'));
+final _plus = find.byKey(const Key('step-minutes-plus'));
+final _minutesValue = find.byKey(const Key('step-minutes-value'));
+
+String _shownMinutes(WidgetTester tester) =>
+    tester.widget<Text>(_minutesValue).data!;
 
 void main() {
   late AppDatabase database;
@@ -162,6 +168,9 @@ void main() {
     final l10n = await pumpForm(tester, '/step');
     final essential = _switch(l10n.stepFormCoreLabel);
     expect(tester.widget<SwitchListTile>(essential).onChanged, isNotNull);
+    // The card sits below the fold in the 600px test viewport.
+    await tester.ensureVisible(essential);
+    await tester.pump();
     await tester.tap(essential);
     await tester.pump();
     expect(tester.widget<SwitchListTile>(essential).value, isTrue);
@@ -282,7 +291,11 @@ void main() {
 
       await tester.tap(_noTime);
       await tester.pumpAndSettle();
-      expect(_tile(1), findsNothing, reason: 'no estimate, no minutes');
+      expect(
+        tester.widget<SoftCircleButton>(_plus).onPressed,
+        isNull,
+        reason: 'no estimate, no minutes to step',
+      );
 
       expect(
         _switch(l10n.stepFormRemindDuringLabel),
@@ -313,12 +326,12 @@ void main() {
   });
 
   group('the duration picker', () {
-    testWidgets('renders a tile for every preset', (tester) async {
+    testWidgets('offers the 2, 5, 10, and 20 minute presets', (tester) async {
       await adapter.saveStep(_step('s4', 3, isCore: false));
 
       final l10n = await pumpForm(tester, '/step');
 
-      for (final minutes in [1, 2, 3, 5, 10, 15, 20, 30, 45, 60]) {
+      for (final minutes in [2, 5, 10, 20]) {
         expect(
           _tile(minutes),
           findsOneWidget,
@@ -326,21 +339,24 @@ void main() {
         );
       }
       expect(find.text(l10n.stepFormHowLong.toUpperCase()), findsOneWidget);
-      expect(find.text(l10n.stepFormMinutesCaption), findsOneWidget);
+      expect(find.text(l10n.stepFormMinutesUnit), findsOneWidget);
     });
 
-    testWidgets('selects the tile you tap and saves its minutes', (
+    testWidgets('selects the preset you tap and saves its minutes', (
       tester,
     ) async {
-      await adapter.saveStep(_step('s4', 3, isCore: false));
+      await adapter.saveStep(
+        _step('s4', 3, isCore: false, durationSeconds: 300),
+      );
 
       await pumpForm(tester, '/step');
-      expect(tester.widget<Semantics>(_tile(1)).properties.selected, isTrue);
+      expect(tester.widget<Semantics>(_tile(5)).properties.selected, isTrue);
 
       await tester.tap(_tile(20));
       await tester.pump();
       expect(tester.widget<Semantics>(_tile(20)).properties.selected, isTrue);
-      expect(tester.widget<Semantics>(_tile(1)).properties.selected, isFalse);
+      expect(tester.widget<Semantics>(_tile(5)).properties.selected, isFalse);
+      expect(_shownMinutes(tester), '20');
 
       await tester.tap(_save);
       await tester.pumpAndSettle();
@@ -351,23 +367,95 @@ void main() {
       expect(saved.durationSeconds, 20 * 60);
     });
 
-    testWidgets(
-      'shows a step whose duration is not a preset as its own selected chip',
-      (tester) async {
-        await adapter.saveStep(
-          _step('s4', 3, isCore: false, durationSeconds: 7 * 60),
-        );
+    testWidgets('shows a step whose duration is not a preset in the stepper', (
+      tester,
+    ) async {
+      await adapter.saveStep(
+        _step('s4', 3, isCore: false, durationSeconds: 7 * 60),
+      );
 
-        await pumpForm(tester, '/step');
+      await pumpForm(tester, '/step');
 
+      expect(_shownMinutes(tester), '7');
+      for (final minutes in [2, 5, 10, 20]) {
         expect(
-          _tile(7),
-          findsOneWidget,
-          reason: 'a 7-minute step is not one of the fixed presets',
+          tester.widget<Semantics>(_tile(minutes)).properties.selected,
+          isFalse,
+          reason: 'opening a 7-minute step must not snap it to a preset',
         );
-        expect(tester.widget<Semantics>(_tile(7)).properties.selected, isTrue);
-      },
-    );
+      }
+    });
+  });
+
+  group('the minutes stepper', () {
+    testWidgets('plus and minus change the minutes, and save keeps them', (
+      tester,
+    ) async {
+      await adapter.saveStep(
+        _step('s4', 3, isCore: false, durationSeconds: 300),
+      );
+
+      await pumpForm(tester, '/step');
+      expect(_shownMinutes(tester), '5');
+
+      await tester.tap(_plus);
+      await tester.pump();
+      await tester.tap(_plus);
+      await tester.pump();
+      expect(_shownMinutes(tester), '7');
+
+      await tester.tap(_minus);
+      await tester.pump();
+      expect(_shownMinutes(tester), '6');
+
+      await tester.tap(_save);
+      await tester.pumpAndSettle();
+
+      final saved = (await adapter.getSteps(
+        'r1',
+      )).singleWhere((step) => step.id == 's4');
+      expect(saved.durationSeconds, 6 * 60);
+    });
+
+    testWidgets('minus stops at 1 minute', (tester) async {
+      await adapter.saveStep(_step('s4', 3, isCore: false));
+
+      await pumpForm(tester, '/step');
+      expect(_shownMinutes(tester), '1');
+      expect(tester.widget<SoftCircleButton>(_minus).onPressed, isNull);
+
+      await tester.tap(_minus);
+      await tester.pump();
+      expect(_shownMinutes(tester), '1');
+    });
+
+    testWidgets('no set time disables the stepper and the presets', (
+      tester,
+    ) async {
+      await adapter.saveStep(
+        _step('s4', 3, isCore: false, durationSeconds: 300),
+      );
+
+      await pumpForm(tester, '/step');
+      await tester.tap(_noTime);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<SoftCircleButton>(_plus).onPressed, isNull);
+      expect(tester.widget<SoftCircleButton>(_minus).onPressed, isNull);
+
+      await tester.tap(_tile(20), warnIfMissed: false);
+      await tester.tap(_plus, warnIfMissed: false);
+      await tester.pump();
+
+      await tester.tap(_noTime);
+      await tester.pumpAndSettle();
+      expect(
+        _shownMinutes(tester),
+        '5',
+        reason: 'nothing changed the minutes while no set time was on',
+      );
+      expect(tester.widget<SoftCircleButton>(_plus).onPressed, isNotNull);
+    });
   });
 
   group('the save button', () {
