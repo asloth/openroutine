@@ -79,7 +79,11 @@ enum MascotReaction {
   bounce('bounce'),
 
   /// Both arms up, feet out: something big just got done.
-  celebrate('celebrate');
+  celebrate('celebrate'),
+
+  /// A slow sip from the coffee, eye closed. Only plays while the pet holds
+  /// one (see [MascotSlot.hasCoffee]).
+  sip('sip');
 
   const MascotReaction(this.trigger);
 
@@ -109,13 +113,9 @@ class MascotCue {
 /// same thing, so announcing it again would just make a screen reader
 /// repetitive. Pass [semanticLabel] if that ever stops being true.
 ///
-/// The pet breathes for a few cycles on arrival and then settles into a still
-/// rest pose, rather than looping forever. Perpetual motion in the corner of
-/// the eye is exactly the kind of competing stimulus this app exists to
-/// remove, and a pet that never stops moving is a pet you end up ignoring.
-/// It also means the widget reaches a steady state, so `pumpAndSettle` in the
-/// existing screen tests still terminates. Reduce-motion skips the warm-up
-/// entirely and goes straight to rest.
+/// The pet keeps moving for as long as it's on screen. Pausing it after a
+/// warm-up froze it on whatever frame was showing, sometimes mid-blink, which
+/// read as a stuck app rather than a calm one. Reduce-motion holds it still.
 class MascotSlot extends StatefulWidget {
   const MascotSlot({
     super.key,
@@ -123,9 +123,14 @@ class MascotSlot extends StatefulWidget {
     this.size = 120,
     this.semanticLabel,
     this.cue,
+    this.hasCoffee = false,
   });
 
   final MascotMood mood;
+
+  /// Holds a cup of coffee, for a long stretch of work. The pet brings the
+  /// mug up and holds it still; a [MascotReaction.sip] cue takes a sip.
+  final bool hasCoffee;
 
   /// Plays once each time a new cue arrives. Null means nothing to react to.
   final MascotCue? cue;
@@ -149,11 +154,6 @@ class MascotSlot extends StatefulWidget {
 }
 
 class _MascotSlotState extends State<MascotSlot> {
-  /// How long the pet moves on arrival before it settles into a still pose.
-  /// Perpetual motion in the corner of the eye is the kind of competing
-  /// stimulus this app exists to remove — see the note on [MascotSlot].
-  static const _warmUp = Duration(seconds: 11);
-
   /// The decoded Rive file, loaded at most once per app run and shared by
   /// every slot. Decoding the `.riv` is slow enough to see on a phone, so
   /// only the first slot built pays that cost; every slot after — including
@@ -178,7 +178,6 @@ class _MascotSlotState extends State<MascotSlot> {
 
   RiveWidgetController? _controller;
   ViewModelInstance? _mascot;
-  Timer? _settle;
 
   /// `flutter test` has the `rive_native` library but no renderer, and
   /// loading a file there trips a native assertion that aborts the whole test
@@ -198,7 +197,6 @@ class _MascotSlotState extends State<MascotSlot> {
 
   @override
   void dispose() {
-    _settle?.cancel();
     // The file is shared across every slot in the app, so disposing it here
     // would pull it out from under every other slot still using it.
     super.dispose();
@@ -212,28 +210,13 @@ class _MascotSlotState extends State<MascotSlot> {
       ..hitTestBehavior = RiveHitTestBehavior.opaque;
     _mascot = loaded.viewModelInstance;
     _apply();
-    _restAfterWarmUp();
+    // Reduce-motion holds the pet still; otherwise it never stops.
+    _controller!.active = !MediaQuery.disableAnimationsOf(context);
     // A slot that arrives already cheering, like the finished timer, never
     // sees a mood change, so it celebrates here instead.
     if (widget.mood == MascotMood.cheering) {
       _mascot?.trigger('celebrate')?.trigger();
     }
-  }
-
-  /// Stops advancing once the warm-up is over, and does not start at all when
-  /// the system asks for reduced motion.
-  void _restAfterWarmUp() {
-    _settle?.cancel();
-    final controller = _controller;
-    if (controller == null) return;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      controller.active = false;
-      return;
-    }
-    controller.active = true;
-    _settle = Timer(_warmUp, () {
-      if (mounted) _controller?.active = false;
-    });
   }
 
   /// Pushes the mood and the theme's colours into the artboard. Cheap enough
@@ -255,6 +238,7 @@ class _MascotSlotState extends State<MascotSlot> {
 
     mascot.boolean('isThinking')?.value = widget.mood == MascotMood.focused;
     mascot.boolean('isSleeping')?.value = widget.mood == MascotMood.resting;
+    mascot.boolean('hasCoffee')?.value = widget.hasCoffee;
   }
 
   @override
@@ -262,23 +246,16 @@ class _MascotSlotState extends State<MascotSlot> {
     super.didUpdateWidget(oldWidget);
     final cue = widget.cue;
     if (cue != null && !identical(cue, oldWidget.cue)) {
-      // A settled pet isn't advancing, so wake it or the trigger never plays.
-      _wake();
       _mascot?.trigger(cue.reaction.trigger)?.trigger();
     }
-    if (oldWidget.mood == widget.mood) return;
+    if (oldWidget.mood == widget.mood &&
+        oldWidget.hasCoffee == widget.hasCoffee) {
+      return;
+    }
     _apply();
-    // A mood change is worth moving for, even if the pet had already settled.
-    _wake();
-    if (widget.mood == MascotMood.cheering) {
+    if (widget.mood == MascotMood.cheering && oldWidget.mood != widget.mood) {
       _mascot?.trigger('celebrate')?.trigger();
     }
-  }
-
-  /// Runs again for another warm-up, so a settled pet still reacts.
-  void _wake() {
-    _controller?.active = true;
-    _restAfterWarmUp();
   }
 
   /// Renders an empty box or the placeholder for any [MascotSlotVisual] other
@@ -316,15 +293,7 @@ class _MascotSlotState extends State<MascotSlot> {
               onLoaded: _onLoaded,
               builder: (context, state) => _visual(
                 mascotRiveVisual(state),
-                () => Listener(
-                  // The artboard's own listener fires `tap`, but a settled
-                  // pet is not advancing and so never sees it. Waking it
-                  // here is what makes a poke work at any moment.
-                  onPointerDown: (_) => _wake(),
-                  child: RiveWidget(
-                    controller: (state as RiveLoaded).controller,
-                  ),
-                ),
+                () => RiveWidget(controller: (state as RiveLoaded).controller),
               ),
             ),
           ),

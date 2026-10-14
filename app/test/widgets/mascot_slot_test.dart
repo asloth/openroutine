@@ -120,6 +120,14 @@ void main() {
     expect(loadCount, 1);
   });
 
+  test('a sip fires the sip trigger on the Rive file', () {
+    expect(MascotReaction.sip.trigger, 'sip');
+  });
+
+  test('holds no coffee unless asked to', () {
+    expect(const MascotSlot().hasCoffee, isFalse);
+  });
+
   testWidgets('fills the size it is given and settles', (tester) async {
     await tester.pumpWidget(host(const MascotSlot(size: 96)));
     await tester.pumpAndSettle();
