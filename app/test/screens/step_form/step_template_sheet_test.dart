@@ -240,11 +240,11 @@ void main() {
       );
       expect(
         find.descendant(
-          of: find.byType(CircleAvatar),
+          of: find.byKey(const Key('step-form-emoji')),
           matching: find.text('🚿'),
         ),
         findsOneWidget,
-        reason: 'picking a template fills the emoji avatar',
+        reason: 'picking a template fills the emoji tile',
       );
       await _disposeCleanly(tester);
     },
