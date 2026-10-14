@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../services/stats/routine_statistics.dart';
+import '../../services/stats/stats_period.dart';
 import '../../state/stats_provider.dart';
 import '../../theme/theme.dart';
 import '../../widgets/mascot_slot.dart';
@@ -34,7 +35,11 @@ class StatsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final statsAsync = ref.watch(statisticsProvider);
+    // Slice 1 keeps the single report, now over all time. The period control
+    // arrives with the screen changes.
+    final statsAsync = ref.watch(
+      statisticsProvider(const StatsPeriod.allTime()),
+    );
     final brightness = Theme.of(context).brightness;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(

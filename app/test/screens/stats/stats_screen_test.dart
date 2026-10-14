@@ -17,7 +17,7 @@ Future<void> _pump(
 }) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [statisticsProvider.overrideWith((ref) async => stats)],
+      overrides: [statisticsProvider.overrideWith((ref, _) async => stats)],
       child: MaterialApp(
         theme: AppTheme.light(),
         locale: locale,

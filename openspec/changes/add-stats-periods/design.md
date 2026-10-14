@@ -19,7 +19,7 @@ See `proposal.md`, under Why. `statisticsProvider` reads `completionsInRange(now
 
 ### A pure `StatsPeriod` value resolves to a range
 
-`StatsPeriod` holds a kind (week, month, or all time) and an anchor date. `range(firstDayOfWeek)` returns a half-open local `[start, end)` range: weeks start on the given weekday, months start on the 1st, and all time is unbounded. `previous()`, `next()`, and `isCurrent(now)` handle navigation. The value is pure Dart, so the unit tests cover month lengths, year boundaries, and both week starts without a widget tree.
+`StatsPeriod` holds a kind (week, month, or all time) and the local date its period starts on. `StatsPeriod.week(day, firstDayOfWeek:)` snaps to the start of that day's week, so two days in one week build equal periods and share one provider cache entry. `range` returns a half-open local `[start, end)` range: months start on the 1st, and all time is unbounded. `previous()`, `next()`, and `isCurrent(now)` handle navigation. The value is pure Dart, so the unit tests cover month lengths, year boundaries, and both week starts without a widget tree.
 
 Ranges are computed in local calendar days and converted to UTC only at the storage call, the same way `_dayOf` already buckets days locally. That way, a run at 23:30 lands in the week you'd expect.
 
@@ -27,11 +27,11 @@ Ranges are computed in local calendar days and converted to UTC only at the stor
 
 ### The locale decides the week start, and the screen passes it in
 
-The screen reads `MaterialLocalizations.of(context).firstDayOfWeekIndex` and passes it into the provider family. The provider never touches `BuildContext`.
+The screen reads `MaterialLocalizations.of(context).firstDayOfWeekIndex` and builds the week period with it. The provider never touches `BuildContext`.
 
 ### The streak gets its own provider
 
-`computeStatistics` stops computing the streak. A separate `currentStreakProvider` reads recent logs ending now and calls the existing `_streak` logic, which moves to its own exported function. The finishing card reads both providers.
+`computeStatistics` stops computing the streak. A separate `streakDaysProvider` reads the last year of logs and calls the existing streak logic, now exported as `currentStreak`. `computeStatistics` takes the streak as a parameter, so the finishing card still reads it from `CompletionRate`. Home's streak pill watches `streakDaysProvider` directly.
 
 *Rationale:* if a past week also supplied the streak's logs, viewing last week would show a streak of zero, which reads as a judgement on today. The streak query stays bounded at a year, matching today's behavior.
 

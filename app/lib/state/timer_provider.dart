@@ -205,8 +205,9 @@ class RoutineTimer extends _$RoutineTimer {
     if (log == null) return;
     await ref.read(storageAdapterProvider).appendCompletion(log);
     ref.invalidate(routineCompletionsProvider(finished.routineId));
-    // Home's streak pill watches statistics, which would otherwise keep
-    // showing the streak from before this run.
+    // Home's streak pill and the statistics screen would otherwise keep
+    // showing figures from before this run.
+    ref.invalidate(streakDaysProvider);
     ref.invalidate(statisticsProvider);
   }
 }
