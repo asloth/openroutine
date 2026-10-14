@@ -233,6 +233,30 @@
   "@statsEmptyBody": {
     "description": "Explains what the statistics screen will show once completion logs exist."
   },
+  "statsPeriodWeek": "Week",
+  "@statsPeriodWeek": {
+    "description": "Period option on the statistics screen: one calendar week."
+  },
+  "statsPeriodMonth": "Month",
+  "@statsPeriodMonth": {
+    "description": "Period option on the statistics screen: one calendar month."
+  },
+  "statsPeriodAllTime": "All time",
+  "@statsPeriodAllTime": {
+    "description": "Period option on the statistics screen: every run ever recorded."
+  },
+  "statsPeriodPrevious": "Previous period",
+  "@statsPeriodPrevious": {
+    "description": "Accessibility label for the arrow that shows the week or month before."
+  },
+  "statsPeriodNext": "Next period",
+  "@statsPeriodNext": {
+    "description": "Accessibility label for the arrow that shows the week or month after."
+  },
+  "statsEmptyPeriod": "No routines ran in this period. Use the arrows to look at another one.",
+  "@statsEmptyPeriod": {
+    "description": "Shown on the statistics screen when the selected week or month has no runs but other periods do."
+  },
   "statsEstimateNone": "No run has recorded an estimate yet, so there is nothing to compare.",
   "@statsEstimateNone": {"description": "Shown when logs exist but none recorded a step estimate."},
   "statsEstimateOver": "{duration} longer than estimated",

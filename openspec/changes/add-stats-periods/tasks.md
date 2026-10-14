@@ -17,14 +17,14 @@
 
 ## 4. Screen (slice 2)
 
-- [ ] 4.1 Add widget tests: opens on Week, switching to Month and All time, previous and next arrows, the next arrow disabled on the current period, arrows hidden on All time, the locale-formatted label, the empty-period message, and the first-run empty state when there are no runs at all
-- [ ] 4.2 Add the period strings to `app_en.arb` and `app_es.arb`, then run `gen-l10n`
-- [ ] 4.3 Build the period control and label in `stats_screen.dart` with accent colors, read `firstDayOfWeekIndex` from `MaterialLocalizations`, and verify 4.1 passes
-- [ ] 4.4 Point the finishing card's streak at `streakDaysProvider`
+- [x] 4.1 Add widget tests: opens on Week, switching to Month and All time, previous and next arrows, the next arrow disabled on the current period, arrows hidden on All time, the locale-formatted label, the empty-period message, and the first-run empty state when there are no runs at all
+- [x] 4.2 Add the period strings to `app_en.arb` and `app_es.arb`, then run `gen-l10n`
+- [x] 4.3 Build the period control and label in `stats_screen.dart` with accent colors, read `firstDayOfWeekIndex` from `MaterialLocalizations`, and verify 4.1 passes
+- [x] 4.4 Point the finishing card's streak at `streakDaysProvider` (done in slice 1: `computeStatistics` takes the streak from it, so the card needed no change)
 
 ## 5. Verification
 
-- [ ] 5.1 Run `/home/sabera/fvm/bin/fvm flutter analyze --fatal-infos` from `app/` and verify there are no issues
-- [ ] 5.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes
-- [ ] 5.3 Run `openspec validate add-stats-periods --type change --strict` and verify it passes
+- [x] 5.1 Run `/home/sabera/fvm/bin/fvm flutter analyze --fatal-infos` from `app/` and verify there are no issues
+- [x] 5.2 Run `/home/sabera/fvm/bin/fvm flutter test` from `app/` and verify the suite passes
+- [x] 5.3 Run `openspec validate add-stats-periods --type change --strict` and verify it passes
 - [ ] 5.4 Install on the Pixel with `--dart-define-from-file=dart_define.json` and `adb install -r`, then check the Spanish locale starts weeks on Monday
