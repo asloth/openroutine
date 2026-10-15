@@ -181,3 +181,17 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# App icon: Ochi in its original navy on warm paper. Regenerate the launcher
+# icons after changing the sources in assets/icon/:
+#   /home/sabera/fvm/bin/fvm dart run flutter_launcher_icons
+# The foreground keeps Ochi inside the adaptive icon's safe zone, so no
+# launcher mask crops the eye.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#F5EFE4"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  remove_alpha_ios: true
+  min_sdk_android: 26
