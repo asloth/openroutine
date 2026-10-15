@@ -6,15 +6,12 @@
 
          RECEIVE_BOOT_COMPLETED lets pending step alarms survive a reboot.
 
-         USE_EXACT_ALARM is what keeps a 3-minute step honest — an inexact alarm
-         can drift by minutes, which is useless for a timer. Play policy allows
-         it for apps whose core function is a timer, which Timer Mode is, but it
-         is reviewed: see docs/SPEC.md §15 for the M6 declaration. On API 31-32,
-         SCHEDULE_EXACT_ALARM covers the same ground. -->
+         There's deliberately no USE_EXACT_ALARM or SCHEDULE_EXACT_ALARM. Play
+         only grants USE_EXACT_ALARM to alarm clock and calendar apps, so every
+         alarm is inexact-while-idle: it still fires through Doze and a locked
+         screen, possibly a few minutes late. See docs/SPEC.md §15.14. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- Google's sign-in library declares these, but the app has no biometric
          feature. Removing them keeps the Play permission forms honest. -->

@@ -2,6 +2,44 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openroutine/services/notifications/notification_service.dart';
 import 'package:openroutine/services/notifications/routine_reminders.dart';
+import 'package:timezone/timezone.dart';
+
+/// Records what the service hands the plugin, so a test can see the schedule
+/// mode without a platform channel behind it.
+class _RecordingPlugin extends Fake implements FlutterLocalNotificationsPlugin {
+  final modes = <int, AndroidScheduleMode>{};
+
+  @override
+  Future<bool?> initialize({
+    required InitializationSettings settings,
+    DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
+    DidReceiveBackgroundNotificationResponseCallback?
+    onDidReceiveBackgroundNotificationResponse,
+  }) async => true;
+
+  @override
+  Future<void> cancel({required int id, String? tag}) async {}
+
+  // No platform behind the fake, so there's no Android implementation either.
+  @override
+  T? resolvePlatformSpecificImplementation<
+    T extends FlutterLocalNotificationsPlatform
+  >() => null;
+
+  @override
+  Future<void> zonedSchedule({
+    required int id,
+    required TZDateTime scheduledDate,
+    required NotificationDetails notificationDetails,
+    required AndroidScheduleMode androidScheduleMode,
+    String? title,
+    String? body,
+    String? payload,
+    DateTimeComponents? matchDateTimeComponents,
+  }) async {
+    modes[id] = androidScheduleMode;
+  }
+}
 
 void main() {
   test('builds silent calm boundary details on Android and iOS', () {
@@ -106,5 +144,58 @@ void main() {
       NotificationService.retiredChannelIds,
       contains('routine_reminder_v1'),
     );
+  });
+
+  // Without USE_EXACT_ALARM, Android 14+ refuses an exact schedule outright,
+  // and the notification never appears. Inexact-while-idle still fires through
+  // Doze and a locked screen, possibly a few minutes late.
+  group('schedules inexact alarms that still fire while idle', () {
+    test('for a running step and both nudges', () async {
+      final plugin = _RecordingPlugin();
+      final now = DateTime.now();
+      await NotificationService(plugin).scheduleStepAlarms(
+        endsAt: now.add(const Duration(minutes: 10)),
+        halfwayAt: now.add(const Duration(minutes: 5)),
+        nearEndAt: now.add(const Duration(minutes: 9)),
+        title: 'Stretch',
+        body: 'Time is up.',
+        halfwayBody: 'Halfway.',
+        nearEndBody: 'Almost done.',
+        channelName: 'Gentle timing',
+        channelDescription: 'A gentle reminder.',
+        nudgeChannelName: 'Nudges',
+        nudgeChannelDescription: 'A nudge.',
+      );
+
+      expect(plugin.modes, {
+        NotificationService.stepEndNotificationId:
+            AndroidScheduleMode.inexactAllowWhileIdle,
+        NotificationService.stepHalfwayNotificationId:
+            AndroidScheduleMode.inexactAllowWhileIdle,
+        NotificationService.stepNearEndNotificationId:
+            AndroidScheduleMode.inexactAllowWhileIdle,
+      });
+    });
+
+    test('for routine reminders', () async {
+      final plugin = _RecordingPlugin();
+      await NotificationService(plugin).scheduleRoutineReminders(
+        [
+          ReminderRequest(
+            notificationId: ReminderSchedule.idBase,
+            routineId: 'routine-1',
+            at: DateTime.now().add(const Duration(hours: 1)),
+            title: 'Morning',
+            body: 'Starts now.',
+          ),
+        ],
+        channelName: 'Reminders',
+        channelDescription: 'Routine reminders.',
+      );
+
+      expect(plugin.modes, {
+        ReminderSchedule.idBase: AndroidScheduleMode.inexactAllowWhileIdle,
+      });
+    });
   });
 }

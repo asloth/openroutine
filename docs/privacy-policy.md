@@ -59,7 +59,7 @@ You can select **Disconnect Google Drive** in Settings at any time. You can also
 
 OpenRoutine asks for notification permission when you first start a timer, not when you open the app. It uses notifications to tell you when a step's time is up and, if you set days and a start time, to remind you before a routine begins.
 
-All notifications are scheduled on your phone. There are no push notifications from a server. On Android, the app also uses exact alarms so a three-minute step ends after three minutes, and it re-schedules pending alarms after your phone restarts.
+All notifications are scheduled on your phone. There are no push notifications from a server. On Android, the app re-schedules pending notifications after your phone restarts.
 
 You can turn notifications off in your phone's system settings. The timer keeps working on screen.
 

@@ -35,6 +35,15 @@ class NotificationService {
   static const stepHalfwayNotificationId = 2;
   static const stepNearEndNotificationId = 3;
 
+  /// How every alarm is handed to Android: the mode that still fires through
+  /// Doze and a locked screen, which is the only situation these notifications
+  /// matter in. Inexact because an exact one needs USE_EXACT_ALARM, which Play
+  /// reserves for alarm clock and calendar apps; without it Android 14+ rejects
+  /// an exact schedule and nothing appears at all. The cost is that Android may
+  /// deliver one a few minutes late. The in-app timer stays exact either way,
+  /// because it reads wall-clock timestamps (docs/SPEC.md §15.14).
+  static const scheduleMode = AndroidScheduleMode.inexactAllowWhileIdle;
+
   /// Called when a notification carrying a routine id is tapped. Set once, in
   /// main(), because routing needs the router — which the service must not
   /// know about.
@@ -256,9 +265,7 @@ class NotificationService {
       body: body,
       scheduledDate: scheduledAt,
       notificationDetails: details,
-      // The mode that fires through Doze and a locked screen, which is the
-      // only situation any of these three matter in.
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: scheduleMode,
     );
   }
 
@@ -334,7 +341,7 @@ class NotificationService {
         body: request.body,
         scheduledDate: scheduledAt,
         notificationDetails: details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         payload: request.routineId,
       );
     }

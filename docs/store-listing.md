@@ -53,7 +53,7 @@ OPEN SOURCE
 OpenRoutine is free and open source under the MIT license. There's no Pro tier and no feature gating. Read the code, report an issue, or contribute at github.com/asloth/openroutine.
 
 A NOTE ON REMINDERS
-Timers use exact alarms so a three-minute step ends after three minutes, even if your phone is locked. Notifications are scheduled on your phone, and the app asks for permission when you start your first timer.
+The timer on screen is exact. When your phone is locked, it still tells you when a step ends, though Android may deliver the notification a few minutes late to save battery. Notifications are scheduled on your phone, and the app asks for permission when you start your first timer.
 
 Built for people who find starting hard, and who deserve a routine that bends on the hard days.
 ```
@@ -120,7 +120,7 @@ CÓDIGO ABIERTO
 OpenRoutine es gratis y de código abierto con licencia MIT. No hay plan Pro ni funciones bloqueadas. Revisa el código, reporta un problema o colabora en github.com/asloth/openroutine.
 
 SOBRE LOS RECORDATORIOS
-Los temporizadores usan alarmas exactas para que un paso de tres minutos termine a los tres minutos, incluso con el celular bloqueado. Las notificaciones se programan en tu celular, y la app te pide permiso cuando inicias tu primer temporizador.
+El temporizador en pantalla es exacto. Con el celular bloqueado, igual te avisa cuando termina un paso, aunque Android puede entregar la notificación unos minutos tarde para ahorrar batería. Las notificaciones se programan en tu celular, y la app te pide permiso cuando inicias tu primer temporizador.
 
 Hecha para quienes sienten que empezar cuesta, y merecen una rutina que se adapte a los días difíciles.
 ```
@@ -169,8 +169,6 @@ Android permissions that end up in the release build (the manifest file plus wha
 
 | Permission | Where it comes from | Plain-language reason for the form | Play treatment |
 |---|---|---|---|
-| `USE_EXACT_ALARM` | App manifest | Timer Mode's core function is timing routine steps. Each step's expiry is scheduled as an exact alarm, so a three-minute step ends after three minutes, even if the phone is locked or the app is closed. An inexact alarm can drift by minutes, which makes a timer useless. | **Restricted, reviewed.** Allowed for apps whose core function is an alarm clock, timer, or calendar. You must declare it in Play Console (Policy > App content > Exact alarm permission). |
-| `SCHEDULE_EXACT_ALARM` | App manifest | The same exact alarms on Android 12 and 12L (API 31-32), where `USE_EXACT_ALARM` doesn't apply. | Same declaration. Android 13 and later use `USE_EXACT_ALARM` instead. |
 | `POST_NOTIFICATIONS` | App manifest | Tells you when a step's time is up and reminds you before a scheduled routine. The app asks when you first start a timer. | Runtime permission. No declaration. |
 | `RECEIVE_BOOT_COMPLETED` | App manifest | Re-schedules pending alarms and reminders after the phone restarts or the app updates, so your reminders don't silently vanish. | Normal. No declaration. |
 | `INTERNET` | Merged from plugins | Talks to Google's Drive API when you connect Google Drive. | Normal. No declaration. |
@@ -179,13 +177,7 @@ Android permissions that end up in the release build (the manifest file plus wha
 | `WAKE_LOCK` | Merged from plugins | Lets the system wake the app briefly to post a scheduled notification. | Normal. |
 | `FOREGROUND_SERVICE` | Merged from plugins | Declared by a library the app uses. The app doesn't start a foreground service of its own. | Normal. If Play asks, say the app uses no foreground service types. |
 
-What the app doesn't request: location, contacts, camera, microphone, photos, files and media, SMS, phone, accessibility, or "all files access".
-
-### Text for the exact alarm declaration
-
-Paste this into Play Console. It's short on purpose.
-
-> OpenRoutine is a visual-timer app. Its core function is to time the steps of a routine (for example, 3 minutes to brush teeth, 10 minutes to get dressed). Each step's end is scheduled as an exact alarm so the user is notified at the precise moment the step ends, even when the app is closed or the phone is locked. A timer that fires minutes late isn't a timer. The app uses `USE_EXACT_ALARM` for this timer function only, and not for background work, syncing, or ads.
+What the app doesn't request: exact alarms (`USE_EXACT_ALARM` or `SCHEDULE_EXACT_ALARM`, see [`SPEC.md`](SPEC.md) §15.14), location, contacts, camera, microphone, photos, files and media, SMS, phone, accessibility, or "all files access".
 
 ### Text for the notification permission
 
