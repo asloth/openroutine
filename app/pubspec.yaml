@@ -81,6 +81,7 @@ dependencies:
   home_widget: ^0.9.4
   rive: ^0.14.11
   audioplayers: ^6.7.1
+  wakelock_plus: ^1.7.0
 
 dev_dependencies:
   flutter_test:
