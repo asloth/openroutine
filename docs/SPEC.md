@@ -227,6 +227,8 @@ Local notifications: fire a local push when the app is backgrounded and a step t
 
 This **replaces the foreground service** this section originally called for. Handing the alarm to the OS is more robust: it fires whether or not the app's process survived, a guarantee a foreground service can't make, and it avoids declaring an Android 14+ `foregroundServiceType` of `specialUse`, which would need justifying at store review. Since the timer's state no longer depends on a live process either, there's nothing left for the service to keep alive. The alarms are inexact, so a notification can arrive a few minutes late while the phone is locked — see §15.14.
 
+While a step runs, the timer screen keeps the display awake, so you can glance at it without unlocking and see exact progress. Pausing, finishing, or leaving the timer lets the screen sleep again.
+
 ### 8.1 Android home screen widget (added after M5)
 
 A resizable Android app widget lists the user's routines — start time, name, and step count, ordered the same way the in-app list orders them. Tapping a row opens the app at `/routines/:routineId/timer`, on top of the routine list so Close and Back have somewhere to go, and starts the run. That's the widget's whole job: the app exists to lower the cost of starting a routine, and the launch path was the last expensive part of it.

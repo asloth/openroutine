@@ -7,9 +7,11 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/completion_log.dart';
 import '../../models/step.dart';
+import '../../services/screen/screen_wake.dart';
 import '../../services/timer/timer_machine.dart';
 import '../../services/timer/step_calibration.dart';
 import '../../state/routines_provider.dart';
+import '../../state/screen_wake_provider.dart';
 import '../../state/storage_provider.dart';
 import '../../state/timer_provider.dart';
 import '../../theme/typography.dart';
@@ -74,10 +76,27 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
   /// the same step leaves the countdown alone.
   String? _sipStep;
 
+  /// Read once and kept, because `ref` is off limits by the time [dispose]
+  /// has to let the screen sleep again.
+  late final ScreenWake _screenWake = ref.read(screenWakeProvider);
+
+  /// What the screen was last asked for, so a tick doesn't ask again.
+  bool _screenOn = false;
+
   @override
   void dispose() {
     _sips?.cancel();
+    if (_screenOn) unawaited(_screenWake.keepOn(false));
     super.dispose();
+  }
+
+  /// Keeps the screen awake while a step runs, so you can glance at it
+  /// without unlocking. Paused or finished, it's free to sleep.
+  void _syncScreen(TimerState state) {
+    final on = state.phase == TimerPhase.running;
+    if (on == _screenOn) return;
+    _screenOn = on;
+    unawaited(_screenWake.keepOn(on));
   }
 
   /// Starts sipping when a long step is running and stops on anything else:
@@ -105,6 +124,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
   /// step's outcome ends the run, and the finished screen celebrates instead.
   void _react(TimerState? previous, TimerState next) {
     _syncSips(next);
+    _syncScreen(next);
     if (previous == null || next.phase == TimerPhase.complete) return;
     MascotReaction? reaction;
     if (next.outcomes.length > previous.outcomes.length) {

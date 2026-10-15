@@ -9,12 +9,14 @@ import 'package:openroutine/models/schedule.dart';
 import 'package:openroutine/models/step.dart';
 import 'package:openroutine/screens/timer/timer_screen.dart';
 import 'package:openroutine/services/notifications/notification_service.dart';
+import 'package:openroutine/services/screen/screen_wake.dart';
 import 'package:openroutine/services/sounds/app_sounds.dart';
 import 'package:openroutine/services/storage/drift/app_database.dart'
     show AppDatabase;
 import 'package:openroutine/services/storage/local_adapter.dart';
 import 'package:openroutine/services/storage/storage_adapter.dart';
 import 'package:openroutine/services/timer/timer_machine.dart';
+import 'package:openroutine/state/screen_wake_provider.dart';
 import 'package:openroutine/state/sound_provider.dart';
 import 'package:openroutine/state/stats_provider.dart';
 import 'package:openroutine/state/storage_provider.dart';
@@ -78,15 +80,27 @@ class _NoopNotificationService implements NotificationService {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// Remembers the last thing the screen asked for.
+class _RecordingScreenWake implements ScreenWake {
+  bool? on;
+
+  @override
+  Future<void> keepOn(bool on) async => this.on = on;
+}
+
 Widget _wrap(
   StorageAdapter adapter, {
   NotificationService? notifications,
+  ScreenWake? screenWake,
   Locale? locale,
 }) {
   return ProviderScope(
     overrides: [
       storageAdapterProvider.overrideWithValue(adapter),
       appSoundsProvider.overrideWithValue(const SilentAppSounds()),
+      screenWakeProvider.overrideWithValue(
+        screenWake ?? _RecordingScreenWake(),
+      ),
       notificationServiceProvider.overrideWithValue(
         notifications ?? _NoopNotificationService(),
       ),
@@ -365,6 +379,46 @@ void main() {
       expect(mascot(tester).mood, MascotMood.idle);
 
       await _disposeCleanly(tester);
+    });
+  });
+
+  // While a step runs you should be able to glance at it, so the screen stays
+  // awake. Paused or gone, it's free to sleep and save the battery.
+  group('keeps the screen on while a step runs', () {
+    Future<_RecordingScreenWake> start(WidgetTester tester) async {
+      final wake = _RecordingScreenWake();
+      final adapter = await _seed(
+        steps: [_step('s1', order: 0), _step('s2', order: 1)],
+      );
+      await tester.pumpWidget(_wrap(adapter, screenWake: wake));
+      await tester.pumpAndSettle();
+      return wake;
+    }
+
+    testWidgets('on once the run starts', (tester) async {
+      final wake = await start(tester);
+      expect(wake.on, isTrue);
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('off while paused, and on again on resume', (tester) async {
+      final wake = await start(tester);
+
+      await tester.tap(find.byIcon(Icons.pause));
+      await tester.pumpAndSettle();
+      expect(wake.on, isFalse);
+
+      await tester.tap(find.byIcon(Icons.play_arrow));
+      await tester.pumpAndSettle();
+      expect(wake.on, isTrue);
+
+      await _disposeCleanly(tester);
+    });
+
+    testWidgets('off once you leave the timer', (tester) async {
+      final wake = await start(tester);
+      await _disposeCleanly(tester);
+      expect(wake.on, isFalse);
     });
   });
 
