@@ -10,4 +10,5 @@
     <color name="widget_on_surface_variant">#574E44</color>
     <color name="widget_accent">#A9502F</color>
     <color name="widget_divider">#D5C9B9</color>
+    <color name="ic_launcher_background">#F5EFE4</color>
 </resources>
