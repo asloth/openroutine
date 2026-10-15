@@ -74,7 +74,7 @@ Your first Play release goes to Internal Testing. It's the quickest way to get a
 - [ ] **Create the app.** Name, default language (English), free, and the `app.openroutine.mobile` package.
 - [ ] **Store listing.** Paste in the English and Spanish text from [`store-listing.md`](store-listing.md), then add the icon, the feature graphic, and at least two phone screenshots per language.
 - [ ] **Data safety.** Answer the form with the table in [`store-listing.md`](store-listing.md).
-- [ ] **Exact alarm declaration.** Complete Policy > App content > Exact alarm permission for `USE_EXACT_ALARM`. See [`SPEC.md`](SPEC.md) §15.14.
+- [ ] **No exact alarm declaration.** The app doesn't declare `USE_EXACT_ALARM`, so Policy > App content > Exact alarms shouldn't ask. If it does, an older bundle on some track still declares it. See [`SPEC.md`](SPEC.md) §15.14.
 - [ ] **Content rating.** Complete the questionnaire. Expect an Everyone rating.
 - [ ] **Target audience.** Choose adults and teens, not children, so the Families policy doesn't apply.
 - [ ] **Other App content forms.** Ads (none), government app (no), financial features (none), health features (none).
