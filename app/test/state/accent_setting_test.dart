@@ -5,7 +5,7 @@ import 'package:openroutine/theme/palette.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// `AccentSetting` is modeled on `PaletteSetting`, with one deliberate
-/// difference: its default and its fallback are `Palette.inkIris`, never
+/// difference: its default and its fallback are `Palette.slate`, never
 /// `Palette.defaultPalette` — the accent's default is a separate product
 /// decision from the background palette's, and the two must not recouple
 /// just because one of them changes later.
@@ -21,18 +21,21 @@ Future<(ProviderContainer, SharedPreferences)> _boot([
 }
 
 void main() {
-  test('defaults to ink iris when nothing has been chosen', () async {
-    final (container, _) = await _boot();
-    addTearDown(container.dispose);
+  test(
+    'defaults to slate, the blue in the store pictures, on a fresh install',
+    () async {
+      final (container, _) = await _boot();
+      addTearDown(container.dispose);
 
-    expect(container.read(accentSettingProvider).id, Palette.inkIris.id);
-  });
+      expect(container.read(accentSettingProvider).id, Palette.slate.id);
+    },
+  );
 
-  test('an unrecognised stored id falls back to ink iris', () async {
+  test('an unrecognised stored id falls back to slate', () async {
     final (container, _) = await _boot({'accent_color': 'aurora_borealis'});
     addTearDown(container.dispose);
 
-    expect(container.read(accentSettingProvider).id, Palette.inkIris.id);
+    expect(container.read(accentSettingProvider).id, Palette.slate.id);
   });
 
   test('choosing a built-in persists its id', () async {

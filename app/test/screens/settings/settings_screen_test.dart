@@ -131,10 +131,10 @@ void main() {
       // The old palette picker's free-hue swatch had no built-in palette
       // behind it and was always labelled "Custom".
       expect(find.bySemanticsLabel('Custom'), findsNothing);
-      // Ink iris is the default accent, and — with the palette picker gone —
+      // Slate is the default accent, and — with the palette picker gone —
       // this is the only "{name} selected" caption Appearance renders.
       expect(
-        find.text(l10n.settingsThemeCurrent(l10n.accentColorIndigo)),
+        find.text(l10n.settingsThemeCurrent(l10n.accentColorBlue)),
         findsOneWidget,
       );
     },

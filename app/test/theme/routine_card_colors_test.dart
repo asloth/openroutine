@@ -37,12 +37,12 @@ void main() {
       expect(cardColors.timerGround, theme.colorScheme.surface);
     });
 
-    test('AppTheme defaults to ink iris when no palette is given', () {
+    test('AppTheme defaults to slate when no palette is given', () {
       final theme = AppTheme.light();
       final cardColors = theme.extension<RoutineCardColors>();
-      final inkIris = Palette.inkIris.light;
+      final slate = Palette.slate.light;
 
-      expect(cardColors!.fill, inkIris.primaryContainer);
+      expect(cardColors!.fill, slate.primaryContainer);
     });
 
     test('lerp interpolates every field', () {

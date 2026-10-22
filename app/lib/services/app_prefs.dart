@@ -106,9 +106,9 @@ class AppPrefs {
   }
 
   /// A built-in `Palette.id` for the accent color that colors the whole app.
-  /// Null means "never chosen", which resolves to purple (`Palette.inkIris`),
-  /// and an id this build doesn't recognize falls back the same way rather
-  /// than leaving anything unthemed. Deliberately stored as an opaque string
+  /// Null means "never chosen", which resolves to blue
+  /// (`Palette.defaultAccent`), and an id this build doesn't recognize falls
+  /// back the same way rather than leaving anything unthemed. Deliberately stored as an opaque string
   /// rather than an enum, matching how every other device setting here is
   /// stored.
   String? get accentId => _prefs.getString(_accentKey);

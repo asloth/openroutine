@@ -98,6 +98,10 @@ class Palette {
   );
   static final moss = Palette.fromSeed(id: 'moss', hue: 122);
 
+  /// What a fresh install looks like before you pick anything: the blue the
+  /// store screenshots and promo video show.
+  static final defaultAccent = slate;
+
   static final builtIns = <Palette>[
     warmPaper,
     inkIris,

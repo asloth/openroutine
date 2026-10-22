@@ -64,17 +64,17 @@ class LocaleOverrideSetting extends _$LocaleOverrideSetting {
 /// The accent color that colors the whole app: surfaces, every role, and the
 /// mascot. It's the only color choice Settings › Appearance offers — there's
 /// no separate background palette to keep in sync with it. Falls back to
-/// [Palette.inkIris] when nothing is stored or the stored id isn't
+/// [Palette.defaultAccent] when nothing is stored or the stored id isn't
 /// recognised.
 @Riverpod(keepAlive: true)
 class AccentSetting extends _$AccentSetting {
   @override
   Palette build() {
     final id = ref.watch(appPrefsProvider).accentId;
-    if (id == null) return Palette.inkIris;
+    if (id == null) return Palette.defaultAccent;
     return Palette.builtIns.firstWhere(
       (palette) => palette.id == id,
-      orElse: () => Palette.inkIris,
+      orElse: () => Palette.defaultAccent,
     );
   }
 

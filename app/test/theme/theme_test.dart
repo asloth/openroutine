@@ -23,18 +23,18 @@ void main() {
   });
 
   group('AppTheme with no palette given', () {
-    test('light is Ink & Iris throughout', () {
+    test('light is Slate throughout', () {
       final theme = AppTheme.light();
 
-      expect(theme.colorScheme, Palette.inkIris.light);
-      expect(theme.extension<MascotPalette>(), Palette.inkIris.mascot);
+      expect(theme.colorScheme, Palette.slate.light);
+      expect(theme.extension<MascotPalette>(), Palette.slate.mascot);
     });
 
-    test('dark is Ink & Iris throughout', () {
+    test('dark is Slate throughout', () {
       final theme = AppTheme.dark();
 
-      expect(theme.colorScheme, Palette.inkIris.dark);
-      expect(theme.extension<MascotPalette>(), Palette.inkIris.mascot);
+      expect(theme.colorScheme, Palette.slate.dark);
+      expect(theme.extension<MascotPalette>(), Palette.slate.mascot);
     });
   });
 }

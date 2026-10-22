@@ -19,7 +19,7 @@ export 'typography.dart';
 /// override an appearance locally is a sign a component theme is missing.
 abstract final class AppTheme {
   /// Both take the user's chosen [Palette] and fall back to
-  /// [Palette.inkIris], so a call site with no opinion still gets a themed
+  /// [Palette.defaultAccent], so a call site with no opinion still gets a themed
   /// app. The parameter is nullable rather than defaulted because the
   /// default isn't a compile-time constant.
   ///
@@ -27,10 +27,10 @@ abstract final class AppTheme {
   /// neumorphic pair, and the mascot all come from it. There's no separate
   /// background palette merged underneath.
   static ThemeData light([Palette? palette]) =>
-      _build(palette ?? Palette.inkIris, Brightness.light);
+      _build(palette ?? Palette.defaultAccent, Brightness.light);
 
   static ThemeData dark([Palette? palette]) =>
-      _build(palette ?? Palette.inkIris, Brightness.dark);
+      _build(palette ?? Palette.defaultAccent, Brightness.dark);
 
   static ThemeData _build(Palette palette, Brightness brightness) {
     final scheme = palette.scheme(brightness);

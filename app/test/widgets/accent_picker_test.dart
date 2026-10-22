@@ -36,9 +36,7 @@ void main() {
     expect(find.bySemanticsLabel('Custom'), findsNothing);
   });
 
-  testWidgets('ink iris is selected by default, named as a color', (
-    tester,
-  ) async {
+  testWidgets('slate is selected by default, named as a color', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     await _pump(tester, prefs);
@@ -46,7 +44,7 @@ void main() {
     final context = tester.element(find.byType(AccentPicker));
     final l10n = AppLocalizations.of(context)!;
     expect(
-      find.text(l10n.settingsThemeCurrent(l10n.accentColorIndigo)),
+      find.text(l10n.settingsThemeCurrent(l10n.accentColorBlue)),
       findsOneWidget,
     );
   });
