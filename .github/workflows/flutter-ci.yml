@@ -19,6 +19,14 @@ jobs:
       # resolves the same dependency graph as local dev (see the "Dependency
       # notes" comment in app/pubspec.yaml for why several deps are held back
       # from latest). Bump deliberately, in its own PR.
+      # Kotlin's Gradle plugin can't parse Java 25's version string and fails
+      # with a bare "25.0.4.1". ubuntu-latest images started defaulting to
+      # JDK 25 in October 2026, so pin the JDK 21 that local builds use.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.41.4
