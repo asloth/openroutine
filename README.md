@@ -32,18 +32,20 @@ colors. Ochi, a small mascot, cheers you on along the way.
 ## Your data stays yours
 
 - **Works offline.** Routines live in a local database on your phone. Google Drive is optional.
-- **Narrow Drive access.** Drive sync uses the `drive.file` scope, so the app sees only the
-  `OpenRoutine` folder it creates. You can revoke access at any time.
+- **Narrow Drive access.** Drive sync uses Google's `drive.file` scope, which limits the app to
+  files it creates or that you open with it. Your routine files live in an `OpenRoutine` folder in
+  your Drive. You can revoke access at any time.
 - **Open format.** Routines are plain JSON files that follow the public schemas in
   [`schemas/`](schemas/). You can read them, copy them, or share them through import and export.
-- **No ads, analytics, or tracking.** The only network traffic is to Google's Drive API, and only
-  after you connect Drive. See the [privacy policy](docs/privacy-policy.md).
+- **No ads, analytics, or tracking.** The app includes no advertising, analytics, or
+  crash-reporting SDK. It goes online only for Google sign-in and the Drive API, after you connect
+  Drive. See the [privacy policy](docs/privacy-policy.md).
 - **MIT licensed.** There's no Pro tier and no feature gating.
 
 ## Get the app
 
-Version 1.0.0 is in this repository. There's no store link here yet, so for now you build it from
-source. Follow [Run the app](#run-the-app) below.
+You can build OpenRoutine 1.0.0 from source for Android or iOS. Follow
+[Run the app](#run-the-app) below.
 
 ## Work with an AI agent
 
