@@ -17,8 +17,9 @@ and, if you choose, sync as plain JSON files to your own Google Drive.
 
 ## What you can do
 
-- **Follow a routine with Timer Mode.** A visual countdown runs for the current step, with pause
-  and skip, and a gentle notification tells you when a step's time is up.
+- **Follow a routine with Timer Mode.** The timer counts up the time you've spent on the current
+  step, and a progress bar fills toward the step's estimate. You can pause or skip, and a gentle
+  notification tells you when the estimate is up.
 - **Build routines fast.** Add steps with emojis and durations, set optional days and start times,
   or start from ready-made step templates for morning, evening, study, and self-care.
 - **Use Low Mode on harder days.** Mark the steps that matter most, then run only those. Finishing
@@ -95,12 +96,12 @@ The Flutter app lives in [`app/`](app/). It needs Flutter **3.41.4**, the versio
 flutter pub get
 flutter gen-l10n
 dart run build_runner build --delete-conflicting-outputs
-flutter analyze
+flutter analyze --fatal-infos
 flutter test
 ```
 
 Generated files (`*.freezed.dart`, `*.g.dart`, and the localization classes) aren't committed, so
-run code generation before you analyze a fresh clone. CI runs `analyze` and `test` on every pull
+run code generation before you analyze a fresh clone. CI runs the same `analyze --fatal-infos` and `test` on every pull
 request through [`.github/workflows/flutter-ci.yml`](.github/workflows/flutter-ci.yml).
 
 ### Run the app
